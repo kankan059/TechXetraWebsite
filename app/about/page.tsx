@@ -1,9 +1,17 @@
-import React from 'react'
-
-const about = () => {
+export default function About() {
   return (
-    <div>about</div>
-  )
-}
+    <div>
+      <section style={{ height: "100vh" }}>
+        <h1>About - Page 1</h1>
+      </section>
 
-export default about
+      <section style={{ height: "100vh" }}>
+        <h1>About - Page 2</h1>
+      </section>
+
+      <section style={{ height: "100vh" }}>
+        <h1>About - Page 3</h1>
+      </section>
+    </div>
+  );
+}
