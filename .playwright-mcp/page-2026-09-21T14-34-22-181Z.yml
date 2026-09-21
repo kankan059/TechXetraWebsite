@@ -1,0 +1,22 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - region [ref=e3]:
+      - paragraph [ref=e4]: TECHXETRA / 2026
+      - heading [level=1] [ref=e5]:
+        - text: Build beyond
+        - emphasis [ref=e6]: the known.
+      - paragraph [ref=e7]: A living constellation for the people shaping what comes next. Ideas gather here, find their signal, and become something real.
+      - generic [ref=e8]:
+        - link "Enter the orbit" [ref=e9] [cursor=pointer]:
+          - /url: /register
+          - text: Enter the orbit
+          - generic [aria-hidden] [ref=e10]: ↗
+        - link "Explore events" [ref=e11] [cursor=pointer]:
+          - /url: /events
+          - text: Explore events
+          - generic [aria-hidden] [ref=e12]: →
+    - generic [aria-hidden] [ref=e13]:
+      - generic [ref=e14]: 01 / 04
+      - generic [ref=e16]: ASSAM · INDIA
+  - button "Open Next.js Dev Tools" [ref=e22] [cursor=pointer]
+  - alert [ref=e26]

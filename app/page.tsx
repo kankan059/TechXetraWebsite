@@ -1,9 +1,9 @@
-import React from 'react'
+import VolumetricParticleCanvas from "../components/animations/VolumetricParticleCanvas";
 
-const page = () => {
+export default function Page() {
   return (
-    <div>page</div>
-  )
+    <main className="hero-shell">
+      <VolumetricParticleCanvas />
+    </main>
+  );
 }
-
-export default page
