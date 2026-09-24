@@ -1,15 +1,20 @@
+"use client"
 import About from '@/components/sections/about/About'
 import Hero from '@/components/sections/hero/Hero'
-import React from 'react'
+import { useState } from 'react'
 
-const page = () => {
+const Page = () => {
+
   return (
     <div>
 
-      <Hero />
-      <About/>
+      <main>
+        <Hero />
+        <About />
+
+      </main>
     </div>
   )
 }
 
-export default page
+export default Page
