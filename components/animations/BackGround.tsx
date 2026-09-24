@@ -2,12 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-import { createScorpioParticleGeometry } from "@/lib/scorpio";
-
-gsap.registerPlugin(ScrollTrigger);
 
 function createParticleTexture() {
   const canvas = document.createElement("canvas");
@@ -16,7 +10,6 @@ function createParticleTexture() {
   canvas.height = 64;
 
   const ctx = canvas.getContext("2d");
-
   if (!ctx) return null;
 
   const gradient = ctx.createRadialGradient(
@@ -29,8 +22,8 @@ function createParticleTexture() {
   );
 
   gradient.addColorStop(0, "rgba(255,255,255,1)");
-  gradient.addColorStop(0.15, "rgba(255,255,255,0.95)");
-  gradient.addColorStop(0.45, "rgba(255,255,255,0.35)");
+  gradient.addColorStop(0.18, "rgba(255,255,255,0.95)");
+  gradient.addColorStop(0.45, "rgba(255,255,255,0.28)");
   gradient.addColorStop(1, "rgba(255,255,255,0)");
 
   ctx.fillStyle = gradient;
@@ -39,1351 +32,315 @@ function createParticleTexture() {
   return new THREE.CanvasTexture(canvas);
 }
 
-// Mobile e kom particles use koribo.
-function createMobileGeometry(
-  source: THREE.BufferGeometry
-) {
-  const position =
-    source.getAttribute(
-      "position"
-    ) as THREE.BufferAttribute;
-
-  const color =
-    source.getAttribute(
-      "color"
-    ) as THREE.BufferAttribute;
-
-  const positions: number[] = [];
-  const colors: number[] = [];
-
-  for (
-    let i = 0;
-    i < position.count;
-    i += 2
-  ) {
-    positions.push(
-      position.getX(i),
-      position.getY(i),
-      position.getZ(i)
-    );
-
-    colors.push(
-      color.getX(i),
-      color.getY(i),
-      color.getZ(i)
-    );
-  }
-
-  const geometry =
-    new THREE.BufferGeometry();
-
-  geometry.setAttribute(
-    "position",
-    new THREE.Float32BufferAttribute(
-      positions,
-      3
-    )
-  );
-
-  geometry.setAttribute(
-    "color",
-    new THREE.Float32BufferAttribute(
-      colors,
-      3
-    )
-  );
-
-  return geometry;
-}
-
 export default function BackGround() {
-  const containerRef =
-    useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const container =
-      containerRef.current;
-
+    const container = containerRef.current;
     if (!container) return;
 
-    const isMobile =
-      window.innerWidth < 768;
+    const isMobile = window.innerWidth < 768;
 
-    const scene =
-      new THREE.Scene();
+    const scene = new THREE.Scene();
 
-    const camera =
-      new THREE.PerspectiveCamera(
-        55,
-        window.innerWidth /
-          window.innerHeight,
-        0.1,
-        100
-      );
-
-    camera.position.z = 6.2;
-
-    const renderer =
-      new THREE.WebGLRenderer({
-        alpha: true,
-
-        // Mobile e antialias off korile FPS better hoi.
-        antialias: !isMobile,
-
-        powerPreference:
-          "high-performance",
-      });
-
-    renderer.setSize(
-      window.innerWidth,
-      window.innerHeight
+    const camera = new THREE.PerspectiveCamera(
+      58,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      100
     );
 
-    // Mobile e 2x DPR onek heavy hoi.
+    camera.position.z = 6;
+
+    const renderer = new THREE.WebGLRenderer({
+      alpha: true,
+      antialias: !isMobile,
+      powerPreference: "high-performance",
+    });
+
+    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(
       isMobile
-        ? Math.min(
-            window.devicePixelRatio,
-            1.15
-          )
-        : Math.min(
-            window.devicePixelRatio,
-            2
-          )
+        ? Math.min(window.devicePixelRatio, 1.2)
+        : Math.min(window.devicePixelRatio, 2)
     );
+    renderer.setClearColor(0x060606, 1);
 
-    renderer.setClearColor(
-      0x070707,
-      1
-    );
+    container.appendChild(renderer.domElement);
 
-    container.appendChild(
-      renderer.domElement
-    );
+    const particleTexture = createParticleTexture();
 
-    const particleTexture =
-      createParticleTexture();
+    const starGroup = new THREE.Group();
+    const glowGroup = new THREE.Group();
 
-    // Background stars.
-    const starCount =
-      isMobile
-        ? 650
-        : 3200;
+    scene.add(starGroup);
+    scene.add(glowGroup);
 
-    const starPositions =
-      new Float32Array(
-        starCount * 3
-      );
+    const CYAN = new THREE.Color("#1694be");
+    const SOFT_CYAN = new THREE.Color("#57d8ff");
+    const BRONZE = new THREE.Color("#b97946");
+    const CREAM = new THREE.Color("#f3ead4");
 
-    const starColors =
-      new Float32Array(
-        starCount * 3
-      );
+    // Main star field.
 
-    // Background colors.
-    const cyan =
-      new THREE.Color(
-        "#168eb5"
-      );
+    const starCount = isMobile ? 900 : 5200;
+    const starPositions = new Float32Array(starCount * 3);
+    const starColors = new Float32Array(starCount * 3);
+    const starSpeeds = new Float32Array(starCount);
 
-    const bronze =
-      new THREE.Color(
-        "#b97946"
-      );
-
-    const cream =
-      new THREE.Color(
-        "#f3ead4"
-      );
-
-    for (
-      let i = 0;
-      i < starCount;
-      i++
-    ) {
-      const index =
-        i * 3;
-
-      starPositions[index] =
-        (Math.random() -
-          0.5) *
-        20;
-
-      starPositions[
-        index + 1
-      ] =
-        (Math.random() -
-          0.5) *
-        14;
-
-      starPositions[
-        index + 2
-      ] =
-        (Math.random() -
-          0.5) *
-        12;
-
-      const random =
-        Math.random();
-
-      const color =
-        random > 0.93
-          ? bronze
-          : random > 0.88
-          ? cream
-          : cyan;
-
-      starColors[index] =
-        color.r;
-
-      starColors[
-        index + 1
-      ] =
-        color.g;
-
-      starColors[
-        index + 2
-      ] =
-        color.b;
-    }
-
-    const starsGeometry =
-      new THREE.BufferGeometry();
-
-    starsGeometry.setAttribute(
-      "position",
-      new THREE.BufferAttribute(
-        starPositions,
-        3
-      )
-    );
-
-    starsGeometry.setAttribute(
-      "color",
-      new THREE.BufferAttribute(
-        starColors,
-        3
-      )
-    );
-
-    const starsMaterial =
-      new THREE.PointsMaterial({
-        size: isMobile
-          ? 0.065
-          : 0.092,
-
-        map:
-          particleTexture ||
-          undefined,
-
-        transparent: true,
-
-        opacity: isMobile
-          ? 0.5
-          : 0.8,
-
-        vertexColors: true,
-
-        depthWrite: false,
-
-        sizeAttenuation: true,
-
-        blending:
-          THREE.AdditiveBlending,
-      });
-
-    const stars =
-      new THREE.Points(
-        starsGeometry,
-        starsMaterial
-      );
-
-    scene.add(stars);
-
-    const scorpioRoot =
-      new THREE.Group();
-
-    const scorpioMouseGroup =
-      new THREE.Group();
-
-    scorpioRoot.add(
-      scorpioMouseGroup
-    );
-
-    scene.add(
-      scorpioRoot
-    );
-
-    // Mobile e geometry half kori GPU pressure komaisu.
-    const originalGeometry =
-      createScorpioParticleGeometry();
-
-    const scorpioGeometry =
-      isMobile
-        ? createMobileGeometry(
-            originalGeometry
-          )
-        : originalGeometry;
-
-    const positionAttribute =
-      scorpioGeometry.getAttribute(
-        "position"
-      ) as THREE.BufferAttribute;
-
-    const originalPositions =
-      new Float32Array(
-        positionAttribute.array.length
-      );
-
-    originalPositions.set(
-      positionAttribute.array as Float32Array
-    );
-
-    const explodeDirections =
-      new Float32Array(
-        positionAttribute.array.length
-      );
-
-    for (
-      let i = 0;
-      i <
-      explodeDirections.length;
-      i += 3
-    ) {
-      const x =
-        originalPositions[i];
-
-      const y =
-        originalPositions[
-          i + 1
-        ];
-
-      const z =
-        originalPositions[
-          i + 2
-        ];
-
-      const length =
-        Math.sqrt(
-          x * x +
-            y * y +
-            z * z
-        ) || 1;
-
-      explodeDirections[i] =
-        x / length +
-        (Math.random() -
-          0.5) *
-          1.8;
-
-      explodeDirections[
-        i + 1
-      ] =
-        y / length +
-        (Math.random() -
-          0.5) *
-          1.8;
-
-      explodeDirections[
-        i + 2
-      ] =
-        z / length +
-        (Math.random() -
-          0.5) *
-          2.8;
-    }
-
-    // Scorpio main particles.
-    const scorpioMaterial =
-      new THREE.PointsMaterial({
-        size: isMobile
-          ? 0.026
-          : 0.055,
-
-        map:
-          particleTexture ||
-          undefined,
-
-        vertexColors: true,
-
-        transparent: true,
-
-        opacity: isMobile
-          ? 0.82
-          : 1,
-
-        depthWrite: false,
-
-        sizeAttenuation: true,
-
-        blending:
-          THREE.AdditiveBlending,
-      });
-
-    const scorpio =
-      new THREE.Points(
-        scorpioGeometry,
-        scorpioMaterial
-      );
-
-    scorpioMouseGroup.add(
-      scorpio
-    );
-
-    // Scorpio glow.
-    const glowMaterial =
-      new THREE.PointsMaterial({
-        size: isMobile
-          ? 0.045
-          : 0.11,
-
-        map:
-          particleTexture ||
-          undefined,
-
-        vertexColors: true,
-
-        transparent: true,
-
-        opacity: isMobile
-          ? 0.055
-          : 0.12,
-
-        depthWrite: false,
-
-        blending:
-          THREE.AdditiveBlending,
-      });
-
-    const scorpioGlow =
-      new THREE.Points(
-        scorpioGeometry,
-        glowMaterial
-      );
-
-    scorpioGlow.position.z =
-      -0.12;
-
-    scorpioMouseGroup.add(
-      scorpioGlow
-    );
-
-    // Front highlight.
-    const highlightMaterial =
-      new THREE.PointsMaterial({
-        size: isMobile
-          ? 0.02
-          : 0.1,
-
-        map:
-          particleTexture ||
-          undefined,
-
-        vertexColors: true,
-
-        transparent: true,
-
-        opacity: isMobile
-          ? 0.25
-          : 0.55,
-
-        depthWrite: false,
-
-        blending:
-          THREE.AdditiveBlending,
-      });
-
-    const scorpioHighlight =
-      new THREE.Points(
-        scorpioGeometry,
-        highlightMaterial
-      );
-
-    scorpioHighlight.position.z =
-      0.18;
-
-    scorpioHighlight.scale.setScalar(
-      0.99
-    );
-
-    scorpioMouseGroup.add(
-      scorpioHighlight
-    );
-
-    // Mobile e orbit particles kom.
-    const orbitCount =
-      isMobile
-        ? 80
-        : 360;
-
-    const orbitPositions =
-      new Float32Array(
-        orbitCount * 3
-      );
-
-    const orbitColors =
-      new Float32Array(
-        orbitCount * 3
-      );
-
-    for (
-      let i = 0;
-      i < orbitCount;
-      i++
-    ) {
+    for (let i = 0; i < starCount; i++) {
       const i3 = i * 3;
 
-      const angle =
-        (i / orbitCount) *
-        Math.PI *
-        2;
+      starPositions[i3] = (Math.random() - 0.5) * 24;
+      starPositions[i3 + 1] = (Math.random() - 0.5) * 16;
+      starPositions[i3 + 2] = -Math.random() * 24;
 
-      const radius =
-        2.7 +
-        Math.random() *
-          0.7;
-
-      orbitPositions[i3] =
-        Math.cos(angle) *
-        radius;
-
-      orbitPositions[
-        i3 + 1
-      ] =
-        Math.sin(angle) *
-        radius *
-        0.55;
-
-      orbitPositions[
-        i3 + 2
-      ] =
-        (Math.random() -
-          0.5) *
-        1.6;
-
+      const random = Math.random();
       const color =
-        Math.random() >
-        0.75
-          ? bronze
-          : cyan;
+        random > 0.97
+          ? CREAM
+          : random > 0.9
+          ? BRONZE
+          : random > 0.45
+          ? SOFT_CYAN
+          : CYAN;
 
-      orbitColors[i3] =
-        color.r;
+      starColors[i3] = color.r;
+      starColors[i3 + 1] = color.g;
+      starColors[i3 + 2] = color.b;
 
-      orbitColors[
-        i3 + 1
-      ] =
-        color.g;
-
-      orbitColors[
-        i3 + 2
-      ] =
-        color.b;
+      starSpeeds[i] = isMobile
+        ? 0.012 + Math.random() * 0.012
+        : 0.018 + Math.random() * 0.02;
     }
 
-    const orbitGeometry =
-      new THREE.BufferGeometry();
-
-    orbitGeometry.setAttribute(
+    const starsGeometry = new THREE.BufferGeometry();
+    starsGeometry.setAttribute(
       "position",
-      new THREE.BufferAttribute(
-        orbitPositions,
-        3
-      )
+      new THREE.BufferAttribute(starPositions, 3)
     );
-
-    orbitGeometry.setAttribute(
+    starsGeometry.setAttribute(
       "color",
-      new THREE.BufferAttribute(
-        orbitColors,
-        3
-      )
+      new THREE.BufferAttribute(starColors, 3)
     );
 
-    const orbitMaterial =
-      new THREE.PointsMaterial({
-        size: isMobile
-          ? 0.03
-          : 0.045,
+    const starsMaterial = new THREE.PointsMaterial({
+      size: isMobile ? 0.045 : 0.09,
+      map: particleTexture || undefined,
+      transparent: true,
+      opacity: isMobile ? 0.7 : 0.82,
+      vertexColors: true,
+      depthWrite: false,
+      sizeAttenuation: true,
+      blending: THREE.AdditiveBlending,
+    });
 
-        map:
-          particleTexture ||
-          undefined,
-
-        transparent: true,
-
-        opacity: isMobile
-          ? 0.16
-          : 0.4,
-
-        vertexColors: true,
-
-        depthWrite: false,
-
-        sizeAttenuation: true,
-
-        blending:
-          THREE.AdditiveBlending,
-      });
-
-    const orbitParticles =
-      new THREE.Points(
-        orbitGeometry,
-        orbitMaterial
-      );
-
-    scorpioMouseGroup.add(
-      orbitParticles
+    const stars = new THREE.Points(
+      starsGeometry,
+      starsMaterial
     );
 
-    const hitAreaGeometry =
-      new THREE.PlaneGeometry(
-        5.6,
-        5.3
-      );
+    starGroup.add(stars);
 
-    const hitAreaMaterial =
-      new THREE.MeshBasicMaterial({
-        transparent: true,
-        opacity: 0,
-        depthWrite: false,
-      });
+    // Bigger glow particles.
 
-    const hitArea =
-      new THREE.Mesh(
-        hitAreaGeometry,
-        hitAreaMaterial
-      );
+    const glowCount = isMobile ? 120 : 420;
+    const glowPositions = new Float32Array(glowCount * 3);
+    const glowColors = new Float32Array(glowCount * 3);
+    const glowSpeeds = new Float32Array(glowCount);
 
-    hitArea.position.z =
-      -0.2;
+    for (let i = 0; i < glowCount; i++) {
+      const i3 = i * 3;
 
-    scorpioMouseGroup.add(
-      hitArea
+      glowPositions[i3] = (Math.random() - 0.5) * 22;
+      glowPositions[i3 + 1] = (Math.random() - 0.5) * 14;
+      glowPositions[i3 + 2] = -Math.random() * 24;
+
+      const random = Math.random();
+      const color =
+        random > 0.88 ? BRONZE : SOFT_CYAN;
+
+      glowColors[i3] = color.r;
+      glowColors[i3 + 1] = color.g;
+      glowColors[i3 + 2] = color.b;
+
+      glowSpeeds[i] = isMobile
+        ? 0.008 + Math.random() * 0.01
+        : 0.012 + Math.random() * 0.014;
+    }
+
+    const glowGeometry = new THREE.BufferGeometry();
+    glowGeometry.setAttribute(
+      "position",
+      new THREE.BufferAttribute(glowPositions, 3)
+    );
+    glowGeometry.setAttribute(
+      "color",
+      new THREE.BufferAttribute(glowColors, 3)
     );
 
-    // Scorpio size.
-    const getBaseScale =
-      () =>
-        window.innerWidth <
-        768
-          ? 0.62
-          : 1;
+    const glowMaterial = new THREE.PointsMaterial({
+      size: isMobile ? 0.12 : 0.35,
+      map: particleTexture || undefined,
+      transparent: true,
+      opacity: isMobile ? 0.12 : 0.26,
+      vertexColors: true,
+      depthWrite: false,
+      sizeAttenuation: true,
+      blending: THREE.AdditiveBlending,
+    });
 
-    // Scorpio right left position.
-    const getStartX =
-      () =>
-        window.innerWidth <
-        768
-          ? 0
-          : 2.9;
+    const glowParticles = new THREE.Points(
+      glowGeometry,
+      glowMaterial
+    );
 
-    // Scorpio up down position.
-    const getStartY =
-      () =>
-        window.innerWidth <
-        768
-          ? -0.8
-          : -0.05;
+    glowGroup.add(glowParticles);
 
-    const setScorpioPosition =
-      () => {
-        scorpioRoot.position.set(
-          getStartX(),
-          getStartY(),
-          0
-        );
+    // Pointer changes the flow direction.
 
-        scorpioRoot.scale.setScalar(
-          getBaseScale()
-        );
-      };
-
-    setScorpioPosition();
-
-    const pointer =
-      new THREE.Vector2();
-
-    const smoothPointer =
-      new THREE.Vector2();
-
-    const raycaster =
-      new THREE.Raycaster();
-
-    let hoverTarget = 0;
-    let hoverValue = 0;
-    let touchBoost = 0;
-
-    const scrollState = {
-      scatter: 0,
-      progress: 0,
-    };
+    const pointer = new THREE.Vector2(0, 0);
+    const pointerSmooth = new THREE.Vector2(0, 0);
+    const flowTarget = new THREE.Vector2(0, 0);
+    const flowCurrent = new THREE.Vector2(0, 0);
 
     const updatePointer = (
       clientX: number,
       clientY: number
     ) => {
-      pointer.x =
-        (clientX /
-          window.innerWidth) *
-          2 -
-        1;
+      const x = clientX / window.innerWidth;
+      const y = clientY / window.innerHeight;
 
-      pointer.y =
-        -(
-          clientY /
-          window.innerHeight
-        ) *
-          2 +
-        1;
+      pointer.set(x * 2 - 1, -(y * 2 - 1));
+
+      flowTarget.set(
+        (x - 0.5) * 0.9,
+        (0.5 - y) * 0.6
+      );
     };
 
-    const checkHover =
-      () => {
-        if (
-          isMobile ||
-          scrollState.scatter >
-            0.65
-        ) {
-          hoverTarget = 0;
+    const handlePointerMove = (event: PointerEvent) => {
+      updatePointer(event.clientX, event.clientY);
+    };
 
-          return;
-        }
+    const handlePointerLeave = () => {
+      flowTarget.set(0, 0);
+    };
 
-        raycaster.setFromCamera(
-          pointer,
-          camera
-        );
-
-        const intersections =
-          raycaster.intersectObject(
-            hitArea,
-            false
-          );
-
-        hoverTarget =
-          intersections.length >
-          0
-            ? 1
-            : 0;
-      };
-
-    const handlePointerMove =
-      (
-        event: PointerEvent
-      ) => {
-        if (isMobile)
-          return;
-
-        updatePointer(
-          event.clientX,
-          event.clientY
-        );
-
-        checkHover();
-      };
-
-    const handlePointerDown =
-      (
-        event: PointerEvent
-      ) => {
-        if (isMobile)
-          return;
-
-        updatePointer(
-          event.clientX,
-          event.clientY
-        );
-
-        checkHover();
-
-        if (
-          hoverTarget > 0
-        ) {
-          touchBoost = 1;
-        }
-      };
-
-    const handlePointerLeave =
-      () => {
-        hoverTarget = 0;
-      };
-
-    // Mobile scroll e pointer calculation dorkar nai.
-    if (!isMobile) {
-      window.addEventListener(
-        "pointermove",
-        handlePointerMove
-      );
-
-      window.addEventListener(
-        "pointerdown",
-        handlePointerDown
-      );
-
-      document.addEventListener(
-        "mouseleave",
-        handlePointerLeave
-      );
-    }
-
-    const hero =
-      document.querySelector(
-        "#hero"
-      );
-
-    let scrollTrigger:
-      | ScrollTrigger
-      | undefined;
-
-    if (hero) {
-      scrollTrigger =
-        ScrollTrigger.create({
-          trigger: hero,
-
-          start: "top top",
-
-          end: "bottom top",
-
-          // Mobile scroll motion ektu smooth hobo.
-          scrub: isMobile
-            ? 0.55
-            : true,
-
-          onUpdate: (
-            self
-          ) => {
-            const progress =
-              self.progress;
-
-            scrollState.progress =
-              progress;
-
-            scrollState.scatter =
-              THREE.MathUtils.clamp(
-                (
-                  progress -
-                  0.25
-                ) /
-                  0.65,
-                0,
-                1
-              );
-
-            const startX =
-              getStartX();
-
-            const startY =
-              getStartY();
-
-            scorpioRoot.position.x =
-              startX +
-              progress *
-                (isMobile
-                  ? 0.25
-                  : 0.9);
-
-            scorpioRoot.position.y =
-              startY -
-              progress *
-                (isMobile
-                  ? 0.65
-                  : 1.3);
-
-            scorpioRoot.position.z =
-              -progress *
-              (isMobile
-                ? 1.1
-                : 2);
-
-            scorpioRoot.rotation.z =
-              progress *
-              (isMobile
-                ? 0.08
-                : 0.25);
-
-            scorpioRoot.rotation.y =
-              progress *
-              (isMobile
-                ? 0.1
-                : 0.42);
-
-            const scale =
-              getBaseScale() *
-              (
-                1 -
-                progress *
-                  (isMobile
-                    ? 0.22
-                    : 0.35)
-              );
-
-            scorpioRoot.scale.setScalar(
-              scale
-            );
-
-            scorpioMaterial.opacity =
-              Math.max(
-                0,
-                (
-                  isMobile
-                    ? 0.82
-                    : 1
-                ) -
-                  scrollState.scatter *
-                    1.15
-              );
-
-            glowMaterial.opacity =
-              Math.max(
-                0,
-                (
-                  isMobile
-                    ? 0.055
-                    : 0.12
-                ) -
-                  scrollState.scatter *
-                    0.12
-              );
-
-            highlightMaterial.opacity =
-              Math.max(
-                0,
-                (
-                  isMobile
-                    ? 0.25
-                    : 0.55
-                ) -
-                  scrollState.scatter *
-                    0.7
-              );
-
-            orbitMaterial.opacity =
-              Math.max(
-                0,
-                (
-                  isMobile
-                    ? 0.16
-                    : 0.4
-                ) -
-                  scrollState.scatter *
-                    0.45
-              );
-          },
-        });
-    }
-
-    const clock =
-      new THREE.Clock();
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerleave", handlePointerLeave);
 
     let frameId = 0;
+    const clock = new THREE.Timer();
 
-    const animate =
-      () => {
-        const time =
-          clock.getElapsedTime();
+    const animate = () => {
+      const time = clock.getElapsed();
 
-        if (!isMobile) {
-          smoothPointer.x +=
-            (
-              pointer.x -
-              smoothPointer.x
-            ) *
-            0.015;
+      pointerSmooth.x += (pointer.x - pointerSmooth.x) * (isMobile ? 0.025 : 0.04);
+      pointerSmooth.y += (pointer.y - pointerSmooth.y) * (isMobile ? 0.025 : 0.04);
 
-          smoothPointer.y +=
-            (
-              pointer.y -
-              smoothPointer.y
-            ) *
-            0.015;
+      flowCurrent.x += (flowTarget.x - flowCurrent.x) * (isMobile ? 0.02 : 0.035);
+      flowCurrent.y += (flowTarget.y - flowCurrent.y) * (isMobile ? 0.02 : 0.035);
 
-          hoverValue +=
-            (
-              hoverTarget -
-              hoverValue
-            ) *
-            0.08;
+      const starsPositionAttr =
+        starsGeometry.getAttribute("position") as THREE.BufferAttribute;
 
-          touchBoost *=
-            0.9;
+      const starsArray = starsPositionAttr.array as Float32Array;
+
+      for (let i = 0; i < starCount; i++) {
+        const i3 = i * 3;
+
+        starsArray[i3] += flowCurrent.x * starSpeeds[i] * 0.12;
+        starsArray[i3 + 1] += flowCurrent.y * starSpeeds[i] * 0.12;
+        starsArray[i3 + 2] += starSpeeds[i];
+
+        if (starsArray[i3 + 2] > 6) {
+          starsArray[i3] = (Math.random() - 0.5) * 24;
+          starsArray[i3 + 1] = (Math.random() - 0.5) * 16;
+          starsArray[i3 + 2] = -24;
         }
 
-        const interaction =
-          isMobile
-            ? 0
-            : Math.min(
-                1.4,
-                hoverValue +
-                  touchBoost *
-                    0.7
-              );
+        if (starsArray[i3] > 14) starsArray[i3] = -14;
+        if (starsArray[i3] < -14) starsArray[i3] = 14;
+        if (starsArray[i3 + 1] > 10) starsArray[i3 + 1] = -10;
+        if (starsArray[i3 + 1] < -10) starsArray[i3 + 1] = 10;
+      }
 
-        const hoverScale =
-          1 +
-          interaction *
-            0.13;
+      starsPositionAttr.needsUpdate = true;
 
-        scorpioMouseGroup.scale.setScalar(
-          hoverScale
-        );
+      const glowPositionAttr =
+        glowGeometry.getAttribute("position") as THREE.BufferAttribute;
 
-        // Desktop hover only.
-        scorpioMouseGroup.rotation.y =
-          isMobile
-            ? 0
-            : smoothPointer.x *
-              0.096 *
-              interaction;
+      const glowArray = glowPositionAttr.array as Float32Array;
 
-        scorpioMouseGroup.rotation.x =
-          isMobile
-            ? 0
-            : -smoothPointer.y *
-              0.091 *
-              interaction;
+      for (let i = 0; i < glowCount; i++) {
+        const i3 = i * 3;
 
-        // Mobile e khub halka floating.
-        scorpioMouseGroup.rotation.z =
-          isMobile
-            ? Math.sin(
-                time * 0.22
-              ) *
-              0.003
-            : Math.sin(
-                time * 0.15
-              ) *
-                0.012 +
-              Math.sin(
-                time * 4
-              ) *
-                0.025 *
-                interaction;
+        glowArray[i3] += flowCurrent.x * glowSpeeds[i] * 0.18;
+        glowArray[i3 + 1] += flowCurrent.y * glowSpeeds[i] * 0.18;
+        glowArray[i3 + 2] += glowSpeeds[i];
 
-        scorpioMouseGroup.position.x =
-          isMobile
-            ? 0
-            : smoothPointer.x *
-              0.12 *
-              interaction;
-
-        scorpioMouseGroup.position.y =
-          isMobile
-            ? Math.sin(
-                time * 0.35
-              ) *
-              0.012
-            : Math.sin(
-                time * 0.8
-              ) *
-                0.05 +
-              smoothPointer.y *
-                0.09 *
-                interaction;
-
-        scorpioMouseGroup.position.z =
-          isMobile
-            ? 0
-            : interaction *
-              0.22;
-
-        // Orbit animation mobile e slow.
-        orbitParticles.rotation.z =
-          time *
-          (isMobile
-            ? 0.035
-            : 0.15);
-
-        orbitParticles.rotation.y =
-          time *
-            (isMobile
-              ? 0.018
-              : 0.08) +
-          interaction *
-            0.35;
-
-        const positions =
-          positionAttribute.array as Float32Array;
-
-        const scatter =
-          scrollState.scatter;
-
-        const scatterEase =
-          scatter *
-          scatter;
-
-        for (
-          let i = 0;
-          i <
-          positions.length;
-          i += 3
-        ) {
-          const ox =
-            originalPositions[
-              i
-            ];
-
-          const oy =
-            originalPositions[
-              i + 1
-            ];
-
-          const oz =
-            originalPositions[
-              i + 2
-            ];
-
-          // Mobile e particle breathing kom.
-          const wave =
-            Math.sin(
-              time *
-                (isMobile
-                  ? 0.55
-                  : 1.2) +
-                ox * 2 +
-                oy
-            ) *
-            (isMobile
-              ? 0.004
-              : 0.012);
-
-          const hoverWave =
-            isMobile
-              ? 0
-              : Math.sin(
-                  time *
-                    4 +
-                    ox *
-                      3 +
-                    oy *
-                      2
-                ) *
-                0.018 *
-                interaction;
-
-          const depthPulse =
-            Math.cos(
-              time *
-                (isMobile
-                  ? 0.8
-                  : 1.8) +
-                oz * 3
-            ) *
-            (isMobile
-              ? 0.003
-              : 0.01) *
-            (
-              1 +
-              interaction *
-                0.7
-            );
-
-          positions[i] =
-            ox +
-            wave +
-            hoverWave +
-            explodeDirections[
-              i
-            ] *
-              scatterEase *
-              (isMobile
-                ? 1.9
-                : 2.6);
-
-          positions[
-            i + 1
-          ] =
-            oy +
-            wave +
-            hoverWave +
-            explodeDirections[
-              i + 1
-            ] *
-              scatterEase *
-              (isMobile
-                ? 1.9
-                : 2.6);
-
-          positions[
-            i + 2
-          ] =
-            oz +
-            depthPulse +
-            hoverWave *
-              2 +
-            explodeDirections[
-              i + 2
-            ] *
-              scatterEase *
-              (isMobile
-                ? 1.4
-                : 2) +
-            Math.sin(
-              time +
-                i *
-                  0.001
-            ) *
-              scatter *
-              (isMobile
-                ? 0.025
-                : 0.08);
+        if (glowArray[i3 + 2] > 6) {
+          glowArray[i3] = (Math.random() - 0.5) * 22;
+          glowArray[i3 + 1] = (Math.random() - 0.5) * 14;
+          glowArray[i3 + 2] = -24;
         }
 
-        positionAttribute.needsUpdate =
-          true;
+        if (glowArray[i3] > 14) glowArray[i3] = -14;
+        if (glowArray[i3] < -14) glowArray[i3] = 14;
+        if (glowArray[i3 + 1] > 10) glowArray[i3 + 1] = -10;
+        if (glowArray[i3 + 1] < -10) glowArray[i3 + 1] = 10;
+      }
 
-        // Mobile e background movement almost static.
-        stars.rotation.y =
-          time *
-          (isMobile
-            ? 0.0015
-            : 0.005);
+      glowPositionAttr.needsUpdate = true;
 
-        stars.rotation.x =
-          Math.sin(
-            time *
-              (isMobile
-                ? 0.06
-                : 0.12)
-          ) *
-          (isMobile
-            ? 0.006
-            : 0.018);
+      starGroup.rotation.y = pointerSmooth.x * 0.06 + time * 0.005;
+      starGroup.rotation.x = pointerSmooth.y * 0.04 + Math.sin(time * 0.15) * 0.01;
 
-        renderer.render(
-          scene,
-          camera
-        );
+      glowGroup.rotation.y = pointerSmooth.x * 0.1 + time * 0.008;
+      glowGroup.rotation.x = pointerSmooth.y * 0.06 + Math.sin(time * 0.2) * 0.012;
 
-        frameId =
-          requestAnimationFrame(
-            animate
-          );
-      };
+      glowGroup.position.x = pointerSmooth.x * 0.18;
+      glowGroup.position.y = pointerSmooth.y * 0.12;
+
+      renderer.render(scene, camera);
+      frameId = requestAnimationFrame(animate);
+    };
 
     animate();
 
-    let lastWidth =
-      window.innerWidth;
+    const handleResize = () => {
+      const mobileNow = window.innerWidth < 768;
 
-    const handleResize =
-      () => {
-        const newWidth =
-          window.innerWidth;
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
 
-        camera.aspect =
-          window.innerWidth /
-          window.innerHeight;
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(
+        mobileNow
+          ? Math.min(window.devicePixelRatio, 1.2)
+          : Math.min(window.devicePixelRatio, 2)
+      );
+    };
 
-        camera.updateProjectionMatrix();
-
-        renderer.setSize(
-          window.innerWidth,
-          window.innerHeight
-        );
-
-        renderer.setPixelRatio(
-          isMobile
-            ? Math.min(
-                window.devicePixelRatio,
-                1.15
-              )
-            : Math.min(
-                window.devicePixelRatio,
-                2
-              )
-        );
-
-        // Mobile browser top bar height change hole Scorpio jump nokoribo.
-        if (
-          Math.abs(
-            newWidth -
-              lastWidth
-          ) >
-          2
-        ) {
-          lastWidth =
-            newWidth;
-
-          setScorpioPosition();
-
-          ScrollTrigger.refresh();
-        }
-      };
-
-    window.addEventListener(
-      "resize",
-      handleResize
-    );
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      cancelAnimationFrame(
-        frameId
-      );
+      cancelAnimationFrame(frameId);
 
-      if (!isMobile) {
-        window.removeEventListener(
-          "pointermove",
-          handlePointerMove
-        );
-
-        window.removeEventListener(
-          "pointerdown",
-          handlePointerDown
-        );
-
-        document.removeEventListener(
-          "mouseleave",
-          handlePointerLeave
-        );
-      }
-
-      window.removeEventListener(
-        "resize",
-        handleResize
-      );
-
-      scrollTrigger?.kill();
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerleave", handlePointerLeave);
+      window.removeEventListener("resize", handleResize);
 
       starsGeometry.dispose();
-
       starsMaterial.dispose();
-
-      scorpioGeometry.dispose();
-
-      if (
-        isMobile &&
-        originalGeometry !==
-          scorpioGeometry
-      ) {
-        originalGeometry.dispose();
-      }
-
-      scorpioMaterial.dispose();
-
+      glowGeometry.dispose();
       glowMaterial.dispose();
-
-      highlightMaterial.dispose();
-
-      orbitGeometry.dispose();
-
-      orbitMaterial.dispose();
-
-      hitAreaGeometry.dispose();
-
-      hitAreaMaterial.dispose();
-
       particleTexture?.dispose();
-
       renderer.dispose();
 
-      if (
-        renderer.domElement
-          .parentNode
-      ) {
-        renderer.domElement.parentNode.removeChild(
-          renderer.domElement
-        );
+      if (renderer.domElement.parentNode) {
+        renderer.domElement.parentNode.removeChild(renderer.domElement);
       }
     };
   }, []);
@@ -1391,7 +348,7 @@ export default function BackGround() {
   return (
     <div
       ref={containerRef}
-      className="pointer-events-none fixed inset-0 z-0 h-screen w-screen bg-[#070707]"
+      className="pointer-events-none fixed inset-0 z-0 h-screen w-screen bg-[#060606]"
     />
   );
 }

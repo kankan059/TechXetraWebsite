@@ -1,25 +1,25 @@
-export const COLORS = {
-  black: "#0b0b0b",
+export const TECHXETRA_COLORS = {
+  blue: "#0972AE",
+  green: "#3F622D",
+  red: "#8F1418",
+  cream: "#F7F3DE",
 
-  blue: {
-    light: "#6faed0",
-    mid: "#1479ad",
-    dark: "#062f46",
-  },
+  // Dark tones based on the palette sheet.
+  blueDark: "#044468",
+  blueBlack: "#011722",
 
-  red: {
-    light: "#bb7478",
-    mid: "#ae4144",
-    dark: "#360707",
-  },
+  greenDark: "#253A1B",
+  greenBlack: "#0D1309",
 
-  green: {
-    light: "#91a38a",
-    mid: "#41672f",
-    dark: "#0c260e",
-  },
+  redDark: "#550C0D",
+  redBlack: "#1D0404",
 
-  cream: "#f7f1df",
+  creamMuted: "#949285",
+  creamDark: "#31312C",
 
-  bronze: "#b97a45",
-};
+  // Main website background.
+  black: "#090909",
+} as const;
+
+export type TechxetraColor =
+  (typeof TECHXETRA_COLORS)[keyof typeof TECHXETRA_COLORS];
