@@ -8,3 +8,5 @@
 8. Every section must be responsive
 9. Do not push directly to main
 10. Run lint before PR
+
+## vercel link : https://techxetra.vercel.app/
