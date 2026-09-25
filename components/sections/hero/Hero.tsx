@@ -7,6 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { heroData } from "@/data/info/hero";
 import { TECHXETRA_COLORS } from "@/constants/colors";
 import HeroTitle from "./HeroTitle";
+import LogoTech from "@/components/animations/LogoTech";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -198,7 +199,9 @@ export default function Hero() {
   } as CSSProperties;
 
   return (
+    
     <section ref={heroRef} id="hero" style={colorVariables} className="relative z-10 min-h-[100svh] overflow-hidden text-(--tx-cream)">
+       <LogoTech />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/45 via-black/10 to-transparent" />
 
       <div className="relative mx-auto flex min-h-[100svh] w-full max-w-[1920px] flex-col px-5 pb-6 pt-24 sm:px-8 md:px-12 md:pb-8 lg:px-16 lg:pt-28 xl:px-20">
