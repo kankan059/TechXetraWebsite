@@ -56,7 +56,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 
         <BackGround />
         <Navbar />
-        <LogoTech />
+       
         <SmoothScroll />
         {children}
       </body>
