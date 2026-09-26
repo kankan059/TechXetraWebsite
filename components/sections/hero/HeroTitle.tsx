@@ -76,7 +76,7 @@ export default function TechXetraTitle() {
         left,
         {
           xPercent: 0,
-          duration: 0.9,
+          duration: 1.2,
           ease: "power4.out",
         },
         "-=0.28"
@@ -86,7 +86,7 @@ export default function TechXetraTitle() {
         right,
         {
           xPercent: 0,
-          duration: 0.9,
+          duration: 1.2,
           ease: "power4.out",
         },
         "<0.04"
