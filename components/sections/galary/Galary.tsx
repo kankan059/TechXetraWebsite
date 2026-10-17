@@ -262,7 +262,7 @@ export default function Galary() {
   };
 
   return (
-    <main ref={rootRef} className="relative min-h-svh bg-[#000000] text-[#F5F0DE] [font-family:var(--font-gotham-book)]">
+    <main ref={rootRef} className="relative min-h-svh text-[#F5F0DE] [font-family:var(--font-gotham-book)]">
       <section className={`relative flex flex-col px-4 pt-8 min-[900px]:px-12 min-[900px]:pt-28 ${browsing ? "min-h-svh pb-[calc(110px+env(safe-area-inset-bottom))]" : "h-svh min-h-[540px] pb-[calc(88px+env(safe-area-inset-bottom))] min-[900px]:pb-8"}`}>
         <header className="mx-auto flex w-full max-w-[1160px] min-[900px]:max-w-[900px] shrink-0 flex-wrap items-end justify-between gap-5">
           <div>

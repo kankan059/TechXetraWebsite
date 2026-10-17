@@ -1,52 +1,76 @@
-import { EventItem } from "@/types/event";
+export type TechnicalEvent = {
+  id: string;
+  name: string;
+  category: string;
+  summary: string;
+  description: string[];
+  image: string;
+  date: string | null;
+  time: string | null;
+  venue: string | null;
+  teamSize: string | null;
+  fee: string | null;
+  prize: string | null;
+  rules: string[];
+  registrationUrl: string | null;
+};
 
-export const FEATURED_EVENTS: EventItem[] = [
+export const technicalEvents: TechnicalEvent[] = [
   {
-    id: "tx26-hackxetra",
-    slug: "hackxetra",
-    title: "HACKXETRA",
-    tagline: "TechXetra's Flagship Hackathon Event",
-    category: "TECHNICAL",
-    themeColor: "#0972AE",
-    dates: "8–10th Nov 2026",
-    teamSize: "2–3 Members",
-    duration: "48 Hours",
-    prizePool: "₹40,000+",
-    venue: "Main Computing Center",
-    registrationUrl: "/register?event=hackxetra",
-    description: "48 hours of uninterrupted building, problem solving, and architecture design.",
-    rules: ["Cross-college teams permitted", "All work must be authored on-site"],
+    id: "hackathon",
+    name: "Hackathon",
+    category: "Development",
+    summary: "Work together, solve a problem and build something that works.",
+    description: [
+      "A team competition focused on building a working solution to a given problem.",
+      "The final problem statement, format and judging criteria will be added here.",
+    ],
+    image: "",
+    date: null,
+    time: null,
+    venue: null,
+    teamSize: null,
+    fee: null,
+    prize: null,
+    rules: [],
+    registrationUrl: null,
   },
   {
-    id: "tx26-coral-strings",
-    slug: "coral-strings",
-    title: "CORAL STRINGS",
-    tagline: "Musical Bands Competition",
-    category: "NON_TECHNICAL",
-    themeColor: "#8F1418",
-    dates: "8–10th Nov 2026",
-    teamSize: "3–8 Members",
-    duration: "Stage Timed",
-    prizePool: "₹40,000+",
-    venue: "Open Air Amphitheatre",
-    registrationUrl: "/register?event=coral-strings",
-    description: "Battle of the bands across eastern universities and colleges.",
-    rules: ["Original and cover sets permitted within 20-minute limits"],
+    id: "coding",
+    name: "Coding Challenge",
+    category: "Programming",
+    summary: "Put your logic, speed and problem solving skills to the test.",
+    description: [
+      "A programming competition built around solving problems within a set time.",
+      "Supported languages, contest format and scoring details will be added here.",
+    ],
+    image: "",
+    date: null,
+    time: null,
+    venue: null,
+    teamSize: null,
+    fee: null,
+    prize: null,
+    rules: [],
+    registrationUrl: null,
   },
   {
-    id: "tx26-bgmi",
-    slug: "bgmi-championship",
-    title: "BGMI TOURNAMENT",
-    tagline: "Official Esports Arena",
-    category: "E_SPORTS",
-    themeColor: "#3F622D",
-    dates: "8–10th Nov 2026",
-    teamSize: "4 Members (Squad)",
-    duration: "Multi-round qualifiers",
-    prizePool: "₹40,000+",
-    venue: "Tech Auditorium Hall 2",
-    registrationUrl: "/register?event=bgmi",
-    description: "Multi-tier battle royale showdown hosted under official rules.",
-    rules: ["Standard competitive Esports protocol", "Mobile devices only"],
+    id: "robotics",
+    name: "Robotics",
+    category: "Engineering",
+    summary: "Build, test and bring your machine into the competition.",
+    description: [
+      "An engineering competition focused on building and controlling a robot.",
+      "Arena details, equipment limits and competition rules will be added here.",
+    ],
+    image: "",
+    date: null,
+    time: null,
+    venue: null,
+    teamSize: null,
+    fee: null,
+    prize: null,
+    rules: [],
+    registrationUrl: null,
   },
 ];

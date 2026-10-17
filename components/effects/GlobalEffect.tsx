@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import SplashCursor from "@/lib/splashCursor";
+// import SplashCursor from "@/lib/splashCursor";
 import GlowCursor from "./GLowCursor";
 import ClickSpark from "./ClickSpark";
 
@@ -59,6 +59,18 @@ const GlobalEffect = () => {
                         fadeDuration={1250}
                         blendMode="plus-lighter"
                     />
+                    {/* <SplashCursor
+                        DENSITY_DISSIPATION={3.5}
+                        VELOCITY_DISSIPATION={2}
+                        PRESSURE={0.1}
+                        CURL={3}
+                        SPLAT_RADIUS={0.2}
+                        SPLAT_FORCE={6000}
+                        SHADING={true}
+                        COLOR_UPDATE_SPEED={10}
+                        RAINBOW_MODE={false}
+                        COLOR="#e8e5ea"
+                    />  */}
                 </div>
             )}
         </>
@@ -69,7 +81,7 @@ export default GlobalEffect;
 
 
 // import SplashCursor from "@/lib/splashCursor";
- {/* <SplashCursor
+{/* <SplashCursor
           DENSITY_DISSIPATION={3.5}
           VELOCITY_DISSIPATION={2}
           PRESSURE={0.1}
