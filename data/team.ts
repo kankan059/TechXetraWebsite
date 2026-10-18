@@ -23,8 +23,8 @@ export const teamGroups: TeamGroup[] = [
         name: "Rishika ",
         role: "Coordinator",
         image: "https://plus.unsplash.com/premium_photo-1791899716302-19784a62a0e2?q=80&w=715&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
-        phone: "6003963538",
-        email: "kankanray059@gmail.com",
+        phone: "100",
+        email: "X@gmail.com",
       },
       {
         name: "Aarohi Borah",
