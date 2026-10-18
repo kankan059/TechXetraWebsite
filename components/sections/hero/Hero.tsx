@@ -7,111 +7,78 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { heroData } from "@/data/info/hero";
 import { TECHXETRA_COLORS } from "@/constants/colors";
 import HeroTitle from "./HeroTitle";
-import LogoTech from "@/components/animations/LogoTech";
+import EarthScene from "@/components/animations/EarthScene";
+import SilverFlight from "@/components/animations/SilverFlight";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const HERO_MOTION = {
-  introDelay: 0.15,
-  titleDuration: 1.15,
-  titleStagger: 0.055,
-  contentDuration: 0.75,
-  scrollScrub: 1.15,
-};
-
-export default function Hero() {
+const Hero = () => {
   const heroRef = useRef<HTMLElement>(null);
   const topLineRef = useRef<HTMLDivElement>(null);
   const metaRef = useRef<HTMLDivElement>(null);
   const titleAreaRef = useRef<HTMLDivElement>(null);
-  const yearRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const hero = heroRef.current;
-
     if (!hero) return;
 
     const ctx = gsap.context(() => {
-      // const letters = gsap.utils.toArray<HTMLElement>(".hero-title-letter");
-
-      gsap.set(topLineRef.current, {
-        scaleX: 0,
-        transformOrigin: "left center",
-      });
-
-      // gsap.set(letters, {
-      //   yPercent: 115,
-      //   rotateX: -65,
-      //   opacity: 0,
-      //   transformOrigin: "50% 100%",
-      // });
-
       const intro = gsap.timeline({
-        delay: HERO_MOTION.introDelay,
+        defaults: { ease: "power3.out" },
+        delay: 0.15,
       });
 
       intro
-        .to(topLineRef.current, {
-          scaleX: 1,
-          duration: 1.1,
-          ease: "power3.inOut",
-        })
+        .fromTo(
+          topLineRef.current,
+          { scaleX: 0, transformOrigin: "left center" },
+          {
+            scaleX: 1,
+            duration: 0.9,
+            ease: "power3.inOut",
+          }
+        )
         .fromTo(
           metaRef.current,
-          { opacity: 0, y: -12 },
+          { opacity: 0, y: -10 },
           {
             opacity: 1,
             y: 0,
-            duration: 0.65,
-            ease: "power3.out",
+            duration: 0.6,
           },
-          "-=0.65"
+          "-=0.45"
         )
-        // .to(
-        //   letters,
-        //   {
-        //     yPercent: 0,
-        //     rotateX: 0,
-        //     opacity: 1,
-        //     duration: HERO_MOTION.titleDuration,
-        //     stagger: HERO_MOTION.titleStagger,
-        //     ease: "back.out(1.7)",
-        //   },
-        //   "-=0.35"
-        // )
         .fromTo(
-          yearRef.current,
-          { opacity: 0, x: -20 },
+          titleAreaRef.current,
+          { opacity: 0, y: 18 },
           {
             opacity: 1,
-            x: 0,
-            duration: 0.7,
+            y: 0,
+            duration: 1,
             ease: "power3.out",
           },
-          "-=0.65"
+          "-=0.2"
         )
         .fromTo(
           bottomRef.current,
-          { opacity: 0, y: 24 },
+          { opacity: 0, y: 12 },
           {
             opacity: 1,
             y: 0,
-            duration: HERO_MOTION.contentDuration,
-            ease: "power3.out",
+            duration: 0.7,
           },
-          "-=0.5"
+          "-=0.3"
         )
         .fromTo(
           scrollRef.current,
           { opacity: 0 },
           {
             opacity: 1,
-            duration: 0.55,
-            ease: "power2.out",
+            duration: 0.5,
           },
-          "-=0.3"
+          "-=0.2"
         );
 
       const scrollTimeline = gsap.timeline({
@@ -120,72 +87,32 @@ export default function Hero() {
           trigger: hero,
           start: "top top",
           end: "bottom top",
-          scrub: HERO_MOTION.scrollScrub,
+          scrub: 1.15,
         },
       });
 
       scrollTimeline
-        // .to(
-        //   letters,
-        //   {
-        //     y: -90,
-        //     x: -40,
-        //     scale: 1.3,
-        //     opacity: 0.1,
-        //     rotate: -45,
-        //     ease: "back.out",
-        //   },
-        //   0
-        // )
         .to(
           titleAreaRef.current,
-          {
-            x: -40,
-            scale: 0.8,
-            opacity: 0.1,
-            ease: "back.inOut",
-          },
+          { y: -35, opacity: 0.3, ease: "none" },
           0
         )
         .to(
           metaRef.current,
-          {
-            y: -25,
-            opacity: 0,
-            ease: "none",
-          },
+          { y: -15, opacity: 0.2, ease: "none" },
           0
         )
         .to(
           bottomRef.current,
-          {
-            y: -55,
-            opacity: 0,
-            ease: "none",
-          },
-          0.08
+          { opacity: 0, ease: "none" },
+          0.15
         )
         .to(
           scrollRef.current,
-          {
-            opacity: 0,
-            ease: "none",
-          },
-          0.05
+          { opacity: 0, ease: "none" },
+          0
         );
-
-      gsap.to(".hero-scroll-line", {
-        scaleX: 0.15,
-        transformOrigin: "right center",
-        ease: "none",
-        scrollTrigger: {
-          trigger: hero,
-          start: "top top",
-          end: "45% top",
-          scrub: true,
-        },
-      });
-    }, heroRef);
+    }, hero);
 
     return () => ctx.revert();
   }, []);
@@ -199,68 +126,136 @@ export default function Hero() {
   } as CSSProperties;
 
   return (
-    
-    <section ref={heroRef} id="hero" style={colorVariables} className="relative z-10 min-h-[100svh] overflow-hidden text-(--tx-cream)">
-       <LogoTech />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/45 via-black/10 to-transparent" />
+    <section
+      ref={heroRef}
+      id="hero"
+      style={colorVariables}
+      className="relative isolate min-h-[100svh] overflow-hidden text-(--tx-cream)"
+    >
+      {/* Nebula background */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
+      >
+        <div
+          className="absolute -right-[15%] top-[5%] h-[65%] w-[90%] rounded-full opacity-25 blur-[70px] sm:opacity-30 sm:blur-[100px]"
+          style={{
+            background:
+              "radial-gradient(ellipse at center, rgba(190, 65, 35, 0.32) 0%, rgba(100, 35, 45, 0.16) 38%, transparent 72%)",
+          }}
+        />
 
-      <div className="relative mx-auto flex min-h-[100svh] w-full max-w-[1920px] flex-col px-5 pb-6 pt-24 sm:px-8 md:px-12 md:pb-8 lg:px-16 lg:pt-28 xl:px-20">
-        <div ref={topLineRef} className="h-px w-full bg-(--tx-cream)/20" />
+        <div
+          className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-screen"
+          style={{
+            backgroundImage: "url('/assets/nebula.png')",
+          }}
+        />
+      </div>
 
-        <div ref={metaRef} className="mt-3 flex items-start justify-between">
+      <EarthScene />
+      {/* <SilverFlight />  */}
+
+      {/* Side glow */}
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_left,rgba(0,170,255,0.32)_0%,rgba(35,90,255,0.12)_35%,transparent_70%)]" />
+
+      {/* Bottom atmospheric glow */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[35%] bg-[radial-gradient(ellipse_at_bottom,rgba(0,170,255,0.3)_0%,rgba(25,55,160,0.12)_40%,transparent_75%)]" />
+
+      {/* Subtle sci-fi texture */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[1] opacity-[0.12] mix-blend-screen"
+        style={{
+          backgroundImage: `
+            repeating-linear-gradient(
+              0deg,
+              rgba(180,235,255,0.035) 0px,
+              rgba(180,235,255,0.035) 1px,
+              transparent 1px,
+              transparent 3px
+            ),
+            repeating-linear-gradient(
+              90deg,
+              rgba(0,170,255,0.04) 0px,
+              rgba(0,170,255,0.04) 1px,
+              transparent 1px,
+              transparent 5px
+            )
+          `,
+        }}
+      />
+
+      <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-[1920px] flex-col px-5 pb-6 pt-24 sm:px-8 sm:pt-28 md:px-12 lg:px-16 lg:pb-9 xl:px-20">
+        <div
+          ref={topLineRef}
+          className="h-px w-full origin-left bg-(--tx-cream)/25"
+        />
+
+        <div
+          ref={metaRef}
+          className="mt-4 flex items-start justify-between gap-4"
+        >
           <div className="flex items-center gap-3">
             <div className="flex gap-[3px]">
-              <span className="h-[6px] w-4 bg-(--tx-blue)" />
-              <span className="h-[6px] w-2 bg-(--tx-red)" />
-              <span className="h-[6px] w-2 bg-(--tx-green)" />
+              <span className="h-[5px] w-4 bg-(--tx-blue)" />
+              <span className="h-[5px] w-2 bg-(--tx-red)" />
+              <span className="h-[5px] w-2 bg-(--tx-green)" />
             </div>
 
-            <span className="font-pixel text-[9px] uppercase tracking-[0.18em] text-(--tx-cream)/50 sm:text-[9px]">
+            <span className="font-pixel text-[9px] uppercase tracking-[0.18em] text-(--tx-cream)/65 sm:text-[10px]">
               TECHXTRA / {heroData.year}
             </span>
           </div>
 
-          <div className="font-pixel text-right text-[8px] uppercase leading-[1.7] tracking-[0.16em] text-(--tx-cream)/40 sm:text-[10px]">
-            <span>{heroData.uni}</span>
-          </div>
+          <span className="max-w-[55%] text-right font-pixel text-[8px] uppercase leading-relaxed tracking-[0.12em] text-(--tx-cream)/55 sm:text-[10px] sm:tracking-[0.16em]">
+            {heroData.uni}
+          </span>
         </div>
 
-        <div className="flex flex-1 items-center">
-          <div ref={titleAreaRef} className="relative w-full pt-6 md:w-[80%] lg:w-[75%] xl:w-[72%]">
+        <div className="flex flex-1 items-center py-10 md:py-8">
+          <div
+            ref={titleAreaRef}
+            className="w-full min-w-0 max-w-[850px] md:w-[72%] lg:w-[68%] xl:w-[64%]"
+          >
             <HeroTitle />
 
-            <div className="mt-4 flex items-center sm:mt-5">
-              <div ref={yearRef} className="font-pixel text-[8vw] leading-none text-(--tx-blue) sm:text-[6vw] md:text-[5.2vw] lg:text-[3.3vw]">
+            <div className="mt-3 flex items-center gap-3 pl-1 sm:mt-5 sm:gap-4">
+              <span className="h-px w-8 bg-(--tx-blue) sm:w-12" />
+
+              <span className="font-pixel text-[clamp(1.25rem,4vw,3.5rem)] leading-none tracking-[0.08em] text-(--tx-blue)">
                 {heroData.year}
-              </div>
+              </span>
             </div>
           </div>
         </div>
 
-        <div ref={bottomRef} className="grid grid-cols-1 gap-6 border-t border-(--tx-cream)/15 pt-5 md:grid-cols-12 md:items-end">
-          <div className="md:col-span-5 lg:col-span-4">
-            <p className="max-w-[440px] font-body text-[13px] leading-[1.65] text-(--tx-cream)/62 sm:text-[14px] lg:text-[15px]">
-              {heroData.description}
-            </p>
+        <div
+          ref={bottomRef}
+          className="flex items-end justify-between gap-4 border-t border-(--tx-cream)/15 pt-4 sm:pt-5"
+        >
+          <div className="flex items-center gap-3">
+            <span className="h-2 w-2 rounded-full bg-(--tx-green)" />
+
+            <span className="font-pixel text-[8px] uppercase tracking-[0.12em] text-(--tx-cream)/50 sm:text-[9px] sm:tracking-[0.18em]">
+              Tezpur University · Assam, India
+            </span>
           </div>
         </div>
 
-        <div ref={scrollRef} className="absolute bottom-8 left-1/2 z-20 hidden -translate-x-1/2 flex-col items-center gap-3 md:flex">
-          <span className="font-pixel text-[7px] uppercase tracking-[0.28em] text-(--tx-cream)/30">
+        <div
+          ref={scrollRef}
+          className="absolute bottom-24 right-6 hidden flex-col items-center gap-3 md:flex lg:right-10"
+        >
+          <span className="font-pixel text-[7px] uppercase tracking-[0.25em] text-(--tx-cream)/45 [writing-mode:vertical-rl]">
             Scroll
           </span>
 
-          <div className="relative h-12 w-px overflow-hidden bg-(--tx-cream)/10">
-            <span className="hero-scroll-line absolute left-0 top-0 h-4 w-px bg-gradient-to-b from-transparent via-(--tx-cream)/80 to-transparent" />
-          </div>
-
-          <span className="h-[3px] w-[3px] rounded-full bg-(--tx-blue) shadow-[0_0_8px_var(--tx-blue)]" />
-        </div>
-
-        <div className="pointer-events-none absolute right-5 top-[29%] flex items-center gap-2 md:hidden">
-          <span className="h-[4px] w-[4px] rounded-full bg-(--tx-blue)" />
+          <span className="h-12 w-px bg-gradient-to-b from-(--tx-cream)/60 to-transparent" />
         </div>
       </div>
     </section>
   );
-}
+};
+
+export default Hero;

@@ -236,7 +236,7 @@ export default function TechnicalEvents() {
     <main ref={rootRef} className="min-h-svh overflow-x-clip bg-[#09151B] px-5 pb-[calc(110px+env(safe-area-inset-bottom))] pt-9 text-[#F5F0DE] [font-family:var(--font-gotham-book)] min-[640px]:px-8 min-[900px]:px-12 min-[900px]:pb-24 min-[900px]:pt-32">
       <div className="mx-auto max-w-[1280px]">
         <header className="mb-9 border-b border-white/15 pb-8 min-[900px]:mb-12 min-[900px]:pb-10">
-          <Link data-heading-part href="/event" className="mb-7 inline-flex min-h-11 items-center gap-3 text-xs text-[#F5F0DE]/65 transition-colors hover:text-[#F5F0DE] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8DDCFA]">
+          <Link data-heading-part href="/events" className="mb-7 inline-flex min-h-11 items-center gap-3 text-xs text-[#F5F0DE]/65 transition-colors hover:text-[#F5F0DE] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8DDCFA]">
             <span aria-hidden="true">←</span>
             All categories
           </Link>
