@@ -1,53 +1,216 @@
+
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
+import LogoTech from "@/components/animations/LogoTech";
+import SectionTitle from "@/components/ui/SectionTitle";
+import TextReveal from "@/components/ui/TextReveal";
+import aboutInfo from "@/data/info/about";
+
 gsap.registerPlugin(ScrollTrigger);
 
-export default function About() {
+const About = () => {
   const sectionRef = useRef<HTMLElement>(null);
-  const headingRef = useRef<HTMLHeadingElement>(null);
-  const textRef = useRef<HTMLParagraphElement>(null);
-  const numberRef = useRef<HTMLSpanElement>(null);
+  const logoRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const logoProgressRef = useRef({ value: 0 });
+  const logoOpacityRef = useRef({ value: 0.7 });
+
+  useLayoutEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
     const ctx = gsap.context(() => {
-      gsap.from(headingRef.current, {
-        y: 100,
-        opacity: 0,
-        duration: 1,
-        ease: "power3.out",
+      const titleChars = Array.from(
+        section.querySelectorAll<HTMLElement>(".section-title-char")
+      );
+
+      const titleDot = section.querySelector<HTMLElement>(
+        ".section-title-dot"
+      );
+
+      const eyebrowChars = Array.from(
+        section.querySelectorAll<HTMLElement>(
+          ".section-title-eyebrow-char"
+        )
+      );
+
+      const eyebrowLine = section.querySelector<HTMLElement>(
+        ".section-title-eyebrow-line"
+      );
+
+      const reducedMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)"
+      ).matches;
+
+      if (reducedMotion) {
+        gsap.set(
+          [...titleChars, ...eyebrowChars, titleDot, eyebrowLine].filter(
+            (element): element is HTMLElement => element !== null
+          ),
+          { clearProps: "all", autoAlpha: 1 }
+        );
+
+        if (logoRef.current) {
+          gsap.set(logoRef.current, { autoAlpha: 1 });
+        }
+
+        logoProgressRef.current.value = 1;
+        logoOpacityRef.current.value = 1;
+
+        return;
+      }
+
+      // Animate heading only when matching elements exist.
+      if (titleChars.length) {
+        gsap.set(titleChars, {
+          autoAlpha: 0,
+          yPercent: 110,
+          rotationX: -65,
+          transformOrigin: "50% 100%",
+        });
+      }
+
+      if (titleDot) {
+        gsap.set(titleDot, {
+          autoAlpha: 0,
+          scale: 0.3,
+        });
+      }
+
+      if (eyebrowChars.length) {
+        gsap.set(eyebrowChars, {
+          autoAlpha: 0,
+          y: 8,
+        });
+      }
+
+      if (eyebrowLine) {
+        gsap.set(eyebrowLine, {
+          scaleX: 0,
+          transformOrigin: "left center",
+        });
+      }
+
+      const textTimeline = gsap.timeline({
         scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 75%",
+          id: "TECHXTRA-ABOUT-HEADING",
+          trigger: section,
+          start: "top 82%",
+          end: "top 28%",
+          scrub: 0.6,
+          invalidateOnRefresh: true,
         },
       });
 
-      gsap.from(textRef.current, {
-        y: 50,
-        opacity: 0,
-        duration: 1,
-        delay: 0.15,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 70%",
-        },
-      });
+      if (eyebrowLine) {
+        textTimeline.fromTo(
+          eyebrowLine,
+          { scaleX: 0 },
+          { scaleX: 1, duration: 0.4, ease: "none" },
+          0
+        );
+      }
 
-      gsap.from(numberRef.current, {
-        scale: 0.5,
-        opacity: 0,
-        duration: 1,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 70%",
-        },
-      });
-    }, sectionRef);
+      if (eyebrowChars.length) {
+        textTimeline.to(
+          eyebrowChars,
+          {
+            autoAlpha: 1,
+            y: 0,
+            stagger: 0.012,
+            duration: 0.7,
+            ease: "none",
+          },
+          0.05
+        );
+      }
+
+      if (titleChars.length) {
+        textTimeline.to(
+          titleChars,
+          {
+            autoAlpha: 1,
+            yPercent: 0,
+            rotationX: 0,
+            stagger: 0.035,
+            duration: 1.2,
+            ease: "none",
+          },
+          0.12
+        );
+      }
+
+      if (titleDot) {
+        textTimeline.to(
+          titleDot,
+          {
+            autoAlpha: 1,
+            scale: 1,
+            duration: 0.25,
+            ease: "none",
+          },
+          0.7
+        );
+      }
+
+      // Preserve the existing logo animation.
+      const logo = logoRef.current;
+
+      if (logo) {
+        gsap.set(logo, {
+          autoAlpha: 1,
+          scale: 1,
+          transformOrigin: "center center",
+        });
+
+        const logoTimeline = gsap.timeline({
+          scrollTrigger: {
+            id: "TECHXTRA-ABOUT-LOGO",
+            trigger: section,
+            start: "top 70%",
+            end: "bottom 20%",
+            scrub: 1,
+            invalidateOnRefresh: true,
+          },
+        });
+
+        logoTimeline
+          .to(
+            logoProgressRef.current,
+            { value: 1, duration: 2, ease: "none" },
+            0
+          )
+          .to(
+            logoOpacityRef.current,
+            { value: 1, duration: 1.5, ease: "none" },
+            0
+          )
+          .to(
+            logoProgressRef.current,
+            { value: 0, duration: 2, ease: "none" },
+            3
+          )
+          .to(
+            logoOpacityRef.current,
+            { value: 0, duration: 1.5, ease: "none" },
+            3.2
+          )
+          .to(
+            logo,
+            {
+              scale: 0.86,
+              autoAlpha: 0,
+              duration: 1,
+              ease: "none",
+            },
+            3.3
+          );
+      }
+    }, section);
 
     return () => ctx.revert();
   }, []);
@@ -55,40 +218,61 @@ export default function About() {
   return (
     <section
       ref={sectionRef}
-      className="relative min-h-screen px-6 py-32 lg:px-10"
+      id="about"
+      className="relative isolate min-h-[100svh] overflow-hidden px-5 text-white sm:px-8 lg:px-12 xl:px-20"
     >
-      <div className="mx-auto max-w-[1400px]">
-        <div className="mb-16 overflow-hidden">
-          <h2
-            ref={headingRef}
-            className="text-[clamp(3rem,9vw,8rem)] font-black uppercase leading-none tracking-[-0.05em]"
-          >
-            About Us
-          </h2>
-        </div>
+      <div className="mx-auto flex min-h-[100svh] w-full max-w-[1440px] flex-col justify-center">
+        <header className="relative z-10 mb-10 sm:mb-12 lg:mb-14">
+          <SectionTitle
+            title={aboutInfo.title}
+            eyebrow={aboutInfo.eyebrow}
+            align="left"
+          />
+        </header>
 
-        <div className="grid gap-16 lg:grid-cols-2">
-          <div>
-            <span
-              ref={numberRef}
-              className="text-[clamp(6rem,15vw,14rem)] font-black leading-none text-cyan-300/20"
-            >
-              01
-            </span>
+        <div className="relative z-10 grid grid-cols-1 items-center gap-8 sm:gap-10 lg:grid-cols-[1fr_0.9fr] lg:gap-16 xl:gap-24">
+          <div
+            ref={logoRef}
+            className="relative mx-auto h-[300px] w-full max-w-[420px] sm:h-[380px] sm:max-w-[500px] lg:h-[440px] lg:max-w-none xl:h-[500px]"
+          >
+            <LogoTech
+              progressRef={logoProgressRef}
+              opacityRef={logoOpacityRef}
+            />
           </div>
 
-          <div className="flex items-center">
-            <p
-              ref={textRef}
-              className="max-w-2xl text-lg leading-8 text-white/70 md:text-xl md:leading-9"
-            >
-              TechXetra is a platform where technology, innovation and ideas
-              come together. It brings students, creators and thinkers together
-              through competitions, workshops, talks and technical experiences.
-            </p>
+          <div className="flex min-w-0 flex-col justify-center lg:py-8">
+            <TextReveal
+              text={aboutInfo.description}
+              as="p"
+              split="words"
+              stagger={0.025}
+              duration={0.85}
+              y={28}
+              rotateX={-25}
+              className="max-w-3xl font-pixel leading-7 text-white/80 sm:text-lg sm:leading-8 lg:text-4xl lg:leading-9"
+            />
+
+            <div className="mt-8 flex flex-wrap items-center gap-3 sm:mt-10">
+              <span className="about-label-line inline-block h-px w-8 shrink-0 bg-cyan-400 sm:w-10" />
+
+              <TextReveal
+                text={aboutInfo.tagline}
+                as="span"
+                split="chars"
+                stagger={0.025}
+                duration={0.6}
+                y={12}
+                rotateX={-45}
+                delay={0.2}
+                className="font-pixel text-[9px] uppercase tracking-[0.16em] text-cyan-300/90 sm:text-[10px] sm:tracking-[0.2em]"
+              />
+            </div>
           </div>
         </div>
       </div>
     </section>
   );
-}
+};
+
+export default About;

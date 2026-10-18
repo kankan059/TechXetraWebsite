@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useLayoutEffect, useRef, type CSSProperties } from "react";
@@ -9,8 +8,7 @@ import { heroData } from "@/data/info/hero";
 import { TECHXETRA_COLORS } from "@/constants/colors";
 import HeroTitle from "./HeroTitle";
 import EarthScene from "@/components/animations/EarthScene";
-import RetroOverlay from "@/components/effects/RetroOverlay";
-import Image from "next/image";
+import SilverFlight from "@/components/animations/SilverFlight";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -21,7 +19,6 @@ const Hero = () => {
   const titleAreaRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const spacecraftRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const hero = heroRef.current;
@@ -32,50 +29,55 @@ const Hero = () => {
         defaults: { ease: "power3.out" },
         delay: 0.15,
       });
-      if (spacecraftRef.current) {
-        gsap.to(spacecraftRef.current, {
-          x: 100,
-          y: -120,
-          rotation: -5,
-          scale: 0.85,
-          ease: "none",
-          scrollTrigger: {
-            trigger: hero,
-            start: "top top",
-            end: "bottom top",
-            scrub: 1.5,
-          },
-        });
-      }
 
       intro
         .fromTo(
           topLineRef.current,
           { scaleX: 0, transformOrigin: "left center" },
-          { scaleX: 1, duration: 0.9, ease: "power3.inOut" }
+          {
+            scaleX: 1,
+            duration: 0.9,
+            ease: "power3.inOut",
+          }
         )
         .fromTo(
           metaRef.current,
           { opacity: 0, y: -10 },
-          { opacity: 1, y: 0, duration: 0.6 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.6,
+          },
           "-=0.45"
         )
         .fromTo(
           titleAreaRef.current,
-          { opacity: 0, y: 22 },
-          { opacity: 1, y: 0, duration: 0.8 },
-          "-=0.25"
+          { opacity: 0, y: 18 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 1,
+            ease: "power3.out",
+          },
+          "-=0.2"
         )
         .fromTo(
           bottomRef.current,
           { opacity: 0, y: 12 },
-          { opacity: 1, y: 0, duration: 0.7 },
-          "-=0.35"
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.7,
+          },
+          "-=0.3"
         )
         .fromTo(
           scrollRef.current,
           { opacity: 0 },
-          { opacity: 1, duration: 0.5 },
+          {
+            opacity: 1,
+            duration: 0.5,
+          },
           "-=0.2"
         );
 
@@ -130,8 +132,7 @@ const Hero = () => {
       style={colorVariables}
       className="relative isolate min-h-[100svh] overflow-hidden text-(--tx-cream)"
     >
-
-
+      {/* Nebula background */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
@@ -152,53 +153,39 @@ const Hero = () => {
         />
       </div>
 
-
-      {/* <RetroOverlay /> */}
       <EarthScene />
-      {/* spacecraft */}
-      {/* <div
-        ref={spacecraftRef}
-        className="pointer-events-none absolute right-[-8%] top-[25%] z-[2] w-[48%] max-w-[620px] sm:right-[-5%] sm:top-[24%] sm:w-[42%] md:right-[1%] md:top-[22%] md:w-[36%] lg:right-[3%] lg:top-[20%] lg:w-[32%]"
-      >
-        <Image
-          src="/assets/spacecraft1.png"
-          alt=""
-          width={2048}
-          height={1143}
-          priority
-          sizes="(max-width: 480px) 90vw, (max-width: 768px) 65vw, 55vw"
-          className="h-auto w-full object-contain opacity-90"
-        />
-      </div> */}
+      {/* <SilverFlight />  */}
 
       {/* Side glow */}
-<div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_left,rgba(0,170,255,0.32)_0%,rgba(35,90,255,0.12)_35%,transparent_70%)]" />
+      <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_left,rgba(0,170,255,0.32)_0%,rgba(35,90,255,0.12)_35%,transparent_70%)]" />
 
-{/* Bottom atmospheric glow */}
-<div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[35%] bg-[radial-gradient(ellipse_at_bottom,rgba(0,170,255,0.3)_0%,rgba(25,55,160,0.12)_40%,transparent_75%)]" />
+      {/* Bottom atmospheric glow */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[35%] bg-[radial-gradient(ellipse_at_bottom,rgba(0,170,255,0.3)_0%,rgba(25,55,160,0.12)_40%,transparent_75%)]" />
 
-{/* Subtle sci-fi texture */}
-<div
-  className="pointer-events-none absolute inset-0 z-[1] opacity-[0.12] mix-blend-screen"
-  style={{
-    backgroundImage: `
-      repeating-linear-gradient(
-        0deg,
-        rgba(180,235,255,0.035) 0px,
-        rgba(180,235,255,0.035) 1px,
-        transparent 1px,
-        transparent 3px
-      ),
-      repeating-linear-gradient(
-        90deg,
-        rgba(0,170,255,0.04) 0px,
-        rgba(0,170,255,0.04) 1px,
-        transparent 1px,
-        transparent 5px
-      )
-    `,
-  }}
-/>
+      {/* Subtle sci-fi texture */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-[1] opacity-[0.12] mix-blend-screen"
+        style={{
+          backgroundImage: `
+            repeating-linear-gradient(
+              0deg,
+              rgba(180,235,255,0.035) 0px,
+              rgba(180,235,255,0.035) 1px,
+              transparent 1px,
+              transparent 3px
+            ),
+            repeating-linear-gradient(
+              90deg,
+              rgba(0,170,255,0.04) 0px,
+              rgba(0,170,255,0.04) 1px,
+              transparent 1px,
+              transparent 5px
+            )
+          `,
+        }}
+      />
+
       <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-[1920px] flex-col px-5 pb-6 pt-24 sm:px-8 sm:pt-28 md:px-12 lg:px-16 lg:pb-9 xl:px-20">
         <div
           ref={topLineRef}
@@ -254,7 +241,6 @@ const Hero = () => {
               Tezpur University · Assam, India
             </span>
           </div>
-
         </div>
 
         <div
@@ -268,7 +254,6 @@ const Hero = () => {
           <span className="h-12 w-px bg-gradient-to-b from-(--tx-cream)/60 to-transparent" />
         </div>
       </div>
-
     </section>
   );
 };
