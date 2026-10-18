@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -20,16 +21,16 @@ export default function TechXetraTitle() {
     const leftWrap = leftWrapRef.current;
     const rightWrap = rightWrapRef.current;
 
-    if (!root || !x || !left || !right || !leftWrap || !rightWrap) return;
+    if (!root || !x || !left || !right || !leftWrap || !rightWrap) {
+      return;
+    }
 
     const isMobile = window.innerWidth < 768;
 
     const ctx = gsap.context(() => {
       gsap.set(left, { xPercent: 105 });
       gsap.set(right, { xPercent: -105 });
-
-      gsap.set(leftWrap, { opacity: 0 });
-      gsap.set(rightWrap, { opacity: 0 });
+      gsap.set([leftWrap, rightWrap], { opacity: 0 });
 
       gsap.set(x, {
         scale: isMobile ? 7 : 10,
@@ -112,40 +113,59 @@ export default function TechXetraTitle() {
     return () => ctx.revert();
   }, []);
 
-return (
-  <div ref={rootRef} className="relative flex w-full items-center  justify-center select-none mr-5 z-40">
-    <div className="relative h-[clamp(15rem,21vw,21rem)] w-[clamp(15rem,21vw,21rem)]">
+  return (
+    <div
+      ref={rootRef}
+      className="relative z-10 ml-[-3%] w-full min-w-0 max-w-none font-autotech md:ml-[-2%] md:w-[90%] lg:ml-[-4%] lg:w-[110%] xl:ml-[30%] xl:w-[60%]"
+    >
+      <div className="relative h-[clamp(15rem,21vw,21rem)] w-full">
+        {/* Central X */}
+        <div
+          ref={xRef}
+          className="absolute left-1/2 top-1/2 z-20 aspect-square w-[clamp(10.5rem,24vw,25.5rem)] -translate-x-1/2 -translate-y-1/2 will-change-transform"
+        >
+          <Image
+            src="/assets/x.png"
+            alt="X"
+            fill
+            priority
+            quality={75}
+            sizes="(max-width: 768px) 90px, 170px"
+            draggable={false}
+            className="object-contain mix-blend-screen"
+            style={{
+  filter:
+    "grayscale(1) brightness(2.3) contrast(1.2) drop-shadow(0 0 5px rgba(255,255,255,0.3)) drop-shadow(0 0 16px rgba(255,75,43,0.25))",
+}}
+          />
+        </div>
 
-      {/* X */}
-      <div ref={xRef} className="absolute inset-0 z-20 will-change-transform">
-        <Image
-          src="/assets/x.png"
-          alt="X"
-          fill
-          priority
-          quality={75}
-          sizes="(max-width: 768px) 90px, 170px"
-          draggable={false}
-          className="object-contain mix-blend-screen"
-          style={{ filter: "grayscale(1) brightness(2.3) contrast(1.2) drop-shadow(0 0 3px rgba(255,255,255,0.2))" }}
-        />
+        {/* TECH */}
+        <div
+          ref={leftWrapRef}
+          className="absolute right-[56%] xl:right-[64%] top-1/2 z-10 -translate-y-1/2 overflow-hidden"
+        >
+          <span
+            ref={leftRef}
+            className="title-gradient block whitespace-nowrap text-[clamp(2.2rem,7.5vw,8.5rem)] uppercase leading-none tracking-[-0.075em]"
+          >
+            TECH
+          </span>
+        </div>
+
+        {/* ETRA */}
+        <div
+          ref={rightWrapRef}
+          className="absolute left-[56%] xl:left-[64%] top-1/2 z-10 -translate-y-1/2 overflow-hidden"
+        >
+          <span
+            ref={rightRef}
+            className="title-gradient block whitespace-nowrap text-[clamp(2.2rem,7.5vw,8.5rem)] uppercase leading-none tracking-[-0.075em]"
+          >
+            ETRA
+          </span>
+        </div>
       </div>
-
-      {/* TECH */}
-      <div ref={leftWrapRef} className="absolute right-[68%] top-1/2 z-10 -translate-y-1/2 overflow-hidden">
-        <span ref={leftRef} className="block whitespace-nowrap text-[clamp(4rem,9vw,8.5rem)] font-black uppercase leading-none tracking-[-0.085em] text-white">
-          TECH       
-        </span>
-      </div>
-
-      {/* ETRA */}
-      <div ref={rightWrapRef} className="absolute left-[68%] top-1/2 z-10 -translate-y-1/2 overflow-hidden">
-        <span ref={rightRef} className="block whitespace-nowrap text-[clamp(4rem,9vw,8.5rem)] font-black uppercase leading-none tracking-[-0.085em] text-white">
-          ETRA
-        </span>
-      </div>
-
     </div>
-  </div>
-);
+  );
 }

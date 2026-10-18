@@ -13,6 +13,12 @@ const ortigel = localFont({
   display: "swap",
 });
 
+const autoTechno = localFont({
+  src:"../public/fonts/auto-techno.ttf",
+  variable : "--font-autotechno",
+  display: "swap",
+})
+
 const gothamBook = localFont({
   src: "../public/fonts/Gotham-Book.woff2",
   variable: "--font-gotham-book",
@@ -47,6 +53,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           ${gothamBook.variable}
           ${gothamBold.variable}
           ${multiTypePixel.variable}
+          ${autoTechno.variable}
           bg-[#090909]
           antialiased
         `}
