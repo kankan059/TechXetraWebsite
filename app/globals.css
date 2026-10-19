@@ -5,6 +5,10 @@
   --foreground: #171717;
 }
 
+::-webkit-scrollbar{
+  display: none;
+}
+
 @theme {
   --color-theme-bg: #080808;
   --color-theme-surface: #121212;

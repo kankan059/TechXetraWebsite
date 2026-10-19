@@ -1,5 +1,8 @@
 "use client";
 
+// Main stars — line 86, 128, 131
+// Glow particles — line 147, 183, 186
+
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
@@ -83,7 +86,7 @@ export default function BackGround() {
 
     // Main star field.
 
-    const starCount = isMobile ? 900 : 5200;
+    const starCount = isMobile ? 1600 : 5200;
     const starPositions = new Float32Array(starCount * 3);
     const starColors = new Float32Array(starCount * 3);
     const starSpeeds = new Float32Array(starCount);
@@ -125,10 +128,10 @@ export default function BackGround() {
     );
 
     const starsMaterial = new THREE.PointsMaterial({
-      size: isMobile ? 0.045 : 0.09,
+      size: isMobile ? 0.065 : 0.09,
       map: particleTexture || undefined,
       transparent: true,
-      opacity: isMobile ? 0.7 : 0.82,
+      opacity: isMobile ? 0.9 : 0.82,
       vertexColors: true,
       depthWrite: false,
       sizeAttenuation: true,
@@ -144,7 +147,7 @@ export default function BackGround() {
 
     // Bigger glow particles.
 
-    const glowCount = isMobile ? 120 : 420;
+    const glowCount = isMobile ? 180 : 420;
     const glowPositions = new Float32Array(glowCount * 3);
     const glowColors = new Float32Array(glowCount * 3);
     const glowSpeeds = new Float32Array(glowCount);
@@ -180,10 +183,10 @@ export default function BackGround() {
     );
 
     const glowMaterial = new THREE.PointsMaterial({
-      size: isMobile ? 0.12 : 0.35,
+      size: isMobile ? 0.16 : 0.35,
       map: particleTexture || undefined,
       transparent: true,
-      opacity: isMobile ? 0.12 : 0.26,
+      opacity: isMobile ? 0.2 : 0.26,
       vertexColors: true,
       depthWrite: false,
       sizeAttenuation: true,

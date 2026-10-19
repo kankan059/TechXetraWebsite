@@ -3,9 +3,10 @@ import localFont from "next/font/local";
 import SmoothScroll from "@/components/layouts/SmoothScroll";
 import "./globals.css";
 import BackGround from "@/components/animations/BackGround";
-import Navbar from "@/components/layouts/NavBar";
+import Navbar from "@/components/layouts/navbar/NavBar";
 import LogoTech from "@/components/animations/LogoTech";
 import GlobalEffect from "@/components/effects/GlobalEffect";
+import Footer from "@/components/layouts/Footer";
 
 const ortigel = localFont({
   src: "../public/fonts/Ortigel-Demo-Regular.otf",
@@ -66,6 +67,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
        
         <SmoothScroll />
         {children}
+
+        <Footer/>
       </body>
     </html>
   );

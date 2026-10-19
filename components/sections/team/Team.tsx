@@ -1,6 +1,7 @@
 "use client";
 
 import TeamCard from "@/components/sections/team/TeamCard";
+import SectionTitle from "@/components/ui/SectionTitle";
 import { teamGroups } from "@/data/team";
 
 const Team = () => {
@@ -8,31 +9,29 @@ const Team = () => {
     <main className="relative min-h-screen w-full overflow-hidden px-5 pb-24 pt-28 text-white sm:px-8 lg:px-12 lg:pt-32 xl:px-20">
       <div className="mx-auto w-full max-w-[1440px]">
         <header className="mb-16">
-          <p className="mb-3 font-pixel text-sm uppercase tracking-widest text-[#168BFF]">
-            The People Behind TechXetra
-          </p>
+          <SectionTitle
+            title={
 
-          <h1 className="font-pixel text-4xl uppercase leading-tight sm:text-6xl lg:text-7xl">
-            Meet the <span className="text-[#168BFF]">Team</span>
-          </h1>
+              `Meet the Team`
 
-          <p className="mt-5 max-w-xl text-sm leading-7 text-white/60 sm:text-base">
-            The people, ideas, and teamwork bringing TechXetra to life.
-          </p>
+            }
+            align="left"
+          />
+
         </header>
 
         <div className="space-y-20">
-          {teamGroups.map((group, groupIndex) => (
+          {teamGroups.map((group,) => (
             <section key={group.title}>
               <div className="mb-8 flex items-end justify-between gap-4 border-b border-white/15 pb-4">
                 <div>
-                 
-                  <h2 className="font-pixel text-xl uppercase sm:text-2xl lg:text-3xl">
+
+                  <h2 className="font-autotech text-[#168BFF] text-2xl uppercase sm:text-2xl lg:text-3xl">
                     {group.title}
                   </h2>
 
                   {group.description && (
-                    <p className="mt-3 text-sm text-white/50">
+                    <p className="mt-3 text-lg font-pixel text-white/50">
                       {group.description}
                     </p>
                   )}
@@ -44,7 +43,7 @@ const Team = () => {
                 {group.members.map((member) => (
                   <div
                     key={`${group.title}-${member.name}`}
-                    className="w-full max-w-[320px]"
+                    className="w-full max-w-[320px] font-heading"
                   >
                     <TeamCard
                       name={member.name}

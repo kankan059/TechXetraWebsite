@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -11,13 +10,20 @@ gsap.registerPlugin(ScrollTrigger);
 const EARTH_POSITION = {
   desktopX: 0,
   mobileX: 0,
+  tabletX: 0,
 
   desktopLift: 0.24,
   mobileLift: 1,
+  tallMobileLift: 1.25,
+  tabletLift: 0.65,
+  tallTabletLift: 0.9,
 
   desktopScale: 1.0,
   mobileScale: 0.72,
   smallMobileScale: 0.62,
+  tallMobileScale: 0.64,
+  tabletScale: 0.82,
+  tallTabletScale: 0.78,
 
   riseDistance: 2.0,
   scrollRotation: Math.PI * 1.5,
@@ -186,33 +192,76 @@ const EarthScene = () => {
     const baseRotationY = -0.45;
     const baseRotationZ = -0.08;
 
+    // Responsive Earth scale for phones, tablets and desktops.
     const getEarthScale = () => {
-      if (window.innerWidth <= 480) {
-        return EARTH_POSITION.smallMobileScale;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      if (width <= 480) {
+        // Preserve the smaller phone's existing look.
+        return height >= 800
+          ? EARTH_POSITION.smallMobileScale
+          : EARTH_POSITION.smallMobileScale;
       }
 
-      if (window.innerWidth < 768) {
-        return EARTH_POSITION.mobileScale;
+      if (width < 600) {
+        return height >= 800
+          ? EARTH_POSITION.tallMobileScale
+          : EARTH_POSITION.mobileScale;
+      }
+
+      if (width < 768) {
+        return height >= 800
+          ? EARTH_POSITION.tallMobileScale
+          : EARTH_POSITION.mobileScale;
+      }
+
+      if (width <= 1024) {
+        return height >= 900
+          ? EARTH_POSITION.tallTabletScale
+          : EARTH_POSITION.tabletScale;
       }
 
       return EARTH_POSITION.desktopScale;
     };
 
+    // Responsive Earth position based on viewport dimensions.
     const getBottomPosition = () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
       const visibleHalfHeight =
         CAMERA_Z *
         Math.tan(THREE.MathUtils.degToRad(FOV / 2));
 
-      const lift =
-        window.innerWidth < 768
-          ? EARTH_POSITION.mobileLift
-          : EARTH_POSITION.desktopLift;
+      let lift = EARTH_POSITION.desktopLift;
+      let x = EARTH_POSITION.desktopX;
+
+      if (width <= 480) {
+        lift =
+          height >= 800
+            ? EARTH_POSITION.mobileLift
+            : EARTH_POSITION.mobileLift;
+
+        x = EARTH_POSITION.mobileX;
+      } else if (width < 768) {
+        lift =
+          height >= 800
+            ? EARTH_POSITION.tallMobileLift
+            : EARTH_POSITION.mobileLift;
+
+        x = EARTH_POSITION.mobileX;
+      } else if (width <= 1024) {
+        lift =
+          height >= 900
+            ? EARTH_POSITION.tallTabletLift
+            : EARTH_POSITION.tabletLift;
+
+        x = EARTH_POSITION.tabletX;
+      }
 
       return {
-        x:
-          window.innerWidth < 768
-            ? EARTH_POSITION.mobileX
-            : EARTH_POSITION.desktopX,
+        x,
         y: -visibleHalfHeight + lift,
       };
     };
@@ -245,7 +294,7 @@ const EarthScene = () => {
 
       const delta = Math.min(deltaTime, 50) / 1000;
 
-      // Always rotate on laptop, even with reduced-motion enabled.
+      // Keep continuous desktop rotation.
       if (!isMobile) {
         elapsed += delta;
 
@@ -316,7 +365,7 @@ const EarthScene = () => {
 
       observer.observe(hero);
     } else {
-      // IMPORTANT: start the desktop animation loop immediately.
+      // Start the desktop animation loop immediately.
       gsap.ticker.add(render);
     }
 
@@ -329,7 +378,7 @@ const EarthScene = () => {
         ease: "none",
 
         scrollTrigger: {
-          id: "TECHXTRA-EARTH-RISE",
+          id: "TECHXETRA-EARTH-RISE",
           trigger: hero,
           start: "top top",
           end: "bottom top",
@@ -355,7 +404,7 @@ const EarthScene = () => {
         },
 
         scrollTrigger: {
-          id: "TECHXTRA-EARTH-ROTATION",
+          id: "TECHXETRA-EARTH-ROTATION",
           trigger: hero,
           start: "top top",
           end: "bottom top",
@@ -380,7 +429,15 @@ const EarthScene = () => {
       );
 
       renderer.setSize(width, height);
+
+      const responsivePosition = getBottomPosition();
+
       earthGroup.scale.setScalar(getEarthScale());
+
+      if (isMobile) {
+        earthGroup.position.x = responsivePosition.x;
+        earthGroup.position.y = responsivePosition.y;
+      }
 
       if (isVisible) {
         renderer.render(scene, camera);

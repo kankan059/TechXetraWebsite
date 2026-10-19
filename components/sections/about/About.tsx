@@ -250,11 +250,11 @@ const About = () => {
               duration={0.85}
               y={28}
               rotateX={-25}
-              className="max-w-3xl font-pixel leading-7 text-white/80 sm:text-lg sm:leading-8 lg:text-4xl lg:leading-9"
+              className="w-full max-w-[65ch] font-pixel text-[clamp(1rem,1.1vw+0.65rem,1.5rem)] leading-[1.8] tracking-[0.015em] text-white/80 sm:leading-[1.85] lg:text-[clamp(1.35rem,1.5vw,2rem)] lg:leading-[1.65] xl:text-[clamp(1.5rem,1.6vw,2.1rem)]"
             />
 
             <div className="mt-8 flex flex-wrap items-center gap-3 sm:mt-10">
-              <span className="about-label-line inline-block h-px w-8 shrink-0 bg-cyan-400 sm:w-10" />
+              {/* <span className="about-label-line inline-block h-px w-8 shrink-0 bg-cyan-400 sm:w-10" /> */}
 
               <TextReveal
                 text={aboutInfo.tagline}
@@ -265,7 +265,7 @@ const About = () => {
                 y={12}
                 rotateX={-45}
                 delay={0.2}
-                className="font-pixel text-[9px] uppercase tracking-[0.16em] text-cyan-300/90 sm:text-[10px] sm:tracking-[0.2em]"
+               className="font-heading text-[clamp(0.7rem,0.8vw+0.45rem,0.95rem)] uppercase leading-relaxed tracking-[0.14em] text-cyan-300/90 sm:tracking-[0.2em]"
               />
             </div>
           </div>

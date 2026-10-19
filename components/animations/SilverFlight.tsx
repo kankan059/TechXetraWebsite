@@ -1,7 +1,13 @@
+
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useSyncExternalStore } from "react";
 import gsap from "gsap";
+import { isTouchDevice } from "@/lib/device";
+
+const subscribe = () => () => {};
+const getEnabled = () => !isTouchDevice();
+const getServerEnabled = () => false;
 
 const SilverFlight = () => {
   const flightRef = useRef<HTMLDivElement>(null);
@@ -10,7 +16,15 @@ const SilverFlight = () => {
   const engineRef = useRef<SVGEllipseElement>(null);
   const coreRef = useRef<SVGCircleElement>(null);
 
+  const enabled = useSyncExternalStore(
+    subscribe,
+    getEnabled,
+    getServerEnabled
+  );
+
   useLayoutEffect(() => {
+    if (!enabled || isTouchDevice()) return;
+
     const flight = flightRef.current;
     const trail = trailRef.current;
     const particles = particlesRef.current;
@@ -167,7 +181,9 @@ const SilverFlight = () => {
     }, flight);
 
     return () => ctx.revert();
-  }, []);
+  }, [enabled]);
+
+  if (!enabled) return null;
 
   return (
     <div
