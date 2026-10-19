@@ -8,6 +8,24 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const EARTH_POSITION = {
+  desktopX: 0,
+  mobileX: 0,
+
+  desktopLift: 0.24,
+  mobileLift: 1,
+
+  desktopScale: 1.0,
+  mobileScale: 0.72,
+  smallMobileScale: 0.62,
+
+  riseDistance: 2.0,
+  scrollRotation: Math.PI * 1.5,
+
+  desktopRotationSpeed: 0.2,
+  mobileRotationSpeed: 0.045,
+};
+
 const EarthScene = () => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -15,14 +33,22 @@ const EarthScene = () => {
     const container = containerRef.current;
     if (!container) return;
 
-    const isMobile = window.matchMedia("(max-width: 767px)").matches;
-    const isSmallMobile = window.matchMedia("(max-width: 480px)").matches;
+    const hero =
+      container.closest<HTMLElement>("#hero") ??
+      document.querySelector<HTMLElement>("#hero");
+
+    if (!hero) return;
+
+    const isMobile = window.matchMedia(
+      "(max-width: 767px)"
+    ).matches;
+
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
 
-    const hero = container.closest("#hero");
-    if (!hero) return;
+    const FOV = 35;
+    const CAMERA_Z = isMobile ? 6.1 : 5.2;
 
     const scene = new THREE.Scene();
 
@@ -35,13 +61,13 @@ const EarthScene = () => {
     if (!initialSize.width || !initialSize.height) return;
 
     const camera = new THREE.PerspectiveCamera(
-      35,
+      FOV,
       initialSize.width / initialSize.height,
       0.1,
       100
     );
 
-    camera.position.z = isMobile ? 6.1 : 5.2;
+    camera.position.z = CAMERA_Z;
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
@@ -50,10 +76,15 @@ const EarthScene = () => {
     });
 
     renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio || 1, isMobile ? 0.8 : 1.25)
+      Math.min(
+        window.devicePixelRatio || 1,
+        isMobile ? 1 : 1.25
+      )
     );
+
     renderer.setSize(initialSize.width, initialSize.height);
     renderer.setClearColor(0x000000, 0);
+
     container.appendChild(renderer.domElement);
 
     const earthGroup = new THREE.Group();
@@ -84,8 +115,9 @@ const EarthScene = () => {
       specular: new THREE.Color("#17202c"),
     });
 
-    const earth = new THREE.Mesh(earthGeometry, earthMaterial);
-    earthGroup.add(earth);
+    earthGroup.add(
+      new THREE.Mesh(earthGeometry, earthMaterial)
+    );
 
     const atmosphereMaterial = new THREE.ShaderMaterial({
       uniforms: {
@@ -93,17 +125,21 @@ const EarthScene = () => {
           value: new THREE.Color("#619bc9"),
         },
       },
+
       vertexShader: `
         varying vec3 vNormal;
         varying vec3 vViewPosition;
 
         void main() {
           vNormal = normalize(normalMatrix * normal);
+
           vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
           vViewPosition = -mvPosition.xyz;
+
           gl_Position = projectionMatrix * mvPosition;
         }
       `,
+
       fragmentShader: `
         uniform vec3 glowColor;
         varying vec3 vNormal;
@@ -111,14 +147,19 @@ const EarthScene = () => {
 
         void main() {
           float fresnel = 1.0 - max(
-            dot(normalize(vNormal), normalize(vViewPosition)),
+            dot(
+              normalize(vNormal),
+              normalize(vViewPosition)
+            ),
             0.0
           );
 
           float intensity = pow(fresnel, 3.5) * 0.32;
+
           gl_FragColor = vec4(glowColor, intensity);
         }
       `,
+
       blending: THREE.AdditiveBlending,
       side: THREE.BackSide,
       transparent: true,
@@ -131,11 +172,9 @@ const EarthScene = () => {
       segments
     );
 
-    const atmosphere = new THREE.Mesh(
-      atmosphereGeometry,
-      atmosphereMaterial
+    earthGroup.add(
+      new THREE.Mesh(atmosphereGeometry, atmosphereMaterial)
     );
-    earthGroup.add(atmosphere);
 
     scene.add(new THREE.AmbientLight("#c4c9d6", 1.35));
 
@@ -147,15 +186,46 @@ const EarthScene = () => {
     const baseRotationY = -0.45;
     const baseRotationZ = -0.08;
 
-    earthGroup.scale.setScalar(
-      isSmallMobile ? 0.62 : isMobile ? 0.72 : 0.88
-    );
+    const getEarthScale = () => {
+      if (window.innerWidth <= 480) {
+        return EARTH_POSITION.smallMobileScale;
+      }
+
+      if (window.innerWidth < 768) {
+        return EARTH_POSITION.mobileScale;
+      }
+
+      return EARTH_POSITION.desktopScale;
+    };
+
+    const getBottomPosition = () => {
+      const visibleHalfHeight =
+        CAMERA_Z *
+        Math.tan(THREE.MathUtils.degToRad(FOV / 2));
+
+      const lift =
+        window.innerWidth < 768
+          ? EARTH_POSITION.mobileLift
+          : EARTH_POSITION.desktopLift;
+
+      return {
+        x:
+          window.innerWidth < 768
+            ? EARTH_POSITION.mobileX
+            : EARTH_POSITION.desktopX,
+        y: -visibleHalfHeight + lift,
+      };
+    };
+
+    const startPosition = getBottomPosition();
 
     earthGroup.position.set(
-      isMobile ? 0.25 : 1.05,
-      isMobile ? -0.3 : -0.05,
+      startPosition.x,
+      startPosition.y,
       0
     );
+
+    earthGroup.scale.setScalar(getEarthScale());
 
     earthGroup.rotation.set(
       baseRotationX,
@@ -163,67 +233,137 @@ const EarthScene = () => {
       baseRotationZ
     );
 
-    // Mobile rotates a little faster, but never animates with page scroll.
-    const rotationSpeed = isMobile ? 0.045 : 0.025;
     let elapsed = 0;
+    let scrollRotationY = 0;
+    let scrollRotationX = 0;
+    let disposed = false;
+    let isVisible = !isMobile;
 
-    // Only desktop gets scroll-linked animation.
-    const animationContext = gsap.context(() => {
-      if (isMobile || prefersReducedMotion) return;
-
-      gsap.to(earthGroup.rotation, {
-        y: baseRotationY + Math.PI * 1.5,
-        x: baseRotationX + 0.12,
-        ease: "none",
-        scrollTrigger: {
-          id: "TECHXTRA-EARTH-ROTATION",
-          trigger: hero,
-          start: "top top",
-          end: "bottom top",
-          scrub: 1.5,
-          invalidateOnRefresh: true,
-        },
-      });
-
-      gsap.to(earthGroup.position, {
-        x: -0.35,
-        y: -0.55,
-        ease: "none",
-        scrollTrigger: {
-          id: "TECHXTRA-EARTH-POSITION",
-          trigger: hero,
-          start: "top top",
-          end: "bottom top",
-          scrub: 1.5,
-          invalidateOnRefresh: true,
-        },
-      });
-    }, container);
-
+    // Runs continuously while visible, even when not scrolling.
     const render = (_time: number, deltaTime: number) => {
-      if (!prefersReducedMotion) {
-        elapsed += Math.min(deltaTime, 50) / 1000;
+      if (disposed || !isVisible) return;
 
-        // Mobile auto-rotation; desktop also rotates when not scrolling.
-        // Desktop scroll tweens may also control this rotation.
-        if (isMobile) {
-          earthGroup.rotation.y +=
-            rotationSpeed * (Math.min(deltaTime, 50) / 1000);
-        } else {
-          earthGroup.rotation.y +=
-            rotationSpeed * (Math.min(deltaTime, 50) / 1000);
-        }
+      const delta = Math.min(deltaTime, 50) / 1000;
+
+      // Always rotate on laptop, even with reduced-motion enabled.
+      if (!isMobile) {
+        elapsed += delta;
+
+        earthGroup.rotation.y =
+          baseRotationY +
+          elapsed * EARTH_POSITION.desktopRotationSpeed +
+          scrollRotationY;
+
+        earthGroup.rotation.x =
+          baseRotationX + scrollRotationX;
+      } else if (!prefersReducedMotion) {
+        elapsed += delta;
+
+        earthGroup.rotation.y =
+          baseRotationY +
+          elapsed * EARTH_POSITION.mobileRotationSpeed;
       }
 
       renderer.render(scene, camera);
     };
 
-    // Avoid running an animation loop for reduced-motion users.
-    if (!prefersReducedMotion) {
-      gsap.ticker.add(render);
-    } else {
+    const startRendering = () => {
+      if (disposed || isVisible) return;
+
+      isVisible = true;
+
+      if (!prefersReducedMotion || !isMobile) {
+        gsap.ticker.add(render);
+      }
+
       renderer.render(scene, camera);
+    };
+
+    const stopRendering = () => {
+      if (!isVisible) return;
+
+      isVisible = false;
+      gsap.ticker.remove(render);
+    };
+
+    let observer: IntersectionObserver | null = null;
+
+    if (isMobile) {
+      container.style.opacity = "0";
+
+      observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            startRendering();
+
+            gsap.to(container, {
+              opacity: 1,
+              duration: 0.45,
+              ease: "power1.out",
+              overwrite: true,
+            });
+          } else {
+            gsap.to(container, {
+              opacity: 0,
+              duration: 0.2,
+              overwrite: true,
+              onComplete: stopRendering,
+            });
+          }
+        },
+        { threshold: 0.01 }
+      );
+
+      observer.observe(hero);
+    } else {
+      // IMPORTANT: start the desktop animation loop immediately.
+      gsap.ticker.add(render);
     }
+
+    const animationContext = gsap.context(() => {
+      if (isMobile || prefersReducedMotion) return;
+
+      // Rise upward as the Hero scrolls away.
+      gsap.to(earthGroup.position, {
+        y: startPosition.y + EARTH_POSITION.riseDistance,
+        ease: "none",
+
+        scrollTrigger: {
+          id: "TECHXTRA-EARTH-RISE",
+          trigger: hero,
+          start: "top top",
+          end: "bottom top",
+          scrub: 1,
+          invalidateOnRefresh: true,
+        },
+      });
+
+      // Scroll adds rotation without overriding continuous rotation.
+      const scrollRotation = { progress: 0 };
+
+      gsap.to(scrollRotation, {
+        progress: 1,
+        ease: "none",
+
+        onUpdate: () => {
+          scrollRotationY =
+            scrollRotation.progress *
+            EARTH_POSITION.scrollRotation;
+
+          scrollRotationX =
+            scrollRotation.progress * 0.12;
+        },
+
+        scrollTrigger: {
+          id: "TECHXTRA-EARTH-ROTATION",
+          trigger: hero,
+          start: "top top",
+          end: "bottom top",
+          scrub: 1,
+          invalidateOnRefresh: true,
+        },
+      });
+    }, container);
 
     const handleResize = () => {
       const { width, height } = getSize();
@@ -235,45 +375,44 @@ const EarthScene = () => {
       renderer.setPixelRatio(
         Math.min(
           window.devicePixelRatio || 1,
-          isMobile ? 0.8 : 1.25
+          window.innerWidth < 768 ? 1 : 1.25
         )
       );
+
       renderer.setSize(width, height);
+      earthGroup.scale.setScalar(getEarthScale());
 
-      earthGroup.scale.setScalar(
-        window.innerWidth <= 480
-          ? 0.62
-          : window.innerWidth < 768
-            ? 0.72
-            : 0.88
-      );
-
-      if (isMobile || prefersReducedMotion) {
+      if (isVisible) {
         renderer.render(scene, camera);
-      } else {
+      }
+
+      if (!isMobile && !prefersReducedMotion) {
         ScrollTrigger.refresh();
       }
     };
 
     const resizeObserver = new ResizeObserver(handleResize);
+
     resizeObserver.observe(container);
     window.addEventListener("resize", handleResize);
 
     renderer.render(scene, camera);
 
     return () => {
-      window.removeEventListener("resize", handleResize);
+      disposed = true;
+
+      observer?.disconnect();
       resizeObserver.disconnect();
 
-      if (!prefersReducedMotion) {
-        gsap.ticker.remove(render);
-      }
+      window.removeEventListener("resize", handleResize);
 
+      gsap.ticker.remove(render);
       animationContext.revert();
 
       earthGeometry.dispose();
       earthMaterial.dispose();
       earthTexture.dispose();
+
       atmosphereGeometry.dispose();
       atmosphereMaterial.dispose();
 

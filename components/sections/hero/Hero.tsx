@@ -154,13 +154,15 @@ const Hero = () => {
       </div>
 
       <EarthScene />
-      {/* <SilverFlight />  */}
 
+      <div className="hidden md:block">
+        <SilverFlight />
+      </div>
       {/* Side glow */}
       <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_left,rgba(0,170,255,0.32)_0%,rgba(35,90,255,0.12)_35%,transparent_70%)]" />
 
       {/* Bottom atmospheric glow */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[35%] bg-[radial-gradient(ellipse_at_bottom,rgba(0,170,255,0.3)_0%,rgba(25,55,160,0.12)_40%,transparent_75%)]" />
+      {/* <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[35%] bg-[radial-gradient(ellipse_at_bottom,rgba(0,170,255,0.3)_0%,rgba(25,55,160,0.12)_40%,transparent_75%)]" /> */}
 
       {/* Subtle sci-fi texture */}
       <div
@@ -213,17 +215,16 @@ const Hero = () => {
           </span>
         </div>
 
-        <div className="flex flex-1 items-center py-10 md:py-8">
+        {/* Title positioned at the top-middle */}
+        <div className="flex flex-1 items-start justify-center pt-8 sm:pt-10 md:pt-12">
           <div
             ref={titleAreaRef}
-            className="w-full min-w-0 max-w-[850px] md:w-[72%] lg:w-[68%] xl:w-[64%]"
+            className="mx-auto w-full min-w-0 max-w-[1200px]"
           >
             <HeroTitle />
 
-            <div className="mt-3 flex items-center gap-3 pl-1 sm:mt-5 sm:gap-4">
-              <span className="h-px w-8 bg-(--tx-blue) sm:w-12" />
-
-              <span className="font-pixel text-[clamp(1.25rem,4vw,3.5rem)] leading-none tracking-[0.08em] text-(--tx-blue)">
+            <div className="mt-2 flex justify-end pr-[2%] sm:mt-3">
+              <span className="font-pixel text-[clamp(1rem,2.5vw,2rem)] leading-none tracking-[0.12em] text-(--tx-blue)">
                 {heroData.year}
               </span>
             </div>
