@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { ReactNode } from "react";
@@ -12,7 +11,7 @@ export default function GoogleAuthProvider({
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   if (!clientId) {
-    return <>{children}</>;
+    throw new Error("NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing");
   }
 
   return (

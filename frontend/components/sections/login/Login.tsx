@@ -114,18 +114,37 @@ export default function Login() {
         }
     }
 
-    function handleManualLogin(event: FormEvent<HTMLFormElement>) {
+    async function handleManualLogin(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError("");
 
-        if (!email.trim() || !password) {
+        const normalizedEmail = email.trim().toLowerCase();
+        if (!normalizedEmail || !password) {
             setError("Please enter your email address and password.");
             return;
         }
 
-        setError(
-            "Email and password sign-in is not connected yet. Please use Google sign-in for now."
-        );
+        setLoading(true);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
+            const response = await fetch(`${apiUrl}/api/auth/login`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: normalizedEmail, password }),
+            });
+
+            const result = (await response.json()) as LoginResponse;
+            if (!response.ok || !result.success) {
+                throw new Error(result.error?.message ?? "Unable to sign in. Please check your details.");
+            }
+
+            router.replace(result.data?.profile_complete ? "/dashboard" : "/profile-completion");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -254,9 +273,10 @@ export default function Login() {
 
                             <button
                                 type="submit"
-                                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 font-medium text-black transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-black"
+                                disabled={loading}
+                                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 font-medium text-black transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-black"
                             >
-                                Sign in
+                                {loading ? "Signing in..." : "Sign in"}
                                 <span className="transition-transform group-hover:translate-x-1">
                                     →
                                 </span>

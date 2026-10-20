@@ -13,6 +13,7 @@ type SignupResponse = {
     success: boolean;
     data?: {
         profile_complete?: boolean;
+        requires_email_verification?: boolean;
     };
     error?: {
         message?: string;
@@ -33,6 +34,7 @@ export default function Signup() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [notice, setNotice] = useState("");
 
     useLayoutEffect(() => {
         const section = sectionRef.current;
@@ -78,6 +80,7 @@ export default function Signup() {
     async function handleGoogleSignup(idToken: string) {
         setLoading(true);
         setError("");
+        setNotice("");
 
         try {
             const apiUrl =
@@ -115,12 +118,21 @@ export default function Signup() {
         }
     }
 
-    function handleManualSignup(event: FormEvent<HTMLFormElement>) {
+    async function handleManualSignup(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setError("");
+        setNotice("");
 
-        if (!name.trim() || !email.trim() || !password || !confirmPassword) {
+        const normalizedEmail = email.trim().toLowerCase();
+        const trimmedName = name.trim();
+
+        if (!trimmedName || !normalizedEmail || !password || !confirmPassword) {
             setError("Please complete all fields.");
+            return;
+        }
+
+        if (trimmedName.length < 2 || trimmedName.length > 100) {
+            setError("Your name must be between 2 and 100 characters.");
             return;
         }
 
@@ -134,9 +146,34 @@ export default function Signup() {
             return;
         }
 
-        setError(
-            "Email and password signup is not connected yet. Please use Google sign-up for now."
-        );
+        setLoading(true);
+        try {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
+            const response = await fetch(`${apiUrl}/api/auth/register`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: trimmedName, email: normalizedEmail, password }),
+            });
+
+            const result = (await response.json()) as SignupResponse;
+            if (!response.ok || !result.success) {
+                throw new Error(result.error?.message ?? "Unable to create your account.");
+            }
+
+            if (result.data?.requires_email_verification) {
+                setNotice("Account created. Check your email for the verification link before signing in.");
+                setPassword("");
+                setConfirmPassword("");
+                return;
+            }
+
+            router.replace(result.data?.profile_complete ? "/dashboard" : "/profile-completion");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
@@ -311,9 +348,10 @@ export default function Signup() {
 
                             <button
                                 type="submit"
-                                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 font-medium text-black transition hover:bg-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-black"
+                                disabled={loading}
+                                className="group flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-300 px-5 py-3 font-medium text-black transition hover:bg-cyan-200 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:ring-offset-2 focus:ring-offset-black"
                             >
-                                Create account
+                                {loading ? "Creating account..." : "Create account"}
                                 <span className="transition-transform group-hover:translate-x-1">
                                     →
                                 </span>
@@ -355,6 +393,12 @@ export default function Signup() {
                                 </div>
                             )}
                         </div>
+
+                        {notice && (
+                            <p role="status" className="mt-4 rounded-xl border border-cyan-300/20 bg-cyan-300/5 px-4 py-3 text-sm leading-6 text-cyan-100">
+                                {notice}
+                            </p>
+                        )}
 
                         {error && (
                             <p
