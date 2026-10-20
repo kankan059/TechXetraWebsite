@@ -1,0 +1,22 @@
+-- Script: scripts/bootstrap-admin.sql
+-- Usage: Replace 'OPERATOR_EMAIL_HERE' and 'OPERATOR_NAME_HERE' with real administrator details.
+-- Run locally via: wrangler d1 execute techxetra-db --local --file=./scripts/bootstrap-admin.sql
+-- Run production via: wrangler d1 execute techxetra-db --remote --file=./scripts/bootstrap-admin.sql
+
+-- Example placeholder (must be filled before running):
+-- INSERT INTO users (
+--   id, email, name, role, is_active, can_review_payments, created_at, updated_at
+-- ) VALUES (
+--   lower(hex(randomblob(16))),
+--   'operator@example.com',
+--   'Lead Super Admin',
+--   'SUPER_ADMIN',
+--   1,
+--   1,
+--   unixepoch() * 1000,
+--   unixepoch() * 1000
+-- ) ON CONFLICT(email) DO UPDATE SET
+--   role = 'SUPER_ADMIN',
+--   can_review_payments = 1,
+--   is_active = 1,
+--   updated_at = unixepoch() * 1000;
