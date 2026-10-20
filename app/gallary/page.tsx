@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Galary from '@/components/sections/galary/Galary';
 import DomeGallery from '@/components/sections/galary/DomGalary';
 export const metadata: Metadata = {
   title: "Gallery | TechXetra 2026",

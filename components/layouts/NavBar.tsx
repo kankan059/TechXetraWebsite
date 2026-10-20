@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { navigation } from "@/constants/navigation";
+import { useAuth } from "@/lib/auth-context";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { ProfileCompletionModal } from "@/components/auth/ProfileCompletionModal";
 
 function NavIcon({ href }: { href: string }) {
   const common = "h-[18px] w-[18px]";
@@ -78,6 +82,85 @@ function RegisterIcon() {
 }
 
 
+function AuthNavButton() {
+  const { user, isAuthenticated, isLoading, signOut } = useAuth();
+  const [showSignIn, setShowSignIn] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+
+  if (isLoading) {
+    return (
+      <div className="h-8 w-8 animate-pulse rounded-full bg-white/10" />
+    );
+  }
+
+  if (isAuthenticated && user) {
+    return (
+      <>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/me/tickets"
+            className="text-xs uppercase tracking-[0.18em] text-white/70 transition-colors duration-300 hover:text-white"
+          >
+            My Tickets
+          </Link>
+          <button
+            onClick={() => setShowProfile(true)}
+            title={user.name}
+            className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full border border-cyan-300/40 bg-white/10 text-xs font-bold uppercase text-cyan-300 transition hover:border-cyan-300"
+          >
+            {user.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.avatar_url} alt={user.name} className="h-full w-full object-cover" />
+            ) : (
+              user.name.charAt(0)
+            )}
+          </button>
+          <button
+            onClick={() => signOut()}
+            className="text-xs uppercase tracking-[0.18em] text-white/40 transition-colors duration-300 hover:text-white/80"
+          >
+            Sign out
+          </button>
+        </div>
+        <ProfileCompletionModal isOpen={showProfile} onClose={() => setShowProfile(false)} />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setShowSignIn(true)}
+        className="border border-cyan-300/60 px-5 py-2 text-xs uppercase tracking-[0.18em] text-cyan-200 transition-all duration-300 hover:bg-cyan-300 hover:text-black"
+      >
+        Sign In
+      </button>
+      {showSignIn && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowSignIn(false)}
+          />
+          <div className="relative z-10 flex max-w-sm w-full flex-col items-center gap-4 rounded-2xl border border-white/10 bg-[#0f0f0f] p-6 sm:p-8 shadow-2xl">
+            <button
+              onClick={() => setShowSignIn(false)}
+              className="absolute right-4 top-4 text-white/40 hover:text-white transition"
+              aria-label="Close modal"
+            >
+              <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+                <path d="M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+              </svg>
+            </button>
+            <p className="font-[var(--font-gotham-bold)] text-lg text-white">Sign in to TechXetra</p>
+            <p className="text-center text-xs text-white/50">Sign in with your Google account to register for events and manage passes.</p>
+            <GoogleSignInButton onSuccess={() => setShowSignIn(false)} />
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 const NavBar = () => {
   const pathname = usePathname();
 
@@ -109,9 +192,7 @@ const NavBar = () => {
             })}
           </nav>
 
-          <Link href="/register" className="border border-cyan-300/60 px-5 py-2 text-xs uppercase tracking-[0.18em] text-cyan-200 transition-all duration-300 hover:bg-cyan-300 hover:text-black">
-            Register
-          </Link>
+          <AuthNavButton />
         </div>
       </header>
 
