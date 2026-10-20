@@ -92,13 +92,13 @@ const NavBar = () => {
             </nav>
 
             <Link
-              href="/register"
-              className={`border px-5 py-2.5 text-xs font-medium uppercase tracking-[0.14em] transition-colors duration-300 ${pathname === "/register"
+              href="/login"
+              className={`border px-5 py-2.5 text-xs font-medium uppercase tracking-[0.14em] transition-colors duration-300 ${pathname === "/login"
                   ? "border-cyan-200 bg-cyan-200 text-black"
                   : "border-white/20 text-white/80 hover:border-cyan-200/60 hover:text-cyan-100"
                 }`}
             >
-              Register
+              Login
             </Link>
           </div>
 
@@ -167,15 +167,15 @@ const NavBar = () => {
               </div>
 
               <Link
-                href="/register"
+                href="/login"
                 tabIndex={menuOpen ? 0 : -1}
                 onClick={() => setMenuOpen(false)}
-                className={`mt-5 flex w-full items-center justify-center border px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] transition-colors duration-300 ${pathname === "/register"
+                className={`mt-5 flex w-full items-center justify-center border px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] transition-colors duration-300 ${pathname === "/login"
                     ? "border-cyan-200 bg-cyan-200 text-black"
                     : "border-white/20 text-white/85 hover:border-cyan-200/60 hover:text-cyan-100"
                   }`}
               >
-                Register
+                Login
               </Link>
             </nav>
           </div>

@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import SmoothScroll from "@/components/layouts/SmoothScroll";
-import "./globals.css";
-import BackGround from "@/components/animations/BackGround";
-import Navbar from "@/components/layouts/navbar/NavBar";
-import GlobalEffect from "@/components/effects/GlobalEffect";
-import Footer from "@/components/layouts/Footer";
 import RouteShell from "@/components/layouts/RouteShell";
+import GoogleAuthProvider from "@/components/providers/GoogleAuthProvider";
+import "./globals.css";
 
 const ortigel = localFont({
   src: "../public/fonts/Ortigel-Demo-Regular.otf",
@@ -62,7 +58,9 @@ export default function RootLayout({
       `}
     >
       <body className="min-h-full flex flex-col">
-        <RouteShell>{children}</RouteShell>
+        <GoogleAuthProvider>
+          <RouteShell>{children}</RouteShell>
+        </GoogleAuthProvider>
       </body>
     </html>
   );
