@@ -54,16 +54,16 @@ const Team = () => {
                       status={group.showContact ? "Core Team" : "Team Member"}
                       contactText="Email"
                       avatarUrl={member.image}
-                      iconUrl="/favicon.svg"
+                      iconUrl="assets/logo1.png"
                       holo={0}
                       glare={0.3}
                       tiltStrength={16}
-                      parallax={0}
+                      parallax={9}
                       radius={14}
                       enableTilt
                       intro
                       showUserInfo
-                      enableMobileTilt={false}
+                      enableMobileTilt
                       theme="dark"
                       onContactClick={() => {
                         if (group.showContact && member.email) {
