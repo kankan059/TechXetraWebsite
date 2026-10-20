@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { CloudflareBindings, AppVariables } from '../types/env'
 import { verifyGoogleIdToken } from '../services/google-auth.service'
 import { resolveOrCreateGoogleUser } from '../services/user.service'
+import { registerWithPassword, loginWithPassword } from '../services/password.service'
 import { createSession, revokeSession } from '../services/session.service'
 import { formatUserProfile } from '../services/profile.service'
 import { jsonSuccess } from '../common/response'
@@ -18,6 +19,21 @@ const GoogleLoginSchema = z
   })
   .strict()
 
+const RegisterSchema = z
+  .object({
+    email: z.string().email('Valid email is required'),
+    password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+    name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
+  })
+  .strict()
+
+const LoginSchema = z
+  .object({
+    email: z.string().email('Valid email is required'),
+    password: z.string().min(1, 'Password is required'),
+  })
+  .strict()
+
 authRoutes.post('/google', async (c) => {
   const body = await c.req.json().catch(() => ({}))
   const parsed = GoogleLoginSchema.parse(body)
@@ -29,6 +45,48 @@ authRoutes.post('/google', async (c) => {
   })
 
   const user = await resolveOrCreateGoogleUser(c.env.DB, payload, now)
+
+  const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')
+  const userAgent = c.req.header('user-agent')
+
+  const { cookieHeader } = await createSession(c.env.DB, user, c.env, {
+    ipAddress,
+    userAgent,
+    now,
+  })
+
+  c.res.headers.set('Set-Cookie', cookieHeader)
+
+  return jsonSuccess(c, formatUserProfile(user))
+})
+
+authRoutes.post('/register', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  const parsed = RegisterSchema.parse(body)
+
+  const now = c.get('now') || Date.now()
+  const user = await registerWithPassword(c.env.DB, parsed, now)
+
+  const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')
+  const userAgent = c.req.header('user-agent')
+
+  const { cookieHeader } = await createSession(c.env.DB, user, c.env, {
+    ipAddress,
+    userAgent,
+    now,
+  })
+
+  c.res.headers.set('Set-Cookie', cookieHeader)
+
+  return jsonSuccess(c, formatUserProfile(user), 201)
+})
+
+authRoutes.post('/login', async (c) => {
+  const body = await c.req.json().catch(() => ({}))
+  const parsed = LoginSchema.parse(body)
+
+  const now = c.get('now') || Date.now()
+  const user = await loginWithPassword(c.env.DB, parsed, now)
 
   const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')
   const userAgent = c.req.header('user-agent')
