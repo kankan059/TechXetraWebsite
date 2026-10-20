@@ -1,37 +1,70 @@
-# TechXetra — Complete Frontend Specification & Agent Prompt Guide
+# TechXetra — Complete Frontend Specification & Integration Guide
 
-> **Agent Directive**: This document is a complete, self-contained specification designed to be fed directly into an AI coding agent (e.g. Antigravity, Cursor, Claude, Devin) to build the entire frontend web application for **TechXetra** from scratch. It contains the application architecture, complete TypeScript schemas, API client implementation, full endpoint specifications, UX state flows, and error handling.
+> **Agent & Developer Directive**: This document is the master engineering specification designed for frontend engineers and AI coding agents building the web application for **TechXetra** (the annual technical fest of Tezpur University). It provides global architecture, complete TypeScript schemas, a turnkey API client, UI/UX state machines, and a comprehensive directory linking to modular endpoint documentation.
 
 ---
 
-## 1. System & Project Architecture
+## 1. System Architecture & Portal Modules
 
-### 1.1 Application Overview
-**TechXetra** is the annual technical fest of Tezpur University. The frontend consists of three interconnected modules in a single responsive web application:
-1. **Participant Portal**: Public event discovery, Google Sign-in, user profile management (with student ID verification lock), team formation/invitations, pass checkout (15-min atomic reservation), manual UPI payment submission (UTR), and digital ticket presentation (signed QR codes).
-2. **Staff Scanner PWA**: High-throughput gate and event check-in scanner for volunteers and leads with instant camera scanning, physical student ID checking, and double-scan prevention.
-3. **Admin & Staff Portal**: Reviewer dashboard for manual UPI payment verification (approving/rejecting UTR submissions), e-sports round-by-round tournament scorekeeping, event management, and audit reports.
+The TechXetra frontend web application comprises three integrated portals:
 
-### 1.2 Recommended Frontend Tech Stack
+```
+TechXetra Web Application
+├── 1. Participant Portal (Public & Authenticated)
+│   ├── Event Catalog & Search (Category, Day, Solo/Team filters)
+│   ├── Google Sign-In & Email/Password Authentication
+│   ├── Profile & Student Verification (Institutional ID lock)
+│   ├── Team Management (Creation, email invites, roster lock)
+│   ├── 15-Minute Reservation Checkout (Atomic inventory hold)
+│   ├── Manual UPI Payment Flow (VPA QR Code, deep link, UTR submission)
+│   └── Digital Pass Presentation (Tamper-proof HMAC QR codes)
+│
+├── 2. Staff Scanner PWA (Volunteers & Leads)
+│   ├── Camera Barcode Reader (html5-qrcode)
+│   ├── Gate Check-in (Multi-entry across Fest Days 1–3)
+│   ├── Event Check-in (Atomic single-use check-in)
+│   └── Physical College ID Verification Enforcement
+│
+└── 3. Admin & Reviewer Portal (Super Admins & Reviewers)
+    ├── Manual UPI Verification Queue (Approve, Reject, Hold, Resubmit)
+    ├── E-Sports Tournament Scoring (Optimistic concurrency, round-by-round)
+    ├── Event & Staff Management (Role assignments, capacity overrides)
+    ├── Ticket & Registration Controls (Revoke, Reissue, Rotate QR, Undo Check-in)
+    ├── Festival Settings & Day Scheduling
+    └── Business Intelligence Reports & Immutable Audit Logs
+```
+
+### Recommended Frontend Tech Stack
 - **Framework**: Next.js 14/15 (App Router) or Vite + React 18+ (SPA)
-- **Language**: TypeScript (strict mode enabled)
-- **Styling**: Tailwind CSS + Shadcn UI (or Radix UI primitives)
+- **Language**: TypeScript (Strict Mode)
+- **Styling**: Tailwind CSS + Shadcn UI / Radix UI primitives
 - **Icons**: Lucide React
-- **State & Server Cache**: `@tanstack/react-query` (TanStack Query v5) for all API queries/mutations
+- **Server Cache & State**: `@tanstack/react-query` (TanStack Query v5)
 - **Form Validation**: `react-hook-form` + `zod`
 - **QR Utilities**:
-  - Generator: `qrcode.react` (SVG/Canvas rendering for tickets and UPI intents)
-  - Scanner: `html5-qrcode` (webcam/PWA camera barcode reader)
+  - Generator: `qrcode.react` (SVG/Canvas rendering)
+  - Scanner: `html5-qrcode` (PWA camera reader)
 
 ---
 
 ## 2. Global Communication & API Client
 
 ### 2.1 Protocol Rules
+
+> [!IMPORTANT]
+> **CRITICAL RULE: MANDATORY SESSION COOKIES (`credentials: 'include'`)**
+> 
+> The backend does **NOT** use Bearer tokens in headers. Authentication is handled exclusively through secure HttpOnly session cookies (`__Host-session` in production, `session` in local development).
+> 
+> **Every single HTTP request (`fetch`, Axios, or React Query mutation/query) MUST specify `credentials: 'include'`.**
+> 
+> If you omit `credentials: 'include'`, the browser will not send the session cookie and all authenticated endpoints (`/api/me`, `/api/purchases`, `/api/teams`, etc.) will fail with **HTTP 401 Unauthorized**.
+
 - **Base URL**: Default to `http://localhost:8787` in development, or `NEXT_PUBLIC_API_URL` / `VITE_API_URL`.
-- **Credentials**: **MANDATORY** `credentials: 'include'` on all HTTP requests. The backend uses secure HttpOnly session cookies (`__Host-session` in production, `session` in dev).
+- **Credentials**: **MANDATORY** `credentials: 'include'` on all HTTP requests. The backend uses secure HttpOnly session cookies (`__Host-session` in production, `session` in local dev).
 - **CORS & CSRF**: All state-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`) require the browser's standard `Origin` header matching `FRONTEND_ORIGIN` (default: `http://localhost:3000`).
-- **Idempotency**: All purchase and payment submission mutations support and recommend sending an `Idempotency-Key: <uuid-v4>` header.
+- **Idempotency**: All purchase creations and payment submissions support and recommend sending an `Idempotency-Key: <uuid-v4>` header.
+- **Request Tracing**: All responses include a `request_id` header and payload field for distributed log correlation.
 
 ### 2.2 Standard API Envelopes
 Every backend response strictly adheres to this envelope:
@@ -173,11 +206,11 @@ export interface FestDay {
 export interface FestCatalog {
   gate_pass: {
     price_paise: number
-    student_price_paise: number | null
+    student_price_paise: number
     validity: string
   }
   fest_days: FestDay[]
-  purchases_enabled: string
+  purchases_enabled: boolean
   student_id_warning_text: string
   support_contact: string
 }
@@ -198,6 +231,7 @@ export type EventCategory =
 export type EventStatus = 'DRAFT' | 'OPEN' | 'CLOSED' | 'COMPLETED' | 'CANCELLED'
 export type PriceModel = 'FREE' | 'PER_PARTICIPANT' | 'PER_TEAM'
 export type CapacityUnit = 'SEATS' | 'TEAMS'
+export type ScoringStatus = 'NOT_APPLICABLE' | 'OPEN' | 'FINALIZED'
 
 export interface EventItem {
   id: string
@@ -219,8 +253,10 @@ export interface EventItem {
   student_price_paise: number | null
   capacity: number | null
   seats_taken: number
+  seats_remaining: number | null
   capacity_unit: CapacityUnit
-  is_sold_out: boolean
+  registration_open: boolean
+  scoring_enabled: boolean
   leaderboard_public: boolean
   metadata?: string | null
 }
@@ -238,6 +274,16 @@ export interface TeamMember {
   status: TeamMemberStatus
   invited_at: number
   responded_at: number | null
+  user?: {
+    id: string
+    name: string
+    email: string
+    avatar_url: string | null
+    is_student: boolean
+    institution_name: string | null
+    institution_id: string | null
+    profile_completed_at: number | null
+  } | null
 }
 
 export interface TeamDetail {
@@ -248,9 +294,6 @@ export interface TeamDetail {
   status: TeamStatus
   created_at: number
   updated_at: number
-  event_title: string
-  min_team_size: number
-  max_team_size: number
   members: TeamMember[]
 }
 
@@ -275,6 +318,23 @@ export interface PurchaseItem {
   unit_price_paise: number
   registration_id: string | null
   holds_slot: number
+  created_at: number
+}
+
+export interface Registration {
+  id: string
+  event_id: string
+  team_id: string | null
+  participant_id: string
+  status: 'RESERVED' | 'CONFIRMED' | 'CANCELLED' | 'EXPIRED'
+  seat_count: number
+  created_at: number
+  updated_at: number
+  event_title?: string
+  event_category?: string
+  day_of_event?: number
+  event_venue?: string | null
+  team_name?: string | null
 }
 
 export interface PurchaseDetail {
@@ -285,21 +345,24 @@ export interface PurchaseDetail {
   payment_method: 'UPI' | 'FREE' | null
   reservation_expires_at: number | null
   fulfillment_status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED'
+  fulfillment_attempts: number
+  fulfillment_last_error: string | null
+  idempotency_key: string | null
   student_policy_acknowledged_at: number | null
   created_at: number
   updated_at: number
   items: PurchaseItem[]
+  registrations: Registration[]
 }
 
 export interface PaymentInstructions {
   purchase_id: string
-  expected_amount_paise: number
-  formatted_amount: string
-  upi_vpa: string
+  amount_paise: number
+  amount_rupees: string
+  payee_vpa: string
   payee_name: string
-  upi_intent_uri: string
-  reservation_expires_at: number
-  instructions: string[]
+  upi_uri: string
+  reservation_expires_at: number | null
 }
 
 export type PaymentStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'ON_HOLD' | 'WITHDRAWN'
@@ -310,31 +373,81 @@ export interface PaymentRecord {
   expected_amount_paise: number
   transaction_id: string
   status: PaymentStatus
+  reviewer_id: string | null
   reviewed_at: number | null
   rejection_reason: string | null
+  internal_note: string | null
+  resubmitted_from_payment_id: string | null
   created_at: number
+  updated_at: number
+}
+
+export interface DerivedTicketValidity {
+  valid_from: number
+  valid_to: number
+  state: 'VALID' | 'UPCOMING' | 'EXPIRED' | 'REVOKED' | 'REPLACED'
+  is_currently_valid: boolean
 }
 
 export interface DigitalTicket {
   id: string
   purchase_item_id: string
+  purchase_id: string
   ticket_type: ItemType
   tier: PriceTier
-  valid_from: number
-  valid_to: number
   status: 'ACTIVE' | 'REVOKED' | 'REPLACED'
+  validity: DerivedTicketValidity
+  qr_token: string // Format: tx1.<ticket_id>.<qr_version>.<hmac_signature>
+  qr_version: number
+  event_checked_in_at: number | null
+  purchase: {
+    id: string
+    payment_status: PurchaseStatus
+    total_amount_paise: number
+  }
   event: {
     id: string
     title: string
     category: string
+    venue: string | null
     day_of_event: number
+    starts_at: number
+    ends_at: number
   } | null
-  physical_id_required: boolean
-  qr_token: string // e.g. tx1.tkt_abc.1.7Xy9...
+  student_id_warning: string | null
+  created_at: number
+  updated_at: number
 }
 
+export interface PreparingTicket {
+  purchase_id: string
+  status: 'PREPARING' | 'FAILED'
+  fulfillment_status: string
+  message: string
+  can_retry: boolean
+  retry_endpoint: string
+  attempts: number
+  last_error: string | null
+}
+
+export interface UserTicketsResponse {
+  tickets: DigitalTicket[]
+  preparing_tickets: PreparingTicket[]
+}
+
+export type ScanVerdict =
+  | 'VALID'
+  | 'ALREADY_USED'
+  | 'EXPIRED'
+  | 'NOT_YET_VALID'
+  | 'REVOKED'
+  | 'PAYMENT_NOT_APPROVED'
+  | 'WRONG_EVENT'
+  | 'WRONG_TICKET_TYPE'
+  | 'INVALID'
+
 export interface ScanLookupResult {
-  verdict: 'VALID' | 'ALREADY_USED' | 'EXPIRED' | 'NOT_YET_VALID' | 'REVOKED' | 'PAYMENT_NOT_APPROVED' | 'WRONG_EVENT' | 'WRONG_TICKET_TYPE' | 'INVALID'
+  verdict: ScanVerdict
   reason: string | null
   ticket: {
     id: string
@@ -367,8 +480,21 @@ export interface ScanAdmitResult {
   ticket_id: string
   log_id: string
   context: 'GATE' | 'EVENT'
+  event_id: string | null
   student_id_checked: boolean
   admitted_at: number
+  idempotent_replay?: boolean
+}
+
+export interface ScanDenyResult {
+  success: boolean
+  verdict: 'DENIED'
+  ticket_id: string
+  log_id: string
+  context: 'GATE' | 'EVENT'
+  reason: string
+  denied_at: number
+  idempotent_replay?: boolean
 }
 
 export interface LeaderboardEntry {
@@ -388,209 +514,200 @@ export interface LeaderboardResponse {
     slug: string
     category: string
     max_rounds: number
-    scoring_status: 'OPEN' | 'FINALIZED'
+    scoring_status: string
     leaderboard_public: boolean
   }
   leaderboard: LeaderboardEntry[]
+}
+
+export interface EsportsScore {
+  id: string
+  event_id: string
+  registration_id: string
+  round_no: number
+  score: number
+  version: number
+  created_by: string
+  updated_by: string
+  created_at: number
+  updated_at: number
 }
 ```
 
 ---
 
-## 4. Frontend Route Map & Page Structure
+## 4. Master API Route Directory
 
-Build the application with the following pages:
+All 35+ backend routes are documented with full request/response schemas in the modular API guides:
 
-```
-src/app/ (or src/pages/)
-├── (public)/
-│   ├── page.tsx                     # Landing page with Fest Hero, Day timeline & Pass CTA
-│   ├── login/page.tsx               # Login page (Email/Password + Google Sign-In)
-│   ├── register/page.tsx            # Signup page (Email/Password/Name + Google Sign-In)
-│   ├── catalog/page.tsx             # Gate Pass pricing & festival overview
-│   ├── events/page.tsx              # Event directory with Category filters & search
-│   ├── events/[slug]/page.tsx       # Event detail, solo register / create team button
-│   └── leaderboards/page.tsx        # Public E-Sports live scoreboards
-│
-├── (participant)/                   # Protected: requires active session
-│   ├── me/page.tsx                  # Profile overview & completeness check
-│   ├── me/profile/page.tsx          # Edit profile (handles student lock logic)
-│   ├── me/teams/page.tsx            # My teams & pending invites (accept/decline)
-│   ├── me/tickets/page.tsx          # My passes & QR code modal
-│   │
-│   └── checkout/                    # 15-minute checkout reservation flow
-│       ├── page.tsx                 # Cart / Pass selection review
-│       ├── [id]/pay/page.tsx        # UPI QR Code, intent link, timer & UTR entry
-│       └── [id]/status/page.tsx     # Payment pending review / ticket ready confirmation
-│
-├── (staff)/                         # Protected: role in ['VOLUNTEER', 'LEAD', 'SUPER_ADMIN']
-│   ├── staff/scan/page.tsx          # QR Scanner PWA (camera view, lookup modal, Admit)
-│   └── staff/events/[id]/scores/page.tsx # E-Sports round score entry & leaderboard finalize
-│
-└── (admin)/                         # Protected: role === 'SUPER_ADMIN' or can_review_payments
-    ├── admin/payments/page.tsx      # Manual UPI verification queue (Approve/Reject/Hold)
-    ├── admin/events/page.tsx        # Event creator & capacity editor
-    └── admin/reports/page.tsx       # Sales, attendance & audit reports
-```
-
----
-
-## 5. Step-by-Step Feature Specifications
-
-### 5.1 Authentication & Profile Setup
-1. **Email / Password Authentication**:
-   - **Register**: `POST /api/auth/register` with `{ email, password, name }`. Automatically creates the account, generates an HttpOnly session cookie, and returns the user profile.
-   - **Login**: `POST /api/auth/login` with `{ email, password }`. Validates credentials, sets session cookie, and returns the user profile.
-2. **Google Login**:
-   - Render the Google Sign-In button using Google Identity Services SDK (`window.google.accounts.id`).
-   - On credential response, post token to `POST /api/auth/google` with `{ id_token: credential }`.
-   - On success, query `GET /api/me`.
-3. **Profile Completion Gate**:
-   - Inspect `profile.profile_complete`.
-   - If `false`, intercept navigation to `/checkout` or `/events` registration with a modal prompting for:
-     - Name (2–100 chars)
-     - Phone: 10-digit Indian number (`/^[6-9]\d{9}$/`)
-     - Is Student? Toggle checkbox:
-       - If checked: `institution_name` (2–100 chars) and `institution_id` (1–40 chars)
-   - Save via `PATCH /api/me/profile`.
-3. **Student Fields Lock Rule**:
-   - If `user.student_fields_locked === true`, disable the student toggle, institution name, and institution ID inputs.
-   - Display a badge: *"Student status verified & locked. To update, contact festival administration."*
-
-### 5.2 Purchasing & 15-Minute Reservation Timer
-1. **Creating the Purchase**:
-   - Call `POST /api/purchases` with:
-     ```json
-     {
-       "items": [{ "item_type": "GATE_PASS" }],
-       "acknowledge_student_id_policy": true
-     }
-     ```
-   - Send an `Idempotency-Key` header with a generated UUID.
-   - If successful, backend returns `status: 'AWAITING_PAYMENT'` and `reservation_expires_at` (15 minutes from creation).
-2. **Payment Page (`/checkout/[id]/pay`)**:
-   - Fetch `GET /api/purchases/:id/payment-instructions`.
-   - **Start Countdown Timer**: Compare `reservation_expires_at` to `Date.now()`. Display active MM:SS timer.
-   - If timer hits 00:00: Disable inputs, display *"Reservation Expired. Slots have been released"*, and offer a *"Start Over"* button.
-   - **Render UPI QR Code**: Render `upi_intent_uri` using `QRCode` component.
-   - **Mobile Deep Link**: Provide a button `<a href={upi_intent_uri}>Pay with UPI App</a>`.
-   - **UTR Form**: Input for 12-digit transaction ID. Submit to `POST /api/purchases/:id/payment`.
-   - Redirect to `/checkout/[id]/status` upon submission.
-
-### 5.3 Presenting Digital Tickets (`/me/tickets`)
-1. Fetch `GET /api/tickets/me`.
-2. Display ticket cards with:
-   - Pass Title ("Gate Pass — 3 Day" or Event Title).
-   - Validity dates (e.g. "Nov 6 - Nov 8, 2026").
-   - Large, high-contrast QR Code containing `ticket.qr_token`.
-   - If `ticket.physical_id_required === true`, render an alert banner:
-     > ⚠️ **Physical ID Required**: You must present your original college ID card at the gate along with this QR code.
-
-### 5.4 Staff Scanner PWA (`/staff/scan`)
-Designed for mobile phones using `html5-qrcode`:
-1. **Scanner View**:
-   - Toggle context: **GATE Entry** (multi-entry) vs **EVENT Entry** (single-use).
-   - If EVENT entry: dropdown selector for event.
-2. **Scan Event Flow**:
-   - When camera detects a QR code token (starts with `tx1.`):
-     - Trigger haptic feedback (vibrate 50ms).
-     - Call `POST /api/staff/scan/lookup` with `{ token, context, event_id }`.
-   - Modal pops up showing:
-     - Attendee Name & Status (`VALID`, `ALREADY_USED`, `INVALID`).
-     - Student Check Flag: If `requires_id_check: true`, show a large red warning checkbox: **"Physically verified student ID card"**.
-   - Scanner presses **"Admit Attendee"**:
-     - Call `POST /api/staff/scan/admit` with `{ token, context, event_id, student_id_checked, client_scan_id }`.
-     - Play success audio chime & flash green.
-   - If attendee is denied:
-     - Call `POST /api/staff/scan/deny` with `{ token, context, reason }`.
-     - Flash red.
-
-### 5.5 Reviewer Dashboard (`/admin/payments`)
-For staff with `can_review_payments: true`:
-1. Fetch `GET /api/admin/payments?status=PENDING`.
-2. Table shows: Buyer name, email, amount (₹), submitted UTR, submission timestamp.
-3. Reviewer checks bank statement:
-   - **Approve**: `POST /api/admin/payments/:id/approve` -> instantly fulfills tickets.
-   - **Reject**: `POST /api/admin/payments/:id/reject` -> modal asking for rejection reason and whether to cancel the reservation or let participant retry UTR.
-   - **Hold**: `POST /api/admin/payments/:id/hold`.
-
----
-
-## 6. Complete API Endpoint Reference Table
-
-| Method | Endpoint | Auth Required | Description |
-|---|---|---|---|
-| `GET` | `/health` | None | API health check |
-| `POST` | `/api/auth/register` | None | Register with email, password, and name |
-| `POST` | `/api/auth/login` | None | Login with email and password |
-| `POST` | `/api/auth/google` | None | Exchange Google ID token for session cookie |
-| `POST` | `/api/auth/logout` | Session | Revoke session and clear cookie |
-| `GET` | `/api/me` | Session | Fetch user profile & completeness status |
-| `PATCH` | `/api/me/profile` | Session | Update profile (name, phone, student fields) |
-| `GET` | `/api/catalog/passes` | None | Gate pass prices, festival dates, policy notes |
-| `GET` | `/api/events` | None | List events (filterable by category, day, team) |
-| `GET` | `/api/events/:idOrSlug` | None | Single event details |
-| `GET` | `/api/events/:id/leaderboard` | None | Live public esports tournament leaderboard |
-| `POST` | `/api/teams` | Profile Complete | Create team for an event |
-| `GET` | `/api/teams/:id` | Session | Get team info and roster |
-| `POST` | `/api/teams/:id/invites` | Profile Complete | Invite teammate by email |
-| `DELETE` | `/api/teams/:id/members/:mId`| Session | Remove team member or cancel invite |
-| `DELETE` | `/api/teams/:id` | Session | Disband/cancel draft team |
-| `GET` | `/api/me/teams` | Session | List teams user is part of |
-| `GET` | `/api/me/team-invites` | Session | List pending team invitations |
-| `POST` | `/api/team-invites/:mId/accept`| Profile Complete | Accept team invite |
-| `POST` | `/api/team-invites/:mId/decline`| Session | Decline team invite |
-| `POST` | `/api/purchases` | Profile Complete | Create purchase reservation (15m timer) |
-| `GET` | `/api/purchases` | Session | List current user's purchases |
-| `GET` | `/api/purchases/:id` | Session | Get detailed purchase status & items |
-| `POST` | `/api/purchases/:id/cancel`| Session | Release reservation & cancel purchase |
-| `GET` | `/api/purchases/:id/payment-instructions` | Session | Get UPI VPA, QR URI, and instructions |
-| `POST` | `/api/purchases/:id/payment` | Profile Complete | Submit 12-digit UPI UTR |
-| `POST` | `/api/payments/:id/withdraw` | Session | Withdraw pending UTR submission |
-| `GET` | `/api/tickets/me` | Session | Fetch all owned tickets with signed QR tokens |
-| `GET` | `/api/tickets/:id` | Session | Fetch single ticket details |
-| `POST` | `/api/staff/scan/lookup` | Staff | Look up ticket details by QR token |
-| `POST` | `/api/staff/scan/admit` | Staff | Admit attendee at Gate or Event |
-| `POST` | `/api/staff/scan/deny` | Staff | Deny entry and record audit reason |
-| `GET` | `/api/staff/events/:id/scores` | Staff | Fetch round scores & audit trail |
-| `PUT` | `/api/staff/events/:id/scores` | Staff | Upsert round score with optimistic version |
-| `POST` | `/api/staff/events/:id/scores/finalize` | Staff Lead | Finalize esports scoring |
-| `GET` | `/api/admin/payments` | Reviewer | Review queue for manual UPI payments |
-| `POST` | `/api/admin/payments/:id/approve` | Reviewer | Approve payment & fulfill tickets |
-| `POST` | `/api/admin/payments/:id/reject` | Reviewer | Reject payment with reason |
-| `GET` | `/api/admin/reports/sales` | Super Admin | Sales & revenue metrics |
-| `GET` | `/api/admin/reports/attendance` | Super Admin | Gate & event attendance log metrics |
-
----
-
-## 7. Error Handling & User Notification Matrix
-
-Inspect `error.code` when `response.success === false`:
-
-| Error Code | HTTP Status | Recommended UI Notification |
+| Module | Endpoints Covered | Documentation Guide |
 |---|---|---|
-| `UNAUTHORIZED` | 401 | Open Google Login Modal: *"Your session has expired. Please sign in."* |
+| **01. Auth & Profile** | `/health`, `/ready`, `/api/auth/register`, `/login`, `/google`, `/logout`, `/api/me`, `/api/me/profile` | [📘 Module 01 Guide](./api/01-auth-and-profile.md) |
+| **02. Catalog & Events** | `/api/catalog/passes`, `/api/events` (List, Detail, Update), `/api/leaderboards`, `/api/events/:id/leaderboard` | [📘 Module 02 Guide](./api/02-catalog-events-leaderboards.md) |
+| **03. Teams & Invites** | `/api/teams` (Create, Detail, Cancel), `/api/teams/:id/invites`, `/api/teams/:id/members/:mId`, `/api/me/teams`, `/api/me/team-invites`, `/api/team-invites/:mId/accept`, `/decline` | [📘 Module 03 Guide](./api/03-teams-and-invitations.md) |
+| **04. Purchases & Tickets**| `/api/purchases` (Create, List, Detail, Cancel, Retry), `/api/purchases/:id/payment-instructions`, `/payment`, `/api/payments/:id/withdraw`, `/api/registrations`, `/api/tickets/me`, `/api/tickets/:id` | [📘 Module 04 Guide](./api/04-purchases-payments-tickets.md) |
+| **05. Staff Scanner & Scoring** | `/api/staff/scan/lookup`, `/admit`, `/deny`, `/api/staff/events/:id/scores` (GET, PUT, POST, DELETE), `/finalize` | [📘 Module 05 Guide](./api/05-staff-portal.md) |
+| **06. Admin & Reviewers** | `/api/admin/payments` (Queue, Detail, Approve, Reject, Hold, Unhold, Resubmit), `/api/admin/users`, `/api/admin/events`, `/api/admin/purchases`, `/api/admin/tickets`, `/api/admin/registrations`, `/api/admin/settings`, `/api/admin/fest-days`, `/api/admin/reports/*`, `/api/admin/audit-logs` | [📘 Module 06 Guide](./api/06-admin-portal.md) |
+
+### Master Route Index Table
+
+| HTTP Method | Route Endpoint | Permission / Role Required | Description & Link |
+|---|---|---|---|
+| `GET` | `/health` / `/api/health` | Public | [Runtime health check](./api/01-auth-and-profile.md#21-health-check) |
+| `GET` | `/ready` / `/api/ready` | Public | [Database ping readiness check](./api/01-auth-and-profile.md#22-readiness-check-database-ping) |
+| `POST` | `/api/auth/google` | Public | [Google ID token sign-in/up](./api/01-auth-and-profile.md#31-google-one-tap--sign-in-with-google) |
+| `POST` | `/api/auth/register` | Public | [Email/password account creation](./api/01-auth-and-profile.md#32-register-with-email--password) |
+| `POST` | `/api/auth/login` | Public | [Email/password authentication](./api/01-auth-and-profile.md#33-login-with-email--password) |
+| `POST` | `/api/auth/logout` | Session Required | [Session revocation & cookie clearance](./api/01-auth-and-profile.md#34-logout) |
+| `GET` | `/api/me` | Session Required | [Current user profile & completeness status](./api/01-auth-and-profile.md#41-get-current-user-profile) |
+| `PATCH`| `/api/me/profile` | Session Required | [Update profile details & student info](./api/01-auth-and-profile.md#42-update-user-profile) |
+| `GET` | `/api/catalog/passes` | Public | [Festival catalog, gate pass pricing & days](./api/02-catalog-events-leaderboards.md#21-get-festival-passes--configuration) |
+| `GET` | `/api/events` | Optional Session | [List events with category/day/team search](./api/02-catalog-events-leaderboards.md#31-list-events-search-filter--pagination) |
+| `GET` | `/api/events/:idOrSlug` | Optional Session | [Single event details by ID or slug](./api/02-catalog-events-leaderboards.md#32-get-single-event-details) |
+| `PATCH`| `/api/events/:id` | Staff Lead / Super Admin | [Update event venue, description, or capacity](./api/02-catalog-events-leaderboards.md#33-update-event-staff-lead--admin) |
+| `GET` | `/api/leaderboards` | Public | [List public esports leaderboards](./api/02-catalog-events-leaderboards.md#41-list-public-leaderboards) |
+| `GET` | `/api/events/:id/leaderboard` | Optional Session | [Real-time event scoreboard (with tie ranks)](./api/02-catalog-events-leaderboards.md#42-get-event-public-leaderboard) |
+| `POST` | `/api/teams` | Profile Complete | [Create a team for an event](./api/03-teams-and-invitations.md#21-create-team) |
+| `GET` | `/api/teams/:id` | Team Member / Staff | [Get team roster and member statuses](./api/03-teams-and-invitations.md#22-get-team-details--roster) |
+| `DELETE`| `/api/teams/:id` | Team Leader / Super Admin | [Disband / cancel draft team](./api/03-teams-and-invitations.md#23-disband--cancel-team) |
+| `POST` | `/api/teams/:id/invites` | Team Leader | [Invite member by email](./api/03-teams-and-invitations.md#31-invite-teammate-by-email) |
+| `DELETE`| `/api/teams/:id/members/:mId` | Leader or Self | [Remove member or leave team](./api/03-teams-and-invitations.md#32-remove-member-or-cancel-invitation) |
+| `POST` | `/api/team-invites/:mId/accept` | Profile Complete | [Accept team invitation](./api/03-teams-and-invitations.md#41-accept-team-invitation) |
+| `POST` | `/api/team-invites/:mId/decline` | Session Required | [Decline team invitation](./api/03-teams-and-invitations.md#42-decline-team-invitation) |
+| `GET` | `/api/me/teams` | Session Required | [List current user's active teams](./api/03-teams-and-invitations.md#51-get-my-teams) |
+| `GET` | `/api/me/team-invites` | Session Required | [List pending invitations waiting for response](./api/03-teams-and-invitations.md#52-get-my-pending-team-invitations) |
+| `POST` | `/api/purchases` | Profile Complete | [Create 15-min pass reservation hold](./api/04-purchases-payments-tickets.md#21-create-purchase-reservation) |
+| `GET` | `/api/purchases` | Session Required | [List all purchases made by user](./api/04-purchases-payments-tickets.md#22-list-users-purchases) |
+| `GET` | `/api/purchases/:id` | Buyer / Super Admin | [Get detailed purchase status & items](./api/04-purchases-payments-tickets.md#23-get-purchase-details) |
+| `POST` | `/api/purchases/:id/cancel`| Buyer / Super Admin | [Release reservation slots and cancel](./api/04-purchases-payments-tickets.md#24-cancel-purchase-reservation) |
+| `POST` | `/api/purchases/:id/retry-fulfillment` | Buyer / Super Admin | [Retry ticket generation for paid purchase](./api/04-purchases-payments-tickets.md#25-retry-ticket-fulfillment) |
+| `GET` | `/api/purchases/:id/payment-instructions` | Buyer / Super Admin | [Fetch UPI VPA, QR URI, and amount](./api/04-purchases-payments-tickets.md#31-get-payment-instructions--upi-deep-link) |
+| `POST` | `/api/purchases/:id/payment` | Profile Complete | [Submit 12-digit UPI UTR for verification](./api/04-purchases-payments-tickets.md#32-submit-upi-transaction-id-utr) |
+| `POST` | `/api/payments/:id/withdraw`| Buyer Only | [Withdraw submitted UTR to correct it](./api/04-purchases-payments-tickets.md#33-withdraw-payment-submission) |
+| `GET` | `/api/registrations` | Session Required | [List user's solo and team registrations](./api/04-purchases-payments-tickets.md#41-get-my-event-registrations) |
+| `GET` | `/api/tickets/me` / `/api/me/tickets` | Session Required | [Fetch owned tickets with signed QR tokens](./api/04-purchases-payments-tickets.md#42-get-my-digital-tickets) |
+| `GET` | `/api/tickets/:id` | Beneficiary / Admin | [Get single ticket details and validity](./api/04-purchases-payments-tickets.md#43-get-single-ticket-details) |
+| `POST` | `/api/staff/scan/lookup` | Staff / Volunteer | [Inspect ticket validity before admitting](./api/05-staff-portal.md#12-lookup-ticket-pre-admit-inspection) |
+| `POST` | `/api/staff/scan/admit` | Staff / Volunteer | [Admit attendee at Gate or Event](./api/05-staff-portal.md#13-admit-attendee) |
+| `POST` | `/api/staff/scan/deny` | Staff / Volunteer | [Record denial log with reason](./api/05-staff-portal.md#14-deny-entry) |
+| `GET` | `/api/staff/events/:id/scores` | Staff / Super Admin | [View full score matrix and edit history](./api/05-staff-portal.md#22-get-staff-scores--audit-history) |
+| `PUT` | `/api/staff/events/:id/scores` | Staff / Super Admin | [Upsert round score with optimistic lock](./api/05-staff-portal.md#23-create-or-update-score-upsert) |
+| `DELETE`| `/api/staff/events/:id/scores/:eId` | Staff Lead / Admin | [Delete score entry with mandatory reason](./api/05-staff-portal.md#24-delete-score-entry) |
+| `POST` | `/api/staff/events/:id/scores/finalize` | Staff Lead / Admin | [Finalize and lock event tournament scoring](./api/05-staff-portal.md#25-finalize-event-scoring) |
+| `GET` | `/api/admin/payments` | Payment Reviewer | [Manual UPI verification review queue](./api/06-admin-portal.md#21-get-review-queue) |
+| `GET` | `/api/admin/payments/:id` | Payment Reviewer | [Get payment detail and purchase breakdown](./api/06-admin-portal.md#22-get-payment-detail) |
+| `POST` | `/api/admin/payments/:id/approve` | Payment Reviewer | [Approve payment & issue tickets](./api/06-admin-portal.md#23-approve-payment) |
+| `POST` | `/api/admin/payments/:id/reject` | Payment Reviewer | [Reject payment with reason](./api/06-admin-portal.md#24-reject-payment) |
+| `POST` | `/api/admin/payments/:id/hold` | Payment Reviewer | [Put payment on hold](./api/06-admin-portal.md#25-put-payment-on-hold) |
+| `POST` | `/api/admin/payments/:id/unhold` | Payment Reviewer | [Return on-hold payment to active queue](./api/06-admin-portal.md#26-unhold-payment) |
+| `POST` | `/api/admin/payments/:id/resubmit` | Payment Reviewer | [Resubmit corrected UTR on attendee behalf](./api/06-admin-portal.md#27-resubmit-payment-staff-assisted) |
+| `POST` | `/api/admin/users/pre-register` | Super Admin | [Pre-register staff roles before Google login](./api/06-admin-portal.md#31-pre-register-staff-member) |
+| `GET` | `/api/admin/users` | Super Admin | [List users with search and role filters](./api/06-admin-portal.md#32-list-users) |
+| `GET` | `/api/admin/users/:id` | Super Admin | [Get user details and staff assignments](./api/06-admin-portal.md#33-get-user-detail) |
+| `PATCH`| `/api/admin/users/:id` | Super Admin | [Update role, active status, or permissions](./api/06-admin-portal.md#34-update-user-role-permissions-active-status) |
+| `POST` | `/api/admin/events` | Super Admin | [Create new festival event](./api/06-admin-portal.md#41-create-event) |
+| `POST` | `/api/admin/events/:id/staff` | Super Admin | [Assign lead or volunteer to event](./api/06-admin-portal.md#42-assign-staff-to-event) |
+| `DELETE`| `/api/admin/events/:id/staff/:uId` | Super Admin | [Remove staff assignment from event](./api/06-admin-portal.md#43-remove-staff-from-event) |
+| `GET` | `/api/admin/events/:id/staff` | Super Admin | [List staff assigned to event](./api/06-admin-portal.md#44-list-staff-assigned-to-event) |
+| `POST` | `/api/admin/events/:id/scores/reopen` | Super Admin | [Reopen finalized scores for dispute fix](./api/06-admin-portal.md#45-reopen-finalized-e-sports-scores) |
+| `GET` | `/api/admin/purchases` | Payment Reviewer | [List all festival purchases](./api/06-admin-portal.md#51-list-all-festival-purchases) |
+| `POST` | `/api/admin/purchases/:id/retry-fulfillment` | Payment Reviewer | [Force retry ticket generation for paid order](./api/06-admin-portal.md#52-force-ticket-fulfillment-retry) |
+| `GET` | `/api/admin/tickets/:id` | Super Admin | [Get ticket details with full scan history](./api/06-admin-portal.md#61-get-ticket-detail--full-check-in-log-history) |
+| `POST` | `/api/admin/tickets/:id/revoke` | Super Admin | [Revoke ticket](./api/06-admin-portal.md#62-revoke-ticket) |
+| `POST` | `/api/admin/tickets/:id/reissue` | Super Admin | [Reissue ticket or transfer ownership](./api/06-admin-portal.md#63-reissue-ticket-or-transfer-to-new-beneficiary) |
+| `POST` | `/api/admin/tickets/:id/rotate-qr` | Super Admin | [Rotate QR code version](./api/06-admin-portal.md#64-rotate-ticket-qr-code) |
+| `POST` | `/api/admin/tickets/:id/undo-checkin` | Super Admin | [Undo accidental event admission](./api/06-admin-portal.md#65-undo-event-check-in-check-in-override) |
+| `POST` | `/api/admin/registrations/:id/cancel` | Super Admin | [Cancel registration and release seats](./api/06-admin-portal.md#71-cancel-registration) |
+| `POST` | `/api/admin/registrations/:id/replace-member` | Super Admin | [Substitute a team registration member](./api/06-admin-portal.md#72-replace-registration-member) |
+| `GET` | `/api/admin/settings` | Super Admin | [Get festival configuration map](./api/06-admin-portal.md#81-get-global-settings) |
+| `PATCH`| `/api/admin/settings` | Super Admin | [Update festival configuration](./api/06-admin-portal.md#82-update-global-settings) |
+| `GET` | `/api/admin/fest-days` | Super Admin | [Get festival days schedule](./api/06-admin-portal.md#83-get--update-fest-days) |
+| `PATCH`| `/api/admin/fest-days/:dNo` | Super Admin | [Update single festival day schedule](./api/06-admin-portal.md#83-get--update-fest-days) |
+| `GET` | `/api/admin/gate-staff` | Super Admin | [List assigned gate staff](./api/06-admin-portal.md#84-gate-staff-assignments) |
+| `POST` | `/api/admin/gate-staff` | Super Admin | [Assign gate staff volunteer](./api/06-admin-portal.md#84-gate-staff-assignments) |
+| `DELETE`| `/api/admin/gate-staff/:uId` | Super Admin | [Remove gate staff assignment](./api/06-admin-portal.md#84-gate-staff-assignments) |
+| `GET` | `/api/admin/reports/sales` | Super Admin | [Revenue and pass sales metrics](./api/06-admin-portal.md#9-business-intelligence-reports-apiadminreports) |
+| `GET` | `/api/admin/reports/pending-verification` | Super Admin | [Review queue backlog and overdue alerts](./api/06-admin-portal.md#9-business-intelligence-reports-apiadminreports) |
+| `GET` | `/api/admin/reports/registrations` | Super Admin | [Seat counts per event report](./api/06-admin-portal.md#9-business-intelligence-reports-apiadminreports) |
+| `GET` | `/api/admin/reports/reconciliation` | Super Admin | [Capacity discrepancy audit report](./api/06-admin-portal.md#9-business-intelligence-reports-apiadminreports) |
+| `POST` | `/api/admin/reports/reconciliation/:id/fix`| Super Admin | [Recount and reset event seats_taken](./api/06-admin-portal.md#9-business-intelligence-reports-apiadminreports) |
+| `GET` | `/api/admin/reports/attendance` | Super Admin | [Gate & event physical attendance counts](./api/06-admin-portal.md#9-business-intelligence-reports-apiadminreports) |
+| `GET` | `/api/admin/reports/failed-fulfillment` | Super Admin | [Orders with failed ticket preparation](./api/06-admin-portal.md#9-business-intelligence-reports-apiadminreports) |
+| `GET` | `/api/admin/reports/student-tier` | Super Admin | [Student vs general demographic report](./api/06-admin-portal.md#9-business-intelligence-reports-apiadminreports) |
+| `GET` | `/api/admin/reports/duplicate-institutions` | Super Admin | [Suspected duplicate student roll numbers](./api/06-admin-portal.md#9-business-intelligence-reports-apiadminreports) |
+| `GET` | `/api/admin/audit-logs` | Super Admin | [Immutable system audit trail](./api/06-admin-portal.md#10-immutable-audit-logs-apiadminaudit-logs) |
+
+---
+
+## 5. Error Handling & User Notification Matrix
+
+When `response.success === false`, inspect `error.code` to show targeted UI alerts:
+
+| Error Code | HTTP Status | Recommended UI Notification & Action |
+|---|---|---|
+| `UNAUTHORIZED` | 401 | Open Sign-In Dialog: *"Your session has expired. Please sign in."* |
+| `INVALID_QR_SIGNATURE`| 401 | **Scanner Red Banner**: *"FAKE OR TAMPERED QR CODE! Signature verification failed."* |
 | `PROFILE_INCOMPLETE` | 403 | Open Profile Completion Modal: *"Please complete your profile to continue."* |
 | `STUDENT_FIELDS_LOCKED`| 403 | Warning Toast: *"Student details are verified and locked. Contact support for changes."* |
+| `ACCOUNT_DISABLED` | 403 | Full Screen Alert: *"Your account has been deactivated. Contact administration."* |
+| `CSRF_ORIGIN_INVALID` | 403 | Toast: *"Request rejected due to invalid origin header."* |
+| `FORBIDDEN` | 403 | Toast: *"You do not have permission to perform this action."* |
+| `NOT_FOUND` | 404 | Empty state or 404 page: *"The requested resource was not found."* |
 | `CAPACITY_FULL` | 409 | Error Banner: *"Sorry! This event or pass is completely sold out."* |
 | `ALREADY_LEADER` | 409 | Toast: *"You are already leading an active team for this event."* |
-| `TEAM_NAME_TAKEN` | 409 | Form Error: *"This team name is already taken. Please choose another."* |
-| `MEMBER_ALREADY_IN_TEAM` | 409 | Form Error: *"This user is already in a team for this event."* |
+| `TEAM_NAME_TAKEN` | 409 | Form Error under Name: *"This team name is already taken for this event."* |
+| `MEMBER_ALREADY_IN_TEAM`| 409 | Form Error: *"This user is already in an active team for this event."* |
+| `MEMBER_ALREADY_INVITED`| 409 | Toast: *"This user is already invited or a member of your team."* |
+| `ALREADY_REGISTERED` | 409 | Toast: *"User is already registered for this event."* |
 | `UTR_ALREADY_USED` | 409 | Form Error: *"This transaction ID has already been submitted for another payment."* |
+| `PAYMENT_ALREADY_SUBMITTED`| 409| Toast: *"A payment submission is already under review for this purchase."* |
 | `ALREADY_CHECKED_IN` | 409 | **Scanner Red Screen**: *"TICKET ALREADY USED! Admitted earlier."* |
-| `INVALID_QR_SIGNATURE`| 401 | **Scanner Red Screen**: *"FAKE OR TAMPERED QR CODE! Signature verification failed."* |
-| `RATE_LIMITED` | 429 | Toast: *"Too many scans. Please wait 5 seconds before trying again."* |
+| `SCORE_VERSION_CONFLICT`| 409 | Modal: *"This score was modified by another referee concurrently. Reloading data..."* |
+| `RATE_LIMITED` | 429 | Toast: *"Too many requests. Please wait a few seconds before trying again."* |
+| `DATABASE_UNAVAILABLE`| 500 | Error Screen: *"Service temporarily unavailable. Please try again shortly."* |
 
 ---
 
-## 8. Frontend Coding Agent Implementation Checklist
+## 6. Frontend Coding Agent Implementation Checklist
 
-When you give this document to a coding agent, instruct it to:
-1. Initialize the project with Next.js App Router, Tailwind CSS, and TanStack Query.
-2. Create `types/api.ts` with all types from Section 3.
-3. Create `lib/api-client.ts` with the turnkey client from Section 2.3.
-4. Build the Auth Provider and Google Sign-in component.
-5. Build the Checkout Page with the dynamic 15-minute reservation timer and UPI QR display.
-6. Build the My Tickets screen with the signed QR code viewer.
-7. Build the Staff Scanner PWA screen using `html5-qrcode`.
-8. Build the Reviewer Dashboard for approving/rejecting manual UPI payments.
+When instructing an AI coding agent or engineering team to build the frontend, execute in this order:
+
+1. **Bootstrap & Project Core**:
+   - Initialize Next.js 14/15 App Router or Vite + React with TypeScript strict mode and Tailwind CSS.
+   - Install dependencies: `@tanstack/react-query`, `lucide-react`, `react-hook-form`, `zod`, `qrcode.react`, `html5-qrcode`.
+   - Copy domain types into `types/api.ts` from Section 3.
+   - Copy `lib/api-client.ts` from Section 2.3.
+2. **Auth & Profile Layer**:
+   - Build Google Sign-in component (`/login`, `/register`) using Google Identity Services SDK.
+   - Implement Auth Provider using `GET /api/me` with React Query (`staleTime: 5 * 60 * 1000`).
+   - Implement Profile Completion Modal triggered whenever `user.profile_complete === false` during checkout/registration attempts.
+   - Implement student verification toggle with ID field disabling when `student_fields_locked === true`.
+3. **Public Catalog & Events**:
+   - Build Fest Landing Page with Festival Day timeline and Gate Pass CTA card (`GET /api/catalog/passes`).
+   - Build Events Directory with Category pills, Day filters, Solo/Team toggle, and instant search (`GET /api/events`).
+   - Build Event Detail page (`/events/[slug]`) with dynamic CTA (Solo Register vs Create Team).
+   - Build Public E-Sports Leaderboard screen (`/leaderboards` & `/events/[id]/leaderboard`).
+4. **Teams & Invitations**:
+   - Build Team Management view (`/me/teams` and `/teams/[id]`).
+   - Build Team Invites inbox (`/me/team-invites`) with Accept / Decline actions.
+   - Display roster status and readiness indicators (highlighting members with incomplete profiles).
+5. **Checkout & Manual UPI Payments**:
+   - Build Checkout flow (`/checkout`) validating 0 pending invites and team size boundaries.
+   - Build Pay screen (`/checkout/[id]/pay`) with active 15-minute countdown timer, UPI QR code, mobile intent deep link, and 12-digit UTR submission form.
+   - Build Status screen (`/checkout/[id]/status`) polling purchase status until approved.
+6. **Digital Pass Presentation**:
+   - Build My Tickets screen (`/me/tickets`) rendering high-contrast QR codes (`ticket.qr_token`).
+   - Render physical college ID check reminder banner for student tier tickets.
+   - Support retry button if any ticket preparation is in `FAILED` status.
+7. **Staff Scanner PWA**:
+   - Build Scanner camera view (`/staff/scan`) using `html5-qrcode`.
+   - Implement toggle for **GATE Entry** (multi-entry) vs **EVENT Entry** (single-use).
+   - Implement lookup modal showing verdict, attendee name, and mandatory **"Physically verified student ID card"** confirmation checkbox for student tier passes.
+8. **Staff E-Sports Scoring**:
+   - Build round-by-round score matrix table (`/staff/events/[id]/scores`) with optimistic concurrency handling.
+   - Implement score edit dialog requiring reason and tracking `expected_version`.
+   - Implement tournament scoring finalization.
+9. **Admin & Reviewer Portal**:
+   - Build Payment Verification Queue (`/admin/payments`) with quick Approve / Reject / Hold modal actions.
+   - Build Event Management dashboard (`/admin/events`) for creating events and assigning staff.
+   - Build Attendance and Financial Sales report dashboards (`/admin/reports/*`).
