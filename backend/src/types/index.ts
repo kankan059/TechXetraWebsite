@@ -4,6 +4,7 @@ export interface User {
   id: string
   google_sub: string | null
   email: string
+  password_hash?: string | null
   name: string
   avatar_url: string | null
   phone: string | null

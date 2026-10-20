@@ -1,25 +1,24 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "techxetra-backend",
-  "main": "src/index.ts",
-  "compatibility_date": "2026-10-19",
-  "d1_databases": [
-    {
-      "binding": "DB",
-      "database_name": "techxetra-db",
-      "database_id": "local-techxetra-db",
-      "migrations_dir": "migrations"
-    }
-  ],
-  "vars": {
-    "ENVIRONMENT": "development",
-    "GOOGLE_CLIENT_ID": "local-dev-client-id.apps.googleusercontent.com",
-    "FRONTEND_ORIGIN": "*",
-    "TICKET_HMAC_SECRET": "local-development-secret-key-32-bytes-minimum!",
-    "UPI_VPA": "techxetra@upi",
-    "UPI_PAYEE_NAME": "TechXetra 2026",
-    "PURCHASE_RESERVATION_TTL_MS": "900000",
-    "PARTICIPANT_SESSION_TTL_MS": "2592000000",
-    "STAFF_SESSION_TTL_MS": "43200000"
-  }
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "techxetra-backend",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-10-19",
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "techxetra-db",
+			"database_id": "95f73d6c-636b-436b-befa-19fbba6128df",
+			"migrations_dir": "migrations"
+		}
+	],
+	"vars": {
+		"ENVIRONMENT": "development",
+		"GOOGLE_CLIENT_ID": "817374439035-h14uaavnb7fbbup4a55c9g7qda062o2v.apps.googleusercontent.com",
+		"FRONTEND_ORIGIN": "*",
+		"UPI_VPA": "techxetra@upi",
+		"UPI_PAYEE_NAME": "TechXetra 2026",
+		"PURCHASE_RESERVATION_TTL_MS": "900000",
+		"PARTICIPANT_SESSION_TTL_MS": "2592000000",
+		"STAFF_SESSION_TTL_MS": "43200000"
+	}
 }

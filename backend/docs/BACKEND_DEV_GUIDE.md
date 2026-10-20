@@ -38,7 +38,7 @@ Before writing or modifying any code, the coding agent MUST adhere to these non-
 | **Database** | [Cloudflare D1](https://developers.cloudflare.com/d1/) (SQLite) | Distributed relational database at the edge |
 | **Language** | TypeScript (Strict mode) | Complete end-to-end type safety |
 | **Validation** | [Zod v3](https://zod.dev/) | Runtime input schema validation with `.strict()` schemas |
-| **Auth** | Google OAuth + Opaque Sessions | SHA-256 hashed sessions stored in D1; signed HttpOnly cookies |
+| **Auth** | Email/Password + Google OAuth | Web Crypto PBKDF2 hashing, SHA-256 hashed sessions in D1, signed HttpOnly cookies |
 | **Cryptography** | Web Crypto API | HMAC-SHA256 signatures for tamper-proof QR tokens |
 | **Testing** | [Vitest](https://vitest.dev/) | Concurrency tests mocking D1 batch mechanics |
 

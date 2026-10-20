@@ -147,6 +147,21 @@ export interface UserProfile {
   missing_fields: string[]
 }
 
+export interface RegisterRequest {
+  email: string
+  password: string
+  name: string
+}
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface GoogleLoginRequest {
+  id_token: string
+}
+
 export interface FestDay {
   day_number: 1 | 2 | 3
   date: string // YYYY-MM-DD
@@ -390,6 +405,8 @@ Build the application with the following pages:
 src/app/ (or src/pages/)
 ├── (public)/
 │   ├── page.tsx                     # Landing page with Fest Hero, Day timeline & Pass CTA
+│   ├── login/page.tsx               # Login page (Email/Password + Google Sign-In)
+│   ├── register/page.tsx            # Signup page (Email/Password/Name + Google Sign-In)
 │   ├── catalog/page.tsx             # Gate Pass pricing & festival overview
 │   ├── events/page.tsx              # Event directory with Category filters & search
 │   ├── events/[slug]/page.tsx       # Event detail, solo register / create team button
@@ -421,11 +438,14 @@ src/app/ (or src/pages/)
 ## 5. Step-by-Step Feature Specifications
 
 ### 5.1 Authentication & Profile Setup
-1. **Google Login**:
+1. **Email / Password Authentication**:
+   - **Register**: `POST /api/auth/register` with `{ email, password, name }`. Automatically creates the account, generates an HttpOnly session cookie, and returns the user profile.
+   - **Login**: `POST /api/auth/login` with `{ email, password }`. Validates credentials, sets session cookie, and returns the user profile.
+2. **Google Login**:
    - Render the Google Sign-In button using Google Identity Services SDK (`window.google.accounts.id`).
    - On credential response, post token to `POST /api/auth/google` with `{ id_token: credential }`.
    - On success, query `GET /api/me`.
-2. **Profile Completion Gate**:
+3. **Profile Completion Gate**:
    - Inspect `profile.profile_complete`.
    - If `false`, intercept navigation to `/checkout` or `/events` registration with a modal prompting for:
      - Name (2–100 chars)
@@ -501,6 +521,8 @@ For staff with `can_review_payments: true`:
 | Method | Endpoint | Auth Required | Description |
 |---|---|---|---|
 | `GET` | `/health` | None | API health check |
+| `POST` | `/api/auth/register` | None | Register with email, password, and name |
+| `POST` | `/api/auth/login` | None | Login with email and password |
 | `POST` | `/api/auth/google` | None | Exchange Google ID token for session cookie |
 | `POST` | `/api/auth/logout` | Session | Revoke session and clear cookie |
 | `GET` | `/api/me` | Session | Fetch user profile & completeness status |
