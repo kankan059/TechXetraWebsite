@@ -4,9 +4,9 @@ import SmoothScroll from "@/components/layouts/SmoothScroll";
 import "./globals.css";
 import BackGround from "@/components/animations/BackGround";
 import Navbar from "@/components/layouts/navbar/NavBar";
-import LogoTech from "@/components/animations/LogoTech";
 import GlobalEffect from "@/components/effects/GlobalEffect";
 import Footer from "@/components/layouts/Footer";
+import RouteShell from "@/components/layouts/RouteShell";
 
 const ortigel = localFont({
   src: "../public/fonts/Ortigel-Demo-Regular.otf",
@@ -15,8 +15,8 @@ const ortigel = localFont({
 });
 
 const autoTechno = localFont({
-  src:"../public/fonts/auto-techno.ttf",
-  variable : "--font-autotechno",
+  src: "../public/fonts/auto-techno.ttf",
+  variable: "--font-autotechno",
   display: "swap",
 })
 
@@ -44,34 +44,29 @@ export const metadata: Metadata = {
   description: "TechXetra",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: LayoutProps<"/">) {
   return (
     <html
       lang="en"
       suppressHydrationWarning
       className={`
-          ${ortigel.variable}
-          ${gothamBook.variable}
-          ${gothamBold.variable}
-          ${multiTypePixel.variable}
-          ${autoTechno.variable}
-          bg-[#090909]
-          antialiased
-        `}
+        ${ortigel.variable}
+        ${gothamBook.variable}
+        ${gothamBold.variable}
+        ${multiTypePixel.variable}
+        ${autoTechno.variable}
+        bg-[#090909]
+        antialiased
+      `}
     >
       <body className="min-h-full flex flex-col">
-        <GlobalEffect />
-
-        <BackGround />
-        <Navbar />
-       
-        <SmoothScroll />
-        {children}
-
-        <Footer/>
+        <RouteShell>{children}</RouteShell>
       </body>
     </html>
   );
+
 }
 
 

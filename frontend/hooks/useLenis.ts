@@ -10,7 +10,7 @@ export function useLenis() {
     gsap.registerPlugin(ScrollTrigger);
 
     const lenis = new Lenis({
-      duration: 1.1,
+      duration: 1.3,
       smoothWheel: true,
       wheelMultiplier: 1,
       touchMultiplier: 1.5,
