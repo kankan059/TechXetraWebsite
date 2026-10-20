@@ -4,9 +4,8 @@ import SmoothScroll from "@/components/layouts/SmoothScroll";
 import "./globals.css";
 import BackGround from "@/components/animations/BackGround";
 import Navbar from "@/components/layouts/NavBar";
+import LogoTech from "@/components/animations/LogoTech";
 import GlobalEffect from "@/components/effects/GlobalEffect";
-import { QueryProvider } from "@/lib/query-provider";
-import { AuthProvider } from "@/lib/auth-context";
 
 const ortigel = localFont({
   src: "../public/fonts/Ortigel-Demo-Regular.otf",
@@ -60,15 +59,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         `}
     >
       <body className="min-h-full flex flex-col">
-        <QueryProvider>
-          <AuthProvider>
-            <GlobalEffect />
-            <BackGround />
-            <Navbar />
-            <SmoothScroll />
-            {children}
-          </AuthProvider>
-        </QueryProvider>
+        <GlobalEffect />
+
+        <BackGround />
+        <Navbar />
+       
+        <SmoothScroll />
+        {children}
       </body>
     </html>
   );

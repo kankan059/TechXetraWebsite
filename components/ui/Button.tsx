@@ -81,14 +81,7 @@ export default function Button({
 
       <span>{children}</span>
 
-      {!loading && (
-        <span
-          className="transition-transform duration-300 group-hover:translate-x-1"
-          aria-hidden="true"
-        >
-          →
-        </span>
-      )}
+
     </>
   );
 

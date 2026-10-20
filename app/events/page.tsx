@@ -1,5 +1,9 @@
 import Events from '@/components/sections/events/Events'
-import React from 'react'
+import type { Metadata } from 'next';
+export const metadata: Metadata = {
+  title: "Events | TechXetra 2026",
+  description: "Events of TechXetra.",
+};
 
 const events = () => {
   return (

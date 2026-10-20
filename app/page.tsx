@@ -1,5 +1,4 @@
 "use client"
-import Footer from '@/components/layouts/Footer'
 import About from '@/components/sections/about/About'
 import EventGlimpse from '@/components/sections/events/EventGlimpse'
 import Hero from '@/components/sections/hero/Hero'
@@ -13,7 +12,7 @@ const Page = () => {
         <Hero />
         <About />
         <EventGlimpse/>
-        <Footer/>
+     
       </main>
     </div>
   )

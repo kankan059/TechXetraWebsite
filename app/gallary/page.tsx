@@ -12,7 +12,7 @@ const page = () => {
       <DomeGallery
         fit={0.9}
         minRadius={800}
-        maxVerticalRotationDeg={7}
+        maxVerticalRotationDeg={4}
         segments={34}
         dragDampening={2.8}
         grayscale={false}

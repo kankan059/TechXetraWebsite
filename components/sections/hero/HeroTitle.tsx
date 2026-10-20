@@ -4,160 +4,114 @@ import { useLayoutEffect, useRef } from "react";
 import Image from "next/image";
 import gsap from "gsap";
 
-export default function TechXetraTitle() {
+const TITLE_POSITION = {
+  x: "0px",
+  y: "clamp(-45px, -2.5vh, -12px)",
+  maxWidth: "min(94vw, 1200px)",
+};
+
+export default function HeroTitle() {
   const rootRef = useRef<HTMLDivElement>(null);
-  const xRef = useRef<HTMLDivElement>(null);
-  const leftWrapRef = useRef<HTMLDivElement>(null);
-  const rightWrapRef = useRef<HTMLDivElement>(null);
   const leftRef = useRef<HTMLSpanElement>(null);
   const rightRef = useRef<HTMLSpanElement>(null);
 
   useLayoutEffect(() => {
     const root = rootRef.current;
-    const x = xRef.current;
     const left = leftRef.current;
     const right = rightRef.current;
-    const leftWrap = leftWrapRef.current;
-    const rightWrap = rightWrapRef.current;
 
-    if (!root || !x || !left || !right || !leftWrap || !rightWrap) {
-      return;
-    }
+    if (!root || !left || !right) return;
 
-    const isMobile = window.innerWidth < 768;
+    let frame1 = 0;
+    let frame2 = 0;
+    let timeline: gsap.core.Timeline | undefined;
 
     const ctx = gsap.context(() => {
       const prefersReducedMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)"
       ).matches;
 
-      if (prefersReducedMotion) {
-        gsap.set([left, right], { xPercent: 0 });
-        gsap.set([leftWrap, rightWrap, x], {
-          autoAlpha: 1,
+      const setFinalPosition = () => {
+        gsap.set([left, right], {
+          x: 0,
+          clearProps: "transform",
         });
-        gsap.set(x, {
-          scale: 1,
-          rotation: 0,
-          clearProps: "filter",
+      };
+
+      frame1 = requestAnimationFrame(() => {
+        frame2 = requestAnimationFrame(() => {
+          if (
+            prefersReducedMotion ||
+            window.scrollY > 10
+          ) {
+            setFinalPosition();
+            return;
+          }
+
+          const distance = window.matchMedia(
+            "(max-width: 767px)"
+          ).matches
+            ? 180
+            : 450;
+
+          timeline = gsap.timeline();
+
+          timeline.fromTo(
+            left,
+            { x: -distance },
+            {
+              x: 0,
+              duration: 2.5,
+              ease: "power3.out",
+              force3D: true,
+              clearProps: "transform",
+            },
+            0
+          );
+
+          timeline.fromTo(
+            right,
+            { x: distance },
+            {
+              x: 0,
+              duration: 2.5,
+              ease: "power3.out",
+              force3D: true,
+              clearProps: "transform",
+            },
+            0
+          );
         });
-        return;
-      }
-
-      // Initial positions
-      gsap.set(left, { xPercent: 105 });
-      gsap.set(right, { xPercent: -105 });
-
-      gsap.set([leftWrap, rightWrap], {
-        autoAlpha: 0,
-      });
-
-      // X starts oversized, rotated and blurred
-      gsap.set(x, {
-        scale: isMobile ? 7 : 10,
-        rotation: -210,
-        opacity: 0,
-        filter: "blur(6px)",
-        transformOrigin: "50% 50%",
-      });
-
-      const tl = gsap.timeline({
-        defaults: {
-          overwrite: "auto",
-        },
-      });
-
-      // X appears
-      tl.to(x, {
-        opacity: 1,
-        duration: 0.25,
-        ease: "power2.out",
-      });
-
-      // X spins and returns to its normal size
-      tl.to(
-        x,
-        {
-          scale: 1,
-          rotation: 0,
-          filter: "blur(0px)",
-          duration: isMobile ? 1.6 : 2,
-          ease: "expo.inOut",
-        },
-        0.05
-      );
-
-      // Small overshoot
-      tl.to(x, {
-        scale: 1.06,
-        duration: 0.14,
-        ease: "power2.out",
-      });
-
-      tl.to(x, {
-        scale: 1,
-        duration: 0.35,
-        ease: "back.out(2)",
-      });
-
-      // Reveal both text wrappers together
-      tl.set([leftWrap, rightWrap], {
-        autoAlpha: 1,
-      });
-
-      // TECH enters from the left
-      tl.to(
-        left,
-        {
-          xPercent: 0,
-          duration: isMobile ? 1.05 : 1.3,
-          ease: "power4.out",
-        },
-        "-=0.28"
-      );
-
-      // ETRA enters from the right at the same time
-      tl.to(
-        right,
-        {
-          xPercent: 0,
-          duration: isMobile ? 1.05 : 1.3,
-          ease: "power4.out",
-        },
-        "<"
-      );
-
-      // Subtle final settle
-      tl.to(
-        root,
-        {
-          scale: 1.015,
-          duration: 0.18,
-          ease: "power2.out",
-        },
-        "-=0.15"
-      );
-
-      tl.to(root, {
-        scale: 1,
-        duration: 0.45,
-        ease: "power2.out",
       });
     }, root);
 
-    return () => ctx.revert();
+    return () => {
+      cancelAnimationFrame(frame1);
+      cancelAnimationFrame(frame2);
+      timeline?.kill();
+      ctx.revert();
+    };
   }, []);
 
   return (
     <div
       ref={rootRef}
-      className="relative z-10 ml-[-3%] w-full min-w-0 max-w-none font-autotech md:ml-[-2%] md:w-[90%] lg:ml-[-4%] lg:w-[110%] xl:ml-[30%] xl:w-[60%]"
+      className="relative z-10 mx-auto w-full min-w-0 font-autotech"
+      style={{
+        maxWidth: TITLE_POSITION.maxWidth,
+        transform: `translate3d(${TITLE_POSITION.x}, ${TITLE_POSITION.y}, 0)`,
+      }}
     >
       <div className="relative h-[clamp(15rem,21vw,21rem)] w-full">
         {/* Central X */}
         <div
-          ref={xRef}
-          className="absolute left-1/2 top-1/2 z-20 aspect-square w-[clamp(10.5rem,24vw,25.5rem)] -translate-x-1/2 -translate-y-1/2 will-change-transform"
+          className="
+            absolute left-1/2 top-1/2 z-20
+            aspect-square
+            w-[clamp(8.5rem,27vw,25.5rem)]
+            min-[768px]:w-[clamp(10.5rem,24vw,25.5rem)]
+            -translate-x-1/2 -translate-y-1/2
+          "
         >
           <Image
             src="/assets/x.png"
@@ -165,7 +119,7 @@ export default function TechXetraTitle() {
             fill
             priority
             quality={75}
-            sizes="(max-width: 768px) 90px, 170px"
+            sizes="(max-width: 480px) 168px, (max-width: 767px) 27vw, (max-width: 1200px) 24vw, 408px"
             draggable={false}
             className="object-contain mix-blend-screen"
             style={{
@@ -176,13 +130,15 @@ export default function TechXetraTitle() {
         </div>
 
         {/* TECH */}
-        <div
-          ref={leftWrapRef}
-          className="absolute right-[56%] top-1/2 z-10 -translate-y-1/2 overflow-hidden xl:right-[64%]"
-        >
+        <div className="absolute right-[56%] top-1/2 z-10 -translate-y-1/2 overflow-hidden xl:right-[55%]">
           <span
             ref={leftRef}
-            className="title-gradient block whitespace-nowrap text-[clamp(2.2rem,7.5vw,8.5rem)] uppercase leading-none tracking-[-0.075em]"
+            className="
+              title-gradient block whitespace-nowrap
+              text-[clamp(2.5rem,min(9.2vw,12vh),8.7rem)]
+              uppercase leading-none tracking-[-0.075em]
+              will-change-transform
+            "
             style={{
               filter:
                 "drop-shadow(0 0 5px rgba(115,205,255,0.22)) drop-shadow(0 0 14px rgba(65,150,255,0.12))",
@@ -193,13 +149,15 @@ export default function TechXetraTitle() {
         </div>
 
         {/* ETRA */}
-        <div
-          ref={rightWrapRef}
-          className="absolute left-[56%] top-1/2 z-10 -translate-y-1/2 overflow-hidden xl:left-[64%]"
-        >
+        <div className="absolute left-[56%] top-1/2 z-10 -translate-y-1/2 overflow-hidden xl:left-[55%]">
           <span
             ref={rightRef}
-            className="title-gradient block whitespace-nowrap text-[clamp(2.2rem,7.5vw,8.5rem)] uppercase leading-none tracking-[-0.075em]"
+            className="
+              title-gradient block whitespace-nowrap
+              text-[clamp(2.5rem,min(9.2vw,12vh),8.7rem)]
+              uppercase leading-none tracking-[-0.075em]
+              will-change-transform
+            "
             style={{
               filter:
                 "drop-shadow(0 0 5px rgba(115,205,255,0.22)) drop-shadow(0 0 14px rgba(65,150,255,0.12))",
