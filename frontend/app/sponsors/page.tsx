@@ -9,10 +9,7 @@ export const metadata: Metadata = {
 };
 
 
-const sponser = () => {
-  return (
-   <SponsorPage/>
-  )
-}
 
-export default sponser
+export default function SponsorsPage() {
+  return <SponsorPage />;
+}

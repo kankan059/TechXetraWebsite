@@ -252,7 +252,7 @@ export default function Events() {
     <main ref={rootRef} className="relative isolate min-h-svh overflow-x-clip  text-[#F5F0DE] [font-family:var(--font-gotham-book)]">
       <h1 className="sr-only">TechXetra 2026 Events</h1>
 
-      {/* <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0">
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0">
         {events.map((event, index) => (
           <div
             key={event.id}
@@ -265,7 +265,7 @@ export default function Events() {
             }}
           />
         ))}
-      </div> */}
+      </div>
 
       <div className="relative z-10">
         {events.map((event, index) => (
