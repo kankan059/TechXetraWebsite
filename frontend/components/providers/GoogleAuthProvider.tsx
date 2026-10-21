@@ -8,11 +8,9 @@ export default function GoogleAuthProvider({
 }: {
   children: ReactNode;
 }) {
-  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
-  if (!clientId) {
-    throw new Error("NEXT_PUBLIC_GOOGLE_CLIENT_ID is missing");
-  }
+  const clientId =
+    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim() ||
+    "dev-placeholder.apps.googleusercontent.com";
 
   return (
     <GoogleOAuthProvider clientId={clientId}>

@@ -297,7 +297,7 @@ export default function Login() {
                                     <span className="h-5 w-5 animate-spin rounded-full border-2 border-cyan-300/25 border-t-cyan-300" />
                                     Signing you in...
                                 </div>
-                            ) : (
+                            ) : process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ? (
                                 <div className="w-full [&>div]:flex [&>div]:justify-center">
                                     <GoogleLogin
                                         onSuccess={(credentialResponse) => {
@@ -315,6 +315,10 @@ export default function Login() {
                                         shape="rectangular"
                                         logo_alignment="left"
                                     />
+                                </div>
+                            ) : (
+                                <div className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2.5 text-center text-xs text-white/50">
+                                    Google Sign-In unavailable (configure NEXT_PUBLIC_GOOGLE_CLIENT_ID)
                                 </div>
                             )}
                         </div>

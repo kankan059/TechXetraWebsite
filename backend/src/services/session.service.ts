@@ -83,7 +83,7 @@ export async function createSession(
 
   const maxAgeSec = Math.floor(ttlMs / 1000)
   // __Host-session cookie: HttpOnly, Secure, SameSite=Lax, Path=/
- const cookieHeader = `__Host-session=${rawToken}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${maxAgeSec}`;
+  const cookieHeader = `__Host-session=${rawToken}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${maxAgeSec}`
 
   return { session, rawToken, cookieHeader }
 }

@@ -1,12 +1,5 @@
-"use client"
+import { redirect } from "next/navigation";
 
-const register
- = () => {
-  return (
-    <div>register
-        
-    </div>
-  )
+export default function RegisterPage() {
+  redirect("/signup");
 }
-
-export default register

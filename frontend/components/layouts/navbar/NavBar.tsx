@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from "next/image";
@@ -8,25 +7,14 @@ import { useCallback, useEffect, useState } from "react";
 
 import { navigation, mainlogo } from "@/constants/navigation";
 import GooeyNav from "@/components/layouts/navbar/GooeyNav";
+import type { UserProfile } from "@/types/api";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
 
-type AuthUser = {
-  id?: string;
-  name?: string;
-  email?: string;
-  picture?: string;
-  avatar_url?: string;
-};
-
 type AuthResponse = {
   success?: boolean;
-  data?: {
-    user?: AuthUser;
-    profile?: AuthUser;
-  } & AuthUser;
-  user?: AuthUser;
+  data?: UserProfile;
 };
 
 export default function NavBar() {
@@ -35,8 +23,9 @@ export default function NavBar() {
 
   const [openMenuPath, setOpenMenuPath] = useState<string | null>(null);
   const menuOpen = openMenuPath === pathname;
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const navItems = [
     ...navigation.map((item) => ({
@@ -69,12 +58,14 @@ export default function NavBar() {
     if (!item.href || item.href === pathname) return;
 
     setOpenMenuPath(null);
+    setDropdownOpen(false);
     router.push(item.href);
   };
 
   const checkAuth = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/auth/me`, {
+      // Backend auth endpoint is GET /api/me with session cookie
+      const response = await fetch(`${API_URL}/api/me`, {
         method: "GET",
         credentials: "include",
         headers: {
@@ -87,15 +78,10 @@ export default function NavBar() {
 
       const result = (await response.json()) as AuthResponse;
 
-      const currentUser =
-        result.data?.user ??
-        result.data?.profile ??
-        result.user ??
-        (result.data && result.success ? result.data : null);
-
-      return result.success !== false && currentUser?.email
-        ? currentUser
-        : null;
+      if (result.success && result.data && result.data.id) {
+        return result.data;
+      }
+      return null;
     } catch {
       return null;
     }
@@ -116,10 +102,30 @@ export default function NavBar() {
     };
   }, [checkAuth, pathname]);
 
-  const avatar = user?.picture ?? user?.avatar_url ?? "";
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_URL}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+    } catch (err) {
+      console.error("Logout request failed:", err);
+    } finally {
+      setUser(null);
+      setOpenMenuPath(null);
+      setDropdownOpen(false);
+      router.push("/login");
+      router.refresh();
+    }
+  };
+
+  const avatar = user?.avatar_url ?? "";
   const profileLabel = user?.name
-    ? `${user.name}'s profile`
-    : "My profile";
+    ? `${user.name}'s Dashboard`
+    : "My Dashboard";
 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
@@ -134,7 +140,10 @@ export default function NavBar() {
           <Link
             href="/"
             aria-label="TechXetra Home"
-            onClick={() => setOpenMenuPath(null)}
+            onClick={() => {
+              setOpenMenuPath(null);
+              setDropdownOpen(false);
+            }}
             className="flex shrink-0 items-center outline-none"
           >
             <Image
@@ -173,29 +182,98 @@ export default function NavBar() {
             </nav>
 
             {authChecked && user && (
-              <Link
-                href="/profile"
-                aria-label={profileLabel}
-                title={profileLabel}
-                className={`flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border transition-colors duration-300 ${
-                  pathname === "/profile"
-                    ? "border-cyan-200 bg-cyan-200/15 text-cyan-200"
-                    : "border-white/20 bg-white/[0.04] text-white/80 hover:border-cyan-200/60 hover:text-cyan-100"
-                }`}
-              >
-                {avatar ? (
-                  <Image
-                    src={avatar}
-                    alt=""
-                    width={44}
-                    height={44}
-                    unoptimized
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <ProfileIcon />
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setDropdownOpen((prev) => !prev)}
+                  aria-expanded={dropdownOpen}
+                  aria-label={profileLabel}
+                  title={profileLabel}
+                  className={`flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border transition-colors duration-300 ${
+                    pathname.startsWith("/dashboard") || pathname.startsWith("/profile")
+                      ? "border-cyan-200 bg-cyan-200/15 text-cyan-200"
+                      : "border-white/20 bg-white/[0.04] text-white/80 hover:border-cyan-200/60 hover:text-cyan-100"
+                  }`}
+                >
+                  {avatar ? (
+                    <Image
+                      src={avatar}
+                      alt=""
+                      width={44}
+                      height={44}
+                      unoptimized
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <ProfileIcon />
+                  )}
+                </button>
+
+                {dropdownOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-white/10 bg-[#0d131f] p-2 text-sm text-white shadow-2xl backdrop-blur-xl">
+                    <div className="border-b border-white/10 px-3 py-2.5">
+                      <p className="truncate font-medium text-white">{user.name}</p>
+                      <p className="truncate text-xs text-white/50">{user.email}</p>
+                    </div>
+
+                    <div className="py-1">
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setDropdownOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+                      >
+                        Dashboard & Profile
+                      </Link>
+
+                      <Link
+                        href="/me/tickets"
+                        onClick={() => setDropdownOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+                      >
+                        My Tickets & Passes
+                      </Link>
+
+                      <Link
+                        href="/me/team-invites"
+                        onClick={() => setDropdownOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+                      >
+                        Team Invitations
+                      </Link>
+
+                      {user.role === "SUPER_ADMIN" && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setDropdownOpen(false)}
+                          className="block rounded-lg px-3 py-2 text-cyan-300 transition hover:bg-white/[0.08]"
+                        >
+                          Super Admin Portal
+                        </Link>
+                      )}
+
+                      {(user.role === "VOLUNTEER" || user.role === "LEAD" || user.role === "SUPER_ADMIN") && (
+                        <Link
+                          href="/staff/scan"
+                          onClick={() => setDropdownOpen(false)}
+                          className="block rounded-lg px-3 py-2 text-cyan-300 transition hover:bg-white/[0.08]"
+                        >
+                          Staff QR Scanner
+                        </Link>
+                      )}
+                    </div>
+
+                    <div className="border-t border-white/10 pt-1">
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="w-full rounded-lg px-3 py-2 text-left text-red-300 transition hover:bg-red-500/10 hover:text-red-200"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  </div>
                 )}
-              </Link>
+              </div>
             )}
           </div>
 
@@ -203,12 +281,12 @@ export default function NavBar() {
           <div className="flex items-center gap-4 md:hidden">
             {authChecked && user && (
               <Link
-                href="/profile"
+                href="/dashboard"
                 aria-label={profileLabel}
                 title={profileLabel}
                 onClick={() => setOpenMenuPath(null)}
                 className={`flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border transition-colors ${
-                  pathname === "/profile"
+                  pathname.startsWith("/dashboard") || pathname.startsWith("/profile")
                     ? "border-cyan-200 bg-cyan-200/15 text-cyan-200"
                     : "border-white/20 text-white/85 hover:border-cyan-200/70 hover:text-cyan-200"
                 }`}
@@ -301,29 +379,61 @@ export default function NavBar() {
               </div>
 
               {authChecked && user ? (
-                <Link
-                  href="/profile"
-                  tabIndex={menuOpen ? 0 : -1}
-                  onClick={() => setOpenMenuPath(null)}
-                  className={`mt-5 flex w-full items-center justify-center gap-3 border px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] transition-colors duration-300 ${
-                    pathname === "/profile"
-                      ? "border-cyan-200 bg-cyan-200 text-black"
-                      : "border-white/20 text-white/85 hover:border-cyan-200/60 hover:text-cyan-100"
-                  }`}
-                >
-                  <ProfileIcon />
-                  My Profile
-                </Link>
+                <div className="mt-5 space-y-2">
+                  <Link
+                    href="/dashboard"
+                    tabIndex={menuOpen ? 0 : -1}
+                    onClick={() => setOpenMenuPath(null)}
+                    className="flex w-full items-center justify-center gap-3 rounded-xl border border-cyan-200 bg-cyan-200/10 px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-cyan-200 transition-colors"
+                  >
+                    <ProfileIcon />
+                    Dashboard & Profile
+                  </Link>
+
+                  <Link
+                    href="/me/tickets"
+                    tabIndex={menuOpen ? 0 : -1}
+                    onClick={() => setOpenMenuPath(null)}
+                    className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/[0.04] px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-white/80"
+                  >
+                    My Passes & Tickets
+                  </Link>
+
+                  <Link
+                    href="/me/team-invites"
+                    tabIndex={menuOpen ? 0 : -1}
+                    onClick={() => setOpenMenuPath(null)}
+                    className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/[0.04] px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-white/80"
+                  >
+                    Team Invitations
+                  </Link>
+
+                  {user.role === "SUPER_ADMIN" && (
+                    <Link
+                      href="/admin"
+                      tabIndex={menuOpen ? 0 : -1}
+                      onClick={() => setOpenMenuPath(null)}
+                      className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/[0.04] px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-white/80"
+                    >
+                      Super Admin Portal
+                    </Link>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    tabIndex={menuOpen ? 0 : -1}
+                    className="flex w-full items-center justify-center rounded-xl border border-red-500/20 bg-red-500/10 px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-red-300"
+                  >
+                    Sign out
+                  </button>
+                </div>
               ) : (
                 <Link
                   href="/login"
                   tabIndex={menuOpen ? 0 : -1}
                   onClick={() => setOpenMenuPath(null)}
-                  className={`mt-5 flex w-full items-center justify-center border px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] transition-colors duration-300 ${
-                    pathname === "/login"
-                      ? "border-cyan-200 bg-cyan-200 text-black"
-                      : "border-white/20 text-white/85 hover:border-cyan-200/60 hover:text-cyan-100"
-                  }`}
+                  className="mt-5 flex w-full items-center justify-center rounded-xl border border-cyan-200 bg-cyan-200 px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-black transition-colors"
                 >
                   Login
                 </Link>

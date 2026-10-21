@@ -1,0 +1,621 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import {
+  User,
+  Ticket,
+  Users,
+  CreditCard,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  ArrowRight,
+  Shield,
+  GraduationCap,
+  RefreshCw,
+  LogOut,
+  ExternalLink,
+} from "lucide-react";
+import type {
+  UserProfile,
+  DigitalTicket,
+  PreparingTicket,
+  TeamDetail,
+  TeamMember,
+  PurchaseDetail,
+} from "@/types/api";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+
+export default function DashboardPage() {
+  const router = useRouter();
+
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [tickets, setTickets] = useState<DigitalTicket[]>([]);
+  const [preparingTickets, setPreparingTickets] = useState<PreparingTicket[]>([]);
+  const [teams, setTeams] = useState<TeamDetail[]>([]);
+  const [invites, setInvites] = useState<TeamMember[]>([]);
+  const [purchases, setPurchases] = useState<PurchaseDetail[]>([]);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      // 1. Fetch current user
+      const userRes = await fetch(`${API_BASE}/api/me`, {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
+
+      if (userRes.status === 401) {
+        router.replace("/login");
+        return;
+      }
+
+      const userJson = await userRes.json();
+      if (!userRes.ok || !userJson.success) {
+        throw new Error(userJson.error?.message || "Failed to load user profile");
+      }
+
+      setUser(userJson.data);
+
+      // 2. Fetch tickets in parallel
+      const [ticketsRes, teamsRes, invitesRes, purchasesRes] = await Promise.allSettled([
+        fetch(`${API_BASE}/api/tickets/me`, { credentials: "include" }).then((r) => r.json()),
+        fetch(`${API_BASE}/api/me/teams`, { credentials: "include" }).then((r) => r.json()),
+        fetch(`${API_BASE}/api/me/team-invites`, { credentials: "include" }).then((r) => r.json()),
+        fetch(`${API_BASE}/api/purchases`, { credentials: "include" }).then((r) => r.json()),
+      ]);
+
+      if (ticketsRes.status === "fulfilled" && ticketsRes.value.success) {
+        setTickets(ticketsRes.value.data?.tickets || []);
+        setPreparingTickets(ticketsRes.value.data?.preparing_tickets || []);
+      }
+
+      if (teamsRes.status === "fulfilled" && teamsRes.value.success) {
+        setTeams(teamsRes.value.data || []);
+      }
+
+      if (invitesRes.status === "fulfilled" && invitesRes.value.success) {
+        setInvites(invitesRes.value.data || []);
+      }
+
+      if (purchasesRes.status === "fulfilled" && purchasesRes.value.success) {
+        setPurchases(purchasesRes.value.data || []);
+      }
+    } catch (err) {
+      console.error("Dashboard data load error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    void fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  const handleAcceptInvite = async (memberId: string) => {
+    try {
+      setActionMessage(null);
+      const res = await fetch(`${API_BASE}/api/team-invites/${memberId}/accept`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message || "Failed to accept invite");
+      }
+      setActionMessage("Team invitation accepted!");
+      void fetchDashboardData();
+    } catch (err: unknown) {
+      setActionMessage(err instanceof Error ? err.message : "Could not accept invite");
+    }
+  };
+
+  const handleDeclineInvite = async (memberId: string) => {
+    try {
+      setActionMessage(null);
+      const res = await fetch(`${API_BASE}/api/team-invites/${memberId}/decline`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message || "Failed to decline invite");
+      }
+      setActionMessage("Team invitation declined.");
+      void fetchDashboardData();
+    } catch (err: unknown) {
+      setActionMessage(err instanceof Error ? err.message : "Could not decline invite");
+    }
+  };
+
+  const handleRetryFulfillment = async (purchaseId: string) => {
+    try {
+      setRetryingId(purchaseId);
+      const res = await fetch(`${API_BASE}/api/purchases/${purchaseId}/retry-fulfillment`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message || "Retry failed. Please try again in 5s.");
+      }
+      setActionMessage("Tickets generated successfully!");
+      void fetchDashboardData();
+    } catch (err: unknown) {
+      setActionMessage(err instanceof Error ? err.message : "Retry failed");
+    } finally {
+      setRetryingId(null);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_BASE}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } finally {
+      router.push("/login");
+      router.refresh();
+    }
+  };
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-[#07090e] px-4 pt-28 text-white">
+        <div className="mx-auto max-w-6xl animate-pulse space-y-6">
+          <div className="h-10 w-48 rounded-xl bg-white/10" />
+          <div className="h-40 rounded-3xl bg-white/5" />
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="h-60 rounded-3xl bg-white/5" />
+            <div className="h-60 rounded-3xl bg-white/5" />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <main className="min-h-screen bg-[#07090e] px-4 pb-20 pt-28 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl space-y-8">
+        {/* Welcome Header */}
+        <div className="flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-center">
+          <div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Welcome, {user.name}
+              </h1>
+              <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-0.5 text-xs font-medium text-cyan-300">
+                {user.role}
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-white/50">{user.email}</p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/80 transition hover:border-red-400/40 hover:bg-red-400/10 hover:text-red-300"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </div>
+        </div>
+
+        {/* Action alert toast/banner */}
+        {actionMessage && (
+          <div className="flex items-center justify-between rounded-xl border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm text-cyan-200">
+            <span>{actionMessage}</span>
+            <button
+              type="button"
+              onClick={() => setActionMessage(null)}
+              className="text-xs text-white/60 hover:text-white"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
+        {/* Profile Incomplete Banner */}
+        {!user.profile_complete && (
+          <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-5 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+              <div>
+                <p className="font-medium text-amber-200">Profile incomplete</p>
+                <p className="mt-0.5 text-xs text-amber-200/80">
+                  Please complete your profile to register for events or purchase passes.
+                  Missing: {user.missing_fields.join(", ")}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/profile-completion"
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-amber-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-amber-300"
+            >
+              Complete Profile
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        )}
+
+        {/* Profile Card & Stats Grid */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          {/* User info card */}
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
+                <User className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-white">Profile Details</p>
+                <p className="text-xs text-white/50">Personal & Academic info</p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3 text-xs">
+              <div className="flex justify-between">
+                <span className="text-white/40">Phone</span>
+                <span className="text-white/80">{user.phone ? `+91 ${user.phone}` : "Not set"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-white/40">Student Status</span>
+                <span className="text-white/80">{user.is_student ? "Yes" : "General Attendee"}</span>
+              </div>
+              {user.is_student && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-white/40">Institution</span>
+                    <span className="max-w-[150px] truncate text-right text-white/80">
+                      {user.institution_name || "—"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-white/40">Student ID</span>
+                    <span className="text-white/80">{user.institution_id || "—"}</span>
+                  </div>
+                </>
+              )}
+              {user.student_fields_locked && (
+                <div className="mt-2 flex items-center gap-2 rounded-lg bg-emerald-400/10 p-2 text-[11px] text-emerald-300">
+                  <Shield className="h-3.5 w-3.5" />
+                  <span>Student ID verified & locked</span>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-5 pt-3">
+              <Link
+                href="/profile-completion"
+                className="text-xs font-medium text-cyan-300 hover:text-cyan-200"
+              >
+                Edit details →
+              </Link>
+            </div>
+          </div>
+
+          {/* Quick pass summary */}
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-400/10 text-purple-300">
+                <Ticket className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-white">Digital Passes</p>
+                <p className="text-xs text-white/50">{tickets.length} Active Tickets</p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {tickets.length > 0 ? (
+                tickets.slice(0, 3).map((tkt) => (
+                  <div
+                    key={tkt.id}
+                    className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-2.5 text-xs"
+                  >
+                    <div>
+                      <p className="font-medium text-white">{tkt.ticket_type}</p>
+                      <p className="text-[10px] text-white/40">Tier: {tkt.tier}</p>
+                    </div>
+                    <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
+                      VALID
+                    </span>
+                  </div>
+                ))
+              ) : (
+                <p className="py-6 text-center text-xs text-white/40">No passes purchased yet.</p>
+              )}
+            </div>
+
+            <div className="mt-4 flex items-center justify-between pt-3">
+              <Link href="/me/tickets" className="text-xs font-semibold text-cyan-300 hover:text-cyan-200">
+                View passes & QR →
+              </Link>
+              <Link href="/events" className="text-xs text-purple-300 hover:text-purple-200">
+                Get passes →
+              </Link>
+            </div>
+          </div>
+
+          {/* Teams summary */}
+          <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
+            <div className="flex items-center gap-3 border-b border-white/10 pb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/10 text-sky-300">
+                <Users className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-white">Teams & Invites</p>
+                <p className="text-xs text-white/50">
+                  {teams.length} Teams · {invites.length} Pending Invites
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              {invites.length > 0 && (
+                <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-2.5 text-xs">
+                  <p className="font-medium text-amber-200">{invites.length} pending invite(s)</p>
+                  <p className="mt-0.5 text-[10px] text-amber-200/70">
+                    Respond below to join team rosters
+                  </p>
+                </div>
+              )}
+
+              {teams.length > 0 ? (
+                teams.slice(0, 3).map((tm) => (
+                  <div
+                    key={tm.id}
+                    className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-2.5 text-xs"
+                  >
+                    <div>
+                      <p className="font-medium text-white">{tm.name}</p>
+                      <p className="text-[10px] text-white/40">
+                        {tm.leader_id === user.id ? "Leader" : "Member"} · {tm.status}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="py-4 text-center text-xs text-white/40">You are not part of any team yet.</p>
+              )}
+            </div>
+
+            <div className="mt-4 pt-3">
+              <Link href="/me/team-invites" className="text-xs font-semibold text-sky-300 hover:text-sky-200">
+                Manage invitations inbox →
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Pending Team Invitations Section */}
+        {invites.length > 0 && (
+          <section className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.03] p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Users className="h-5 w-5 text-amber-400" />
+              <h2 className="text-lg font-semibold text-white">Pending Team Invitations</h2>
+            </div>
+
+            <div className="space-y-3">
+              {invites.map((invite) => (
+                <div
+                  key={invite.id}
+                  className="flex flex-col justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:flex-row sm:items-center"
+                >
+                  <div>
+                    <p className="font-medium text-white">Team Invitation</p>
+                    <p className="text-xs text-white/50">
+                      Sent to: {invite.invited_email} · Invited {new Date(invite.invited_at).toLocaleDateString()}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleAcceptInvite(invite.id)}
+                      className="rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-medium text-black transition hover:bg-emerald-400"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeclineInvite(invite.id)}
+                      className="rounded-lg border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs text-white/70 transition hover:bg-white/10 hover:text-white"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Preparing Tickets (Retry banner) */}
+        {preparingTickets.length > 0 && (
+          <section className="rounded-2xl border border-blue-400/30 bg-blue-400/10 p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="h-5 w-5 text-blue-300" />
+                <h2 className="text-lg font-semibold text-white">Preparing Passes</h2>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {preparingTickets.map((prep) => (
+                <div
+                  key={prep.purchase_id}
+                  className="flex flex-col justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:flex-row sm:items-center"
+                >
+                  <div>
+                    <p className="font-medium text-white">Order {prep.purchase_id}</p>
+                    <p className="text-xs text-white/60">{prep.message}</p>
+                  </div>
+
+                  {prep.can_retry && (
+                    <button
+                      type="button"
+                      disabled={retryingId === prep.purchase_id}
+                      onClick={() => handleRetryFulfillment(prep.purchase_id)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-blue-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-blue-300 disabled:opacity-50"
+                    >
+                      <RefreshCw
+                        className={`h-3.5 w-3.5 ${retryingId === prep.purchase_id ? "animate-spin" : ""}`}
+                      />
+                      Generate Passes Now
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Digital Tickets Section */}
+        <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Ticket className="h-5 w-5 text-cyan-300" />
+              <h2 className="text-xl font-semibold text-white">My Digital Passes</h2>
+            </div>
+            <Link
+              href="/me/tickets"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-300 hover:text-black"
+            >
+              Full Pass View & QR Codes →
+            </Link>
+          </div>
+
+          {tickets.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-white/10 py-12 text-center">
+              <Ticket className="mx-auto h-10 w-10 text-white/20" />
+              <p className="mt-3 text-sm text-white/50">You don’t have any active digital passes.</p>
+              <Link
+                href="/events"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-cyan-300 px-4 py-2 text-xs font-semibold text-black transition hover:bg-cyan-200"
+              >
+                Browse Events & Passes
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              {tickets.map((tkt) => (
+                <div
+                  key={tkt.id}
+                  className="relative overflow-hidden rounded-2xl border border-cyan-400/20 bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-5"
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[10px] font-semibold tracking-wider text-cyan-300">
+                        {tkt.ticket_type}
+                      </span>
+                      <h3 className="mt-2 text-lg font-bold text-white">
+                        {tkt.event?.title || "TechXetra Gate Pass"}
+                      </h3>
+                      <p className="text-xs text-white/50">Ticket ID: {tkt.id}</p>
+                    </div>
+
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        tkt.validity.state === "VALID"
+                          ? "bg-emerald-400/10 text-emerald-300"
+                          : "bg-amber-400/10 text-amber-300"
+                      }`}
+                    >
+                      {tkt.validity.state}
+                    </span>
+                  </div>
+
+                  {/* Student ID alert for student tier passes */}
+                  {tkt.tier === "STUDENT" && (
+                    <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/[0.07] p-2.5 text-xs text-amber-200">
+                      <GraduationCap className="h-4 w-4 shrink-0" />
+                      <span>{tkt.student_id_warning || "Physical college ID required at check-in."}</span>
+                    </div>
+                  )}
+
+                  {/* Tamper-proof QR Token Display */}
+                  <div className="mt-5 rounded-xl border border-white/10 bg-black/40 p-4">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-white/40">
+                      Signed QR Entry Token
+                    </p>
+                    <p className="mt-1 break-all font-mono text-xs text-cyan-200">
+                      {tkt.qr_token}
+                    </p>
+                    <p className="mt-2 text-[10px] text-white/30">
+                      Valid from {new Date(tkt.validity.valid_from).toLocaleDateString()} to{" "}
+                      {new Date(tkt.validity.valid_to).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Recent Purchases Section */}
+        <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CreditCard className="h-5 w-5 text-cyan-300" />
+              <h2 className="text-xl font-semibold text-white">Order & Payment History</h2>
+            </div>
+          </div>
+
+          {purchases.length === 0 ? (
+            <p className="py-6 text-center text-xs text-white/40">No orders recorded yet.</p>
+          ) : (
+            <div className="divide-y divide-white/5">
+              {purchases.map((p) => (
+                <div key={p.id} className="flex flex-col justify-between gap-3 py-4 sm:flex-row sm:items-center">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-white">Order {p.id}</p>
+                      <span
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          p.status === "PAID"
+                            ? "bg-emerald-400/10 text-emerald-300"
+                            : p.status === "PENDING_VERIFICATION"
+                            ? "bg-amber-400/10 text-amber-300"
+                            : p.status === "AWAITING_PAYMENT"
+                            ? "bg-blue-400/10 text-blue-300"
+                            : "bg-white/10 text-white/50"
+                        }`}
+                      >
+                        {p.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-white/50">
+                      {new Date(p.created_at).toLocaleDateString()} · ₹{(p.total_amount_paise / 100).toFixed(2)}
+                    </p>
+                  </div>
+
+                  {p.status === "AWAITING_PAYMENT" && (
+                    <span className="text-xs text-cyan-300">
+                      Reservation active
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
+  );
+}

@@ -79,11 +79,6 @@ export default function Profile_fill() {
 
       const profile: UserProfile = result.data;
 
-      if (profile.profile_complete) {
-        router.replace("/dashboard");
-        return;
-      }
-
       setName(profile.name || "");
       setEmail(profile.email || "");
       setPhone(profile.phone || "");

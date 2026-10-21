@@ -10,6 +10,7 @@ const navigation = [
   { label: "Passes", href: "/admin/passes" },
   { label: "Attendance", href: "/admin/attendance" },
   { label: "Competitions", href: "/admin/compititions" },
+  { label: "Users & Staff", href: "/admin/users" },
 ];
 
 type AdminSidebarProps = {

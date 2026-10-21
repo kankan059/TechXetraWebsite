@@ -401,9 +401,13 @@ export default function TechnicalEvents() {
                     <span className="sr-only">, opens in a new tab</span>
                   </a>
                 ) : (
-                  <button type="button" disabled className="flex min-h-12 w-full items-center justify-center border border-white/15 px-5 py-3 text-xs text-[#F5F0DE]/45 [font-family:var(--font-gotham-bold)]">
-                    Registration unavailable
-                  </button>
+                  <Link
+                    href={`/events/${selectedEvent.id}`}
+                    className="flex min-h-12 items-center justify-between gap-5 bg-[#D6E8E9] px-5 py-3 text-sm text-[#10242B] [font-family:var(--font-gotham-bold)] transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8DDCFA]"
+                  >
+                    Register on TechXetra
+                    <span aria-hidden="true">→</span>
+                  </Link>
                 )}
               </div>
             </div>
