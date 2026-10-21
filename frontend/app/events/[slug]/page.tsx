@@ -40,12 +40,12 @@ interface EventMetadata {
   tracks?: { name?: string; title?: string; scope?: string; description?: string }[];
   evaluation_criteria?: { criterion?: string; weight_percentage?: number; focus?: string }[];
   prizes?:
-    | {
-        total_prize_pool_inr?: number;
-        breakdown?: { position?: string; prize_inr?: number; reward?: string }[];
-        notes?: string;
-      }
-    | string;
+  | {
+    total_prize_pool_inr?: number;
+    breakdown?: { position?: string; prize_inr?: number; reward?: string }[];
+    notes?: string;
+  }
+  | string;
   prize_pool_inr?: number;
   timeline?: { stage?: string; activities?: string }[];
   rounds?: { stage?: number | string; name?: string; details?: string }[];
@@ -55,14 +55,14 @@ interface EventMetadata {
   materials_provided?: string;
   device_requirement?: string;
   coordinators?:
-    | { name?: string; phone?: string; email?: string; role?: string }[]
-    | string;
+  | { name?: string; phone?: string; email?: string; role?: string }[]
+  | string;
   leadership?:
-    | { name?: string; phone?: string; email?: string; role?: string }[]
-    | string;
+  | { name?: string; phone?: string; email?: string; role?: string }[]
+  | string;
   event_heads?:
-    | { name?: string; phone?: string; email?: string; role?: string }[]
-    | string;
+  | { name?: string; phone?: string; email?: string; role?: string }[]
+  | string;
   submitted_by?: string;
   mode?: string;
   tournament_format?: string;
@@ -351,9 +351,8 @@ export default function EventDetailPage({
   const priceFormatted =
     event.price_model === "FREE"
       ? "FREE"
-      : `₹${(event.price_paise / 100).toFixed(0)} (${
-          event.price_model === "PER_PARTICIPANT" ? "Per Person" : "Per Team"
-        })`;
+      : `₹${(event.price_paise / 100).toFixed(0)} (${event.price_model === "PER_PARTICIPANT" ? "Per Person" : "Per Team"
+      })`;
 
   // Extract rules
   const rulesList: string[] = [];
@@ -404,10 +403,16 @@ export default function EventDetailPage({
   } else if (meta.prize_pool_inr) {
     prizePoolDisplay = `₹${meta.prize_pool_inr.toLocaleString("en-IN")}`;
   }
-
-  // Extract timeline / rounds
-  const scheduleStages = meta.timeline || meta.rounds || meta.event_format || [];
-
+  const scheduleStages: {
+    stage?: string | number;
+    name?: string;
+    activities?: string;
+    details?: string;
+  }[] = meta.timeline
+      ? meta.timeline
+      : meta.rounds
+        ? meta.rounds
+        : meta.event_format ?? [];
   // Extract coordinators
   const coordinatorsList: { name?: string; phone?: string; email?: string; role?: string }[] = [];
   if (Array.isArray(meta.coordinators)) {
@@ -452,11 +457,10 @@ export default function EventDetailPage({
               Day {event.day_of_event}
             </span>
             <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                event.status === "OPEN"
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${event.status === "OPEN"
                   ? "bg-emerald-400/10 text-emerald-300"
                   : "bg-amber-400/10 text-amber-300"
-              }`}
+                }`}
             >
               {event.status}
             </span>
@@ -725,55 +729,55 @@ export default function EventDetailPage({
           meta.tools_allowed ||
           meta.device_requirement ||
           meta.materials_provided) && (
-          <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/10 text-sky-300">
-                <Cpu className="h-5 w-5" />
+            <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/10 text-sky-300">
+                  <Cpu className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">Requirements & Eligibility</h2>
+                  <p className="text-xs text-white/50">Prerequisites and required equipment</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Requirements & Eligibility</h2>
-                <p className="text-xs text-white/50">Prerequisites and required equipment</p>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-xs">
+                {meta.eligibility && (
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                    <span className="text-[10px] font-bold uppercase text-slate-400">Eligibility</span>
+                    <p className="mt-1 text-white font-medium">{meta.eligibility}</p>
+                  </div>
+                )}
+
+                {meta.software_required && (
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                    <span className="text-[10px] font-bold uppercase text-slate-400">Required Software</span>
+                    <p className="mt-1 text-white font-medium">{meta.software_required}</p>
+                  </div>
+                )}
+
+                {meta.tools_allowed && (
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                    <span className="text-[10px] font-bold uppercase text-slate-400">Allowed Tools</span>
+                    <p className="mt-1 text-white font-medium">{meta.tools_allowed}</p>
+                  </div>
+                )}
+
+                {meta.device_requirement && (
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                    <span className="text-[10px] font-bold uppercase text-slate-400">Device Requirement</span>
+                    <p className="mt-1 text-white font-medium">{meta.device_requirement}</p>
+                  </div>
+                )}
+
+                {meta.materials_provided && (
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:col-span-2">
+                    <span className="text-[10px] font-bold uppercase text-slate-400">Materials Provided by Fest</span>
+                    <p className="mt-1 text-white font-medium">{meta.materials_provided}</p>
+                  </div>
+                )}
               </div>
             </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-xs">
-              {meta.eligibility && (
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                  <span className="text-[10px] font-bold uppercase text-slate-400">Eligibility</span>
-                  <p className="mt-1 text-white font-medium">{meta.eligibility}</p>
-                </div>
-              )}
-
-              {meta.software_required && (
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                  <span className="text-[10px] font-bold uppercase text-slate-400">Required Software</span>
-                  <p className="mt-1 text-white font-medium">{meta.software_required}</p>
-                </div>
-              )}
-
-              {meta.tools_allowed && (
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                  <span className="text-[10px] font-bold uppercase text-slate-400">Allowed Tools</span>
-                  <p className="mt-1 text-white font-medium">{meta.tools_allowed}</p>
-                </div>
-              )}
-
-              {meta.device_requirement && (
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                  <span className="text-[10px] font-bold uppercase text-slate-400">Device Requirement</span>
-                  <p className="mt-1 text-white font-medium">{meta.device_requirement}</p>
-                </div>
-              )}
-
-              {meta.materials_provided && (
-                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:col-span-2">
-                  <span className="text-[10px] font-bold uppercase text-slate-400">Materials Provided by Fest</span>
-                  <p className="mt-1 text-white font-medium">{meta.materials_provided}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+          )}
 
         {/* 8. Event Coordinators & Contacts */}
         {(coordinatorsList.length > 0 || meta.submitted_by) && (

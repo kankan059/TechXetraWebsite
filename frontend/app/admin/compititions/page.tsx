@@ -74,7 +74,7 @@ export default function AdminCompetitionsPage() {
   }, []);
 
   useEffect(() => {
-    void loadEvents();
+    void Promise.resolve().then(loadEvents);
   }, [loadEvents]);
 
   const handleCreateEvent = async (e: React.FormEvent) => {
@@ -342,7 +342,7 @@ export default function AdminCompetitionsPage() {
                           <UserPlus className="h-3.5 w-3.5" />
                         </button>
 
-                        {evt.category === "E_SPORTS" && evt.scoring_status === "FINALIZED" && (
+                        {evt.category === "E_SPORTS" &&  (
                           <button
                             type="button"
                             onClick={() => {

@@ -41,7 +41,7 @@ export default function AdminSettingsPage() {
       setError(null);
 
       const [settRes, daysRes] = await Promise.all([
-        adminApi.settings.get().catch(() => ({})),
+        adminApi.settings.get().catch(() => null),
         adminApi.festDays.list().catch(() => []),
       ]);
 
@@ -52,13 +52,15 @@ export default function AdminSettingsPage() {
         if (settRes.gate_pass_price_paise !== undefined) {
           setGatePassPricePaise(String(settRes.gate_pass_price_paise));
         }
+
         if (settRes.purchases_enabled !== undefined) {
           setPurchasesEnabled(
             settRes.purchases_enabled === true ||
-              settRes.purchases_enabled === "1" ||
-              settRes.purchases_enabled === 1,
+            settRes.purchases_enabled === "1" ||
+            settRes.purchases_enabled === 1
           );
         }
+
         if (settRes.support_contact !== undefined) {
           setSupportContact(String(settRes.support_contact));
         }
@@ -71,7 +73,11 @@ export default function AdminSettingsPage() {
   }, []);
 
   useEffect(() => {
-    void loadData();
+    const timeoutId = window.setTimeout(() => {
+      void loadData();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [loadData]);
 
   const handleSaveSettings = async (e: React.FormEvent) => {
