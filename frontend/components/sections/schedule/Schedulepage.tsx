@@ -170,16 +170,14 @@ export default function SchedulePage() {
                 type="button"
                 onClick={() => setActiveDay(day.id)}
                 aria-pressed={selected}
-                className={`rounded-2xl px-3 py-4 text-left transition-colors duration-300 sm:px-6 sm:py-5 ${
-                  selected
+                className={`rounded-2xl px-3 py-4 text-left transition-colors duration-300 sm:px-6 sm:py-5 ${selected
                     ? "bg-[#55DFFF] text-black"
                     : "bg-[#0A0A0A] text-white hover:bg-[#151515]"
-                }`}
+                  }`}
               >
                 <span
-                  className={`block font-hero text-xs uppercase tracking-wider sm:text-sm ${
-                    selected ? "text-black/70" : "text-[#55DFFF]"
-                  }`}
+                  className={`block font-hero text-xs uppercase tracking-wider sm:text-sm ${selected ? "text-black/70" : "text-[#55DFFF]"
+                    }`}
                 >
                   {day.date}
                 </span>
@@ -189,9 +187,8 @@ export default function SchedulePage() {
                 </span>
 
                 <span
-                  className={`mt-2 hidden font-pixel text-xs leading-6 sm:block ${
-                    selected ? "text-black/65" : "text-white/45"
-                  }`}
+                  className={`mt-2 hidden font-pixel text-xs leading-6 sm:block ${selected ? "text-black/65" : "text-white/45"
+                    }`}
                 >
                   {day.theme}
                 </span>
@@ -242,16 +239,14 @@ export default function SchedulePage() {
                       aria-hidden="true"
                       className="relative z-10 col-start-1 row-start-1 flex justify-center pt-6 md:col-start-2"
                     >
-                      <span className="size-4 rounded-full border-2 border-[#55DFFF] shadow-[0_0_12px_rgba(85,223,255,0.2)]" />
+                      <span className="size-5 bg-[#55DFFF] [clip-path:polygon(50%_0%,62%_38%,100%_50%,62%_62%,50%_100%,38%_62%,0%_50%,38%_38%)] shadow-[0_0_12px_rgba(85,223,255,0.5)]" />
                     </div>
-
                     {/* Event card */}
                     <article
-                      className={`schedule-event invisible col-start-2 row-start-1 min-w-0 rounded-2xl p-5 sm:p-7 lg:p-8 md:col-span-1 ${
-                        reverse
+                      className={`schedule-event invisible col-start-2 row-start-1 min-w-0 rounded-2xl p-5 sm:p-7 lg:p-8 md:col-span-1 ${reverse
                           ? "md:col-start-3"
                           : "md:col-start-1"
-                      }`}
+                        }`}
                     >
                       <p className="schedule-content font-autotech text-xs uppercase tracking-[0.14em] text-[#55DFFF] sm:text-sm">
                         {event.category}

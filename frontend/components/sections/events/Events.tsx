@@ -6,6 +6,7 @@ import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { events } from "@/data/info/event";
+import Star from "@/components/ui/Star";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -252,7 +253,7 @@ export default function Events() {
     <main ref={rootRef} className="relative isolate min-h-svh overflow-x-clip  text-[#F5F0DE] [font-family:var(--font-gotham-book)]">
       <h1 className="sr-only">TechXetra 2026 Events</h1>
 
-      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0">
+      {/* <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0">
         {events.map((event, index) => (
           <div
             key={event.id}
@@ -265,7 +266,7 @@ export default function Events() {
             }}
           />
         ))}
-      </div>
+      </div> */}
 
       <div className="relative z-10">
         {events.map((event, index) => (
@@ -280,8 +281,9 @@ export default function Events() {
             <div className="mx-auto flex w-full max-w-[620px] flex-1 flex-col gap-6 min-[900px]:grid min-[900px]:max-w-[1320px] min-[900px]:flex-none min-[900px]:grid-cols-[minmax(0,1.12fr)_minmax(0,0.88fr)] min-[900px]:items-center min-[900px]:gap-[clamp(40px,7vw,112px)]">
               <div data-event-copy className="min-w-0 shrink-0">
                 <p className="mb-4 flex items-center gap-2.5 text-[8px] leading-relaxed tracking-[0.16em] [font-family:var(--font-pixel)] min-[900px]:mb-7 min-[900px]:text-[10px]" style={{ color: event.accent }}>
-                  <span aria-hidden="true" className="h-1 w-1 shrink-0 bg-current" />
-                  TECHXETRA 2026 / EVENTS
+                  {/* <span aria-hidden="true" className="h-1 w-1 shrink-0 bg-current" /> */}
+                  <Star className="bg-current"/>
+                  EVENTS
                 </p>
 
                 <h2 id={`${event.id}-title`} className="m-0 text-[clamp(2rem,9vw,3.4rem)] font-normal leading-[1.05] tracking-[-0.035em] text-balance [font-family:var(--font-gotham-bold)] [overflow-wrap:anywhere] min-[900px]:text-[clamp(3rem,5.6vw,5.6rem)]">

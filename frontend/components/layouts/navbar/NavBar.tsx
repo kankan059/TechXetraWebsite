@@ -46,10 +46,7 @@ export default function NavBar() {
     pathname === href ||
     (href !== "/" && pathname.startsWith(`${href}/`));
 
-  const activeIndex = Math.max(
-    0,
-    navItems.findIndex((item) => isActive(item.href))
-  );
+  const activeIndex = navItems.findIndex((item) => isActive(item.href));
 
   const handleNavigation = (
     _index: number,
@@ -176,7 +173,7 @@ export default function NavBar() {
                 spread={38}
                 gooeyness={0.55}
                 wobble={0.45}
-                initialActiveIndex={0}
+                 initialActiveIndex={activeIndex}
                 hoverEffect
               />
             </nav>

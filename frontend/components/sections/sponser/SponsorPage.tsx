@@ -193,18 +193,17 @@ export default function SponsorPage() {
                   {/* Timeline marker */}
                   <div
                     aria-hidden="true"
-                    className="relative z-10 col-start-1 row-start-1 flex justify-center md:col-start-2"
+                    className="relative z-10 col-start-1 row-start-1 flex justify-center pt-6 md:col-start-2"
                   >
-                    <span className="h-3 w-3 rounded-full border-2 border-[#55DFFF]  shadow-[0_0_12px_rgba(85,223,255,0.3)]" />
+                    <span className="size-5 bg-[#55DFFF] [clip-path:polygon(50%_0%,62%_38%,100%_50%,62%_62%,50%_100%,38%_62%,0%_50%,38%_38%)] shadow-[0_0_12px_rgba(85,223,255,0.5)]" />
                   </div>
 
                   {/* Sponsor card */}
                   <article
-                    className={`sponsor-card invisible group relative col-start-2 row-start-1 min-w-0 overflow-hidden rounded-[22px]  md:col-span-1 md:row-start-1 ${
-                      reverse
+                    className={`sponsor-card invisible group relative col-start-2 row-start-1 min-w-0 overflow-hidden rounded-[22px]  md:col-span-1 md:row-start-1 ${reverse
                         ? "md:col-start-3"
                         : "md:col-start-1"
-                    }`}
+                      }`}
                   >
                     <div className="relative aspect-[16/9] overflow-hidden rounded-[22px] ">
                       <Image
