@@ -171,7 +171,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#07090e] px-4 pt-28 text-white">
+      <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pt-28 text-white">
         <div className="mx-auto max-w-6xl animate-pulse space-y-6">
           <div className="h-10 w-48 rounded-xl bg-white/10" />
           <div className="h-40 rounded-3xl bg-white/5" />
@@ -189,7 +189,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#07090e] px-4 pb-20 pt-28 text-white sm:px-6 lg:px-8">
+    <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pb-20 pt-28 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-6xl space-y-8">
         {/* Welcome Header */}
         <div className="flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-center">
@@ -346,8 +346,8 @@ export default function DashboardPage() {
               <Link href="/me/tickets" className="text-xs font-semibold text-cyan-300 hover:text-cyan-200">
                 View passes & QR →
               </Link>
-              <Link href="/events" className="text-xs text-purple-300 hover:text-purple-200">
-                Get passes →
+              <Link href="/registrations" className="text-xs text-purple-300 hover:text-purple-200">
+                Registrations →
               </Link>
             </div>
           </div>
@@ -395,9 +395,12 @@ export default function DashboardPage() {
               )}
             </div>
 
-            <div className="mt-4 pt-3">
-              <Link href="/me/team-invites" className="text-xs font-semibold text-sky-300 hover:text-sky-200">
-                Manage invitations inbox →
+            <div className="mt-4 flex items-center justify-between pt-3">
+              <Link href="/teams" className="text-xs font-semibold text-sky-300 hover:text-sky-200">
+                Manage all teams →
+              </Link>
+              <Link href="/me/team-invites" className="text-xs font-medium text-amber-300 hover:text-amber-200">
+                Invitations inbox ({invites.length}) →
               </Link>
             </div>
           </div>
@@ -418,8 +421,15 @@ export default function DashboardPage() {
                   className="flex flex-col justify-between gap-4 rounded-xl border border-white/10 bg-white/[0.02] p-4 sm:flex-row sm:items-center"
                 >
                   <div>
-                    <p className="font-medium text-white">Team Invitation</p>
+                    <p className="font-medium text-white">
+                      {(invite as any).team_name
+                        ? `Invitation to join ${(invite as any).team_name}`
+                        : "Team Invitation"}
+                    </p>
                     <p className="text-xs text-white/50">
+                      {(invite as any).event_title && (
+                        <span className="text-cyan-300">{(invite as any).event_title} · </span>
+                      )}
                       Sent to: {invite.invited_email} · Invited {new Date(invite.invited_at).toLocaleDateString()}
                     </p>
                   </div>

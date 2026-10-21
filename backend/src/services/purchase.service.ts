@@ -117,6 +117,18 @@ export async function createPurchase(
     throw new AppError(400, 'VALIDATION_ERROR', 'A single purchase cannot contain more than 10 items')
   }
 
+  // Clean up any expired AWAITING_PAYMENT purchases for this buyer
+  const priorPurchases = await getUserPurchases(db, buyer.id)
+  for (const p of priorPurchases) {
+    if (p.status === 'AWAITING_PAYMENT' && p.reservation_expires_at && p.reservation_expires_at <= now) {
+      try {
+        await releasePurchase(db, p.id, 'EXPIRED', 'Reservation window expired', buyer, meta)
+      } catch {
+        // ignore if already released or concurrent update
+      }
+    }
+  }
+
   // 4. Open purchase limit (max 3 open purchases per buyer)
   const openCountRow = await db
     .prepare(
@@ -136,7 +148,9 @@ export async function createPurchase(
   // 5. Natural Idempotency check:
   // If the user already has an active AWAITING_PAYMENT purchase with the exact same items, return it!
   const openPurchases = await getUserPurchases(db, buyer.id)
-  const existingAwaiting = openPurchases.find((p) => p.status === 'AWAITING_PAYMENT')
+  const existingAwaiting = openPurchases.find(
+    (p) => p.status === 'AWAITING_PAYMENT' && (!p.reservation_expires_at || p.reservation_expires_at > now)
+  )
   if (existingAwaiting) {
     const isSameGate =
       Boolean(input.items.find((i) => i.item_type === 'GATE_PASS')) ===
@@ -219,19 +233,30 @@ export async function createPurchase(
         registration_id: null,
       })
     } else if (itemInput.item_type === 'EVENT_PASS') {
-      if (!itemInput.event_id) {
+      let eventId = itemInput.event_id
+      if (!eventId && itemInput.team_id) {
+        const teamRow = await db
+          .prepare('SELECT event_id FROM teams WHERE id = ?')
+          .bind(itemInput.team_id)
+          .first<{ event_id: string }>()
+        if (teamRow?.event_id) {
+          eventId = teamRow.event_id
+        }
+      }
+
+      if (!eventId) {
         throw new AppError(400, 'VALIDATION_ERROR', 'event_id is required for EVENT_PASS')
       }
 
-      if (seenEventIds.has(itemInput.event_id)) {
+      if (seenEventIds.has(eventId)) {
         throw new AppError(400, 'VALIDATION_ERROR', 'Cannot purchase duplicate passes for the same event in one order')
       }
-      seenEventIds.add(itemInput.event_id)
+      seenEventIds.add(eventId)
 
       // Fetch event
       const event = await db
         .prepare('SELECT * FROM events WHERE id = ?')
-        .bind(itemInput.event_id)
+        .bind(eventId)
         .first<Event>()
 
       if (!event || event.status !== 'OPEN') {
@@ -248,6 +273,9 @@ export async function createPurchase(
         }
 
         const { team, acceptedMembers } = await validateTeamForPurchase(db, itemInput.team_id, buyer.id)
+        if (team.event_id !== event.id) {
+          throw new AppError(400, 'VALIDATION_ERROR', 'Team does not belong to this event')
+        }
 
         teamsToLock.push(team.id)
 

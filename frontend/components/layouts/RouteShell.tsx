@@ -25,7 +25,7 @@ export default function RouteShell({
       <BackGround />
       <Navbar />
       <SmoothScroll />
-      {children}
+      <div className="relative z-10 flex-1">{children}</div>
       <Footer />
     </>
   );

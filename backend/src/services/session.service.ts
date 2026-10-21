@@ -82,8 +82,11 @@ export async function createSession(
     .run()
 
   const maxAgeSec = Math.floor(ttlMs / 1000)
-  // __Host-session cookie: HttpOnly, Secure, SameSite=Lax, Path=/
-  const cookieHeader = `__Host-session=${rawToken}; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=${maxAgeSec}`
+  const isProd = env.ENVIRONMENT === 'production'
+  const cookieName = isProd ? '__Host-session' : 'session'
+  const secureFlag = isProd ? '; Secure' : ''
+  // __Host-session in production (requires HTTPS), fallback to session in local dev (plain HTTP)
+  const cookieHeader = `${cookieName}=${rawToken}; HttpOnly${secureFlag}; SameSite=Lax; Path=/; Max-Age=${maxAgeSec}`
 
   return { session, rawToken, cookieHeader }
 }
@@ -187,6 +190,7 @@ export async function validateSession(
 export async function revokeSession(
   db: D1Database,
   rawToken: string,
+  env?: CloudflareBindings,
   now = Date.now()
 ): Promise<string> {
   if (rawToken) {
@@ -197,6 +201,8 @@ export async function revokeSession(
       .run()
   }
 
-  // Expired cookie header
-  return '__Host-session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax'
+  const isProd = env?.ENVIRONMENT === 'production'
+  const cookieName = isProd ? '__Host-session' : 'session'
+  const secureFlag = isProd ? '; Secure' : ''
+  return `${cookieName}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly${secureFlag}; SameSite=Lax`
 }

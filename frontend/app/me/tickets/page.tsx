@@ -93,7 +93,7 @@ export default function MyTicketsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#07090e] px-4 pb-24 pt-32 text-white sm:px-8">
+    <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pb-24 pt-32 text-white sm:px-8">
       <div className="mx-auto max-w-5xl space-y-8">
         <Link
           href="/dashboard"

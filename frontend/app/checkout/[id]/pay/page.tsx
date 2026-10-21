@@ -63,15 +63,39 @@ export default function CheckoutPaymentPage({
         return;
       }
 
+      if (purData.data.status === "EXPIRED" || purData.data.status === "CANCELLED") {
+        setIsExpired(true);
+        setError(`This reservation has ${purData.data.status.toLowerCase()}. Please create a new purchase.`);
+        return;
+      }
+
+      if (
+        purData.data.status === "AWAITING_PAYMENT" &&
+        purData.data.reservation_expires_at &&
+        purData.data.reservation_expires_at <= Date.now()
+      ) {
+        setIsExpired(true);
+        setError("The reservation window for this purchase has expired. Please create a new purchase.");
+        return;
+      }
+
       // 2. Fetch payment instructions
       const instRes = await fetch(`${API_BASE}/api/purchases/${id}/payment-instructions`, {
         credentials: "include",
       });
       const instData = await instRes.json();
 
-      if (instRes.ok && instData.success) {
-        setInstructions(instData.data);
+      if (!instRes.ok || !instData.success) {
+        if (
+          instData.error?.code === "BAD_REQUEST" &&
+          instData.error?.message?.toLowerCase().includes("expired")
+        ) {
+          setIsExpired(true);
+        }
+        throw new Error(instData.error?.message || "Failed to load payment instructions");
       }
+
+      setInstructions(instData.data);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load payment instructions");
     } finally {
@@ -179,7 +203,7 @@ export default function CheckoutPaymentPage({
 
   if (loading && !instructions) {
     return (
-      <main className="min-h-screen bg-[#07090e] px-4 pt-32 text-white">
+      <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pt-32 text-white">
         <div className="mx-auto max-w-xl animate-pulse space-y-6">
           <div className="h-8 w-40 rounded-xl bg-white/10" />
           <div className="h-64 rounded-3xl bg-white/5" />
@@ -190,17 +214,25 @@ export default function CheckoutPaymentPage({
 
   if (error && !instructions) {
     return (
-      <main className="min-h-screen bg-[#07090e] px-4 pt-32 text-white">
+      <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pt-32 text-white">
         <div className="mx-auto max-w-md rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center">
           <AlertCircle className="mx-auto h-12 w-12 text-amber-400" />
           <h1 className="mt-4 text-xl font-bold">Payment Unavailable</h1>
           <p className="mt-2 text-sm text-white/50">{error}</p>
-          <Link
-            href="/dashboard"
-            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-cyan-300 px-5 py-2.5 text-xs font-semibold text-black"
-          >
-            ← Return to Dashboard
-          </Link>
+          <div className="mt-6 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/checkout"
+              className="inline-flex items-center gap-2 rounded-xl bg-cyan-300 px-5 py-2.5 text-xs font-semibold text-black"
+            >
+              Start New Order
+            </Link>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-5 py-2.5 text-xs font-semibold text-white hover:bg-white/10"
+            >
+              ← Return to Dashboard
+            </Link>
+          </div>
         </div>
       </main>
     );
@@ -216,7 +248,7 @@ export default function CheckoutPaymentPage({
   )}`;
 
   return (
-    <main className="min-h-screen bg-[#07090e] px-4 pb-24 pt-32 text-white sm:px-8">
+    <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pb-24 pt-32 text-white sm:px-8">
       <div className="mx-auto max-w-xl space-y-6">
         <div className="flex items-center justify-between">
           <Link

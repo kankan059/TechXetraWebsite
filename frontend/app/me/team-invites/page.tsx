@@ -114,7 +114,7 @@ export default function TeamInvitesPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#07090e] px-4 pb-24 pt-32 text-white sm:px-8">
+    <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pb-24 pt-32 text-white sm:px-8">
       <div className="mx-auto max-w-4xl space-y-8">
         <Link
           href="/dashboard"
@@ -201,8 +201,15 @@ export default function TeamInvitesPage() {
                   </div>
 
                   <p className="text-base font-semibold text-white">
-                    Invitation to join team roster
+                    {(invite as any).team_name
+                      ? `Invitation to join ${(invite as any).team_name}`
+                      : "Invitation to join team roster"}
                   </p>
+                  {(invite as any).event_title && (
+                    <p className="text-xs font-medium text-cyan-300">
+                      Event: {(invite as any).event_title}
+                    </p>
+                  )}
 
                   <div className="flex flex-wrap items-center gap-4 text-xs text-white/50">
                     <span className="flex items-center gap-1.5">

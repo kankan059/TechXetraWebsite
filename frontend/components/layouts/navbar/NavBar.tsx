@@ -241,11 +241,27 @@ export default function NavBar() {
                         Team Invitations
                       </Link>
 
+                      <Link
+                        href="/teams"
+                        onClick={() => setDropdownOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-white/80 transition hover:bg-white/[0.08] hover:text-white"
+                      >
+                        My Teams & Rosters
+                      </Link>
+
+                      <Link
+                        href="/test"
+                        onClick={() => setDropdownOpen(false)}
+                        className="block rounded-lg px-3 py-2 text-cyan-300 font-semibold transition hover:bg-white/[0.08]"
+                      >
+                        🧪 QA Route & Test Suite
+                      </Link>
+
                       {user.role === "SUPER_ADMIN" && (
                         <Link
                           href="/admin"
                           onClick={() => setDropdownOpen(false)}
-                          className="block rounded-lg px-3 py-2 text-cyan-300 transition hover:bg-white/[0.08]"
+                          className="block rounded-lg px-3 py-2 text-purple-300 transition hover:bg-white/[0.08]"
                         >
                           Super Admin Portal
                         </Link>
@@ -253,11 +269,11 @@ export default function NavBar() {
 
                       {(user.role === "VOLUNTEER" || user.role === "LEAD" || user.role === "SUPER_ADMIN") && (
                         <Link
-                          href="/staff/scan"
+                          href="/staff"
                           onClick={() => setDropdownOpen(false)}
                           className="block rounded-lg px-3 py-2 text-cyan-300 transition hover:bg-white/[0.08]"
                         >
-                          Staff QR Scanner
+                          Staff Operations Portal
                         </Link>
                       )}
                     </div>
@@ -406,6 +422,35 @@ export default function NavBar() {
                     className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/[0.04] px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-white/80"
                   >
                     Team Invitations
+                  </Link>
+
+                  <Link
+                    href="/teams"
+                    tabIndex={menuOpen ? 0 : -1}
+                    onClick={() => setOpenMenuPath(null)}
+                    className="flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/[0.04] px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-white/80"
+                  >
+                    My Teams & Rosters
+                  </Link>
+
+                  {(user.role === "VOLUNTEER" || user.role === "LEAD" || user.role === "SUPER_ADMIN") && (
+                    <Link
+                      href="/staff"
+                      tabIndex={menuOpen ? 0 : -1}
+                      onClick={() => setOpenMenuPath(null)}
+                      className="flex w-full items-center justify-center rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-5 py-3 text-xs font-medium uppercase tracking-[0.16em] text-cyan-300"
+                    >
+                      Staff Portal
+                    </Link>
+                  )}
+
+                  <Link
+                    href="/test"
+                    tabIndex={menuOpen ? 0 : -1}
+                    onClick={() => setOpenMenuPath(null)}
+                    className="flex w-full items-center justify-center rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-5 py-3 text-xs font-bold uppercase tracking-[0.16em] text-cyan-200"
+                  >
+                    🧪 Route & Test Suite
                   </Link>
 
                   {user.role === "SUPER_ADMIN" && (

@@ -129,6 +129,50 @@ export default function TeamWorkspacePage({
     }
   };
 
+  const handleAcceptThisInvite = async (memberId: string) => {
+    setProcessingAction(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/team-invites/${memberId}/accept`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message || "Failed to accept invite");
+      }
+      setSuccess("You have joined the team!");
+      void loadTeamData();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not accept invite");
+    } finally {
+      setProcessingAction(false);
+    }
+  };
+
+  const handleDeclineThisInvite = async (memberId: string) => {
+    if (!confirm("Are you sure you want to decline this invitation?")) return;
+    setProcessingAction(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/team-invites/${memberId}/decline`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message || "Failed to decline invite");
+      }
+      router.push("/dashboard");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not decline invite");
+      setProcessingAction(false);
+    }
+  };
+
   const handleDisbandTeam = async () => {
     if (!confirm("Are you sure you want to disband this team? This action cannot be undone.")) return;
 
@@ -165,7 +209,7 @@ export default function TeamWorkspacePage({
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: [{ item_type: "EVENT_PASS", team_id: team.id }],
+          items: [{ item_type: "EVENT_PASS", event_id: team.event_id, team_id: team.id }],
           acknowledge_student_id_policy: user?.is_student || false,
         }),
       });
@@ -188,7 +232,7 @@ export default function TeamWorkspacePage({
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#07090e] px-4 pt-32 text-white">
+      <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pt-32 text-white">
         <div className="mx-auto max-w-4xl animate-pulse space-y-6">
           <div className="h-8 w-40 rounded-xl bg-white/10" />
           <div className="h-32 rounded-3xl bg-white/5" />
@@ -200,7 +244,7 @@ export default function TeamWorkspacePage({
 
   if (error && !team) {
     return (
-      <main className="min-h-screen bg-[#07090e] px-4 pt-32 text-white">
+      <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pt-32 text-white">
         <div className="mx-auto max-w-lg rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center">
           <ShieldAlert className="mx-auto h-12 w-12 text-red-400" />
           <h1 className="mt-4 text-xl font-bold">Team Workspace Unavailable</h1>
@@ -223,8 +267,14 @@ export default function TeamWorkspacePage({
   const pendingMembers = team.members.filter((m) => m.status === "INVITED");
   const anyIncomplete = acceptedMembers.some((m) => m.user?.profile_completed_at === null);
 
+  const myPendingInvite = pendingMembers.find(
+    (m) =>
+      (m.user_id && m.user_id === user.id) ||
+      (user.email && m.invited_email.toLowerCase() === user.email.toLowerCase())
+  );
+
   return (
-    <main className="min-h-screen bg-[#07090e] px-4 pb-24 pt-32 text-white sm:px-8">
+    <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pb-24 pt-32 text-white sm:px-8">
       <div className="mx-auto max-w-4xl space-y-8">
         <Link
           href="/dashboard"
@@ -233,6 +283,45 @@ export default function TeamWorkspacePage({
           <ArrowLeft className="h-4 w-4" />
           Back to Dashboard
         </Link>
+
+        {/* Invitation Action Banner for Invitee */}
+        {myPendingInvite && (
+          <div className="rounded-3xl border border-cyan-400/30 bg-gradient-to-r from-cyan-950/40 via-[#0a1524] to-[#07090e] p-6 sm:p-8 backdrop-blur-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span className="rounded-full bg-cyan-400/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-cyan-300">
+                  Invitation Pending
+                </span>
+                <h2 className="mt-2 text-xl font-bold text-white">
+                  You have been invited to join this team
+                </h2>
+                <p className="mt-1 text-xs text-white/60">
+                  Join <strong className="text-white">{team.name}</strong> to participate together in this competition.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  disabled={processingAction}
+                  onClick={() => handleAcceptThisInvite(myPendingInvite.id)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-cyan-300 px-5 py-2.5 text-xs font-bold text-black transition hover:bg-cyan-200 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Accept & Join Team
+                </button>
+                <button
+                  type="button"
+                  disabled={processingAction}
+                  onClick={() => handleDeclineThisInvite(myPendingInvite.id)}
+                  className="rounded-xl border border-white/20 bg-white/5 px-4 py-2.5 text-xs font-semibold text-white/80 transition hover:bg-red-500/20 hover:text-red-300 disabled:opacity-50"
+                >
+                  Decline
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Header Banner */}
         <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.01] p-6 sm:p-8">
@@ -311,16 +400,16 @@ export default function TeamWorkspacePage({
           </div>
         )}
 
-        {/* Team Members Roster */}
+        {/* Confirmed Team Members Roster */}
         <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-white">
-              Members ({acceptedMembers.length} Confirmed)
+              Confirmed Roster ({acceptedMembers.length})
             </h2>
           </div>
 
           <div className="divide-y divide-white/5">
-            {team.members.map((member) => (
+            {acceptedMembers.map((member) => (
               <div
                 key={member.id}
                 className="flex flex-col justify-between gap-3 py-4 sm:flex-row sm:items-center"
@@ -333,14 +422,8 @@ export default function TeamWorkspacePage({
                     <span className="rounded-md bg-white/[0.08] px-2 py-0.5 text-[10px] text-white/70">
                       {member.role}
                     </span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                        member.status === "ACCEPTED"
-                          ? "bg-emerald-400/10 text-emerald-300"
-                          : "bg-amber-400/10 text-amber-300"
-                      }`}
-                    >
-                      {member.status}
+                    <span className="rounded-full bg-emerald-400/10 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-300">
+                      CONFIRMED
                     </span>
                   </div>
 
@@ -374,6 +457,45 @@ export default function TeamWorkspacePage({
               </div>
             ))}
           </div>
+
+          {/* Pending Invitations list */}
+          {pendingMembers.length > 0 && (
+            <div className="mt-6 border-t border-white/10 pt-6">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-amber-300/80 mb-3">
+                Pending Invitations ({pendingMembers.length})
+              </h3>
+              <div className="divide-y divide-white/5">
+                {pendingMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex flex-col justify-between gap-3 py-3 sm:flex-row sm:items-center"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-white/90">{member.invited_email}</p>
+                        <span className="rounded-full bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+                          INVITED (Awaiting Response)
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-white/40 mt-0.5">
+                        Invited {new Date(member.invited_at).toLocaleDateString()}
+                      </p>
+                    </div>
+
+                    {isLeader && team.status === "DRAFT" && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMember(member.id)}
+                        className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-white/60 transition hover:border-red-500/40 hover:text-red-300"
+                      >
+                        Cancel Invite
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Invite Teammate Form */}
           {isLeader && team.status === "DRAFT" && (

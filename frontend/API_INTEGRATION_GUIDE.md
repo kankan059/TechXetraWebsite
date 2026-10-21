@@ -147,6 +147,7 @@ const attendance = await adminApi.reports.attendance();
 | `/events/[slug]` | Participant | `GET /api/events/:idOrSlug`, `POST /api/purchases`, `POST /api/teams` | Live seats remaining, solo registration, team creation modal |
 | `/leaderboards` | Public | `GET /api/leaderboards` | Public listing of open esports tournaments |
 | `/events/[slug]/leaderboard` | Public | `GET /api/events/:idOrSlug/leaderboard` | Real-time score standings with ties |
+| `/teams` (and `/me/teams`) | Team Member | `GET /api/me/teams`, `POST /api/teams` | My Teams index: list active squads, create new team |
 | `/teams/[id]` | Team Member | `GET /api/teams/:id`, `POST /invites`, `DELETE /members/:mId`, `DELETE /api/teams/:id` | Team workspace, roster lock status, disband, invite teammate |
 | `/me/team-invites` | Participant | `GET /api/me/team-invites`, `POST /team-invites/:mId/accept`, `/decline` | Teammate invitation inbox with live accept/decline feedback |
 | `/checkout` | Participant | `GET /api/catalog/passes`, `POST /api/purchases` | Gate pass reservation hold (general vs student pricing) |
@@ -154,8 +155,10 @@ const attendance = await adminApi.reports.attendance();
 | `/me/tickets` | Beneficiary | `GET /api/tickets/me`, `POST /api/purchases/:id/retry-fulfillment` | High-contrast QR token pass, student ID alert badge, fulfillment retry |
 | `/dashboard` (and `/profile`) | Participant | `GET /api/me`, `GET /api/tickets/me`, `GET /api/me/teams`, `GET /api/purchases` | User profile overview, pass summary, teams, order history |
 | `/profile-completion` | Participant | `GET /api/me`, `PATCH /api/me/profile` | Institutional ID, student toggle, phone lock rules |
+| `/staff` | Staff / Volunteer | `GET /api/me`, `GET /api/events?category=E_SPORTS` | Staff portal hub: quick launch for scanner and esports tournaments |
 | `/staff/scan` | Staff / Volunteer | `POST /api/staff/scan/lookup`, `POST /admit`, `POST /deny` | Gate / Event QR scanner with physical student ID check toggle |
 | `/staff/events/[id]/scores` | Event Lead / Staff | `GET /api/staff/events/:id/scores`, `PUT /scores`, `DELETE /scores/:eId`, `POST /scores/finalize` | Round-by-round score matrix, optimistic lock versioning, audit history |
+| `/test` | Developer / QA | `GET /api/me`, `POST /api/auth/logout` | Interactive testing hub & launchpad for every route and user role |
 | `/admin` | Super Admin | `GET /api/admin/reports/*` | High-level overview: revenue, pending queue backlog, attendance |
 | `/admin/payments` | Payment Reviewer | `GET /api/admin/payments`, `POST /approve`, `POST /reject`, `POST /hold`, `POST /resubmit` | Manual UPI review queue with instant modal actions |
 | `/admin/users` | Super Admin | `GET /api/admin/users`, `POST /pre-register`, `PATCH /users/:id` | Pre-register staff roles, toggle permissions, deactivate users |

@@ -5,12 +5,17 @@ import { usePathname } from "next/navigation";
 
 const navigation = [
   { label: "Overview", href: "/admin" },
-  { label: "Registrations", href: "/admin/registrations" },
   { label: "Payments", href: "/admin/payments" },
+  { label: "Registrations", href: "/admin/registrations" },
   { label: "Passes", href: "/admin/passes" },
-  { label: "Attendance", href: "/admin/attendance" },
+  { label: "Tickets & QR", href: "/admin/tickets" },
   { label: "Competitions", href: "/admin/compititions" },
+  { label: "Attendance", href: "/admin/attendance" },
   { label: "Users & Staff", href: "/admin/users" },
+  { label: "Gate Staff", href: "/admin/gate-staff" },
+  { label: "Diagnostics", href: "/admin/reports" },
+  { label: "Settings & Days", href: "/admin/settings" },
+  { label: "Audit Logs", href: "/admin/audit-logs" },
 ];
 
 type AdminSidebarProps = {

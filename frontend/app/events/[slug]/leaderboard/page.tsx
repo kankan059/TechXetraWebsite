@@ -45,7 +45,7 @@ export default function EventLeaderboardPage({
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[#07090e] px-4 pt-32 text-white">
+      <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pt-32 text-white">
         <div className="mx-auto max-w-4xl animate-pulse space-y-6">
           <div className="h-8 w-40 rounded-xl bg-white/10" />
           <div className="h-64 rounded-3xl bg-white/5" />
@@ -56,7 +56,7 @@ export default function EventLeaderboardPage({
 
   if (error || !data) {
     return (
-      <main className="min-h-screen bg-[#07090e] px-4 pt-32 text-white">
+      <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pt-32 text-white">
         <div className="mx-auto max-w-lg rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center">
           <AlertCircle className="mx-auto h-12 w-12 text-amber-400" />
           <h1 className="mt-4 text-xl font-bold">Scoreboard Not Available</h1>
@@ -77,7 +77,7 @@ export default function EventLeaderboardPage({
   const roundNumbers = Array.from({ length: maxRounds }, (_, i) => i + 1);
 
   return (
-    <main className="min-h-screen bg-[#07090e] px-4 pb-24 pt-32 text-white sm:px-8">
+    <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pb-24 pt-32 text-white sm:px-8">
       <div className="mx-auto max-w-5xl space-y-8">
         <div className="flex items-center justify-between">
           <Link

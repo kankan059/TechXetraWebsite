@@ -110,7 +110,7 @@ authRoutes.post('/logout', async (c) => {
   const token = match ? match[1] : ''
 
   const now = c.get('now') || Date.now()
-  const clearCookieHeader = await revokeSession(c.env.DB, token, now)
+  const clearCookieHeader = await revokeSession(c.env.DB, token, c.env, now)
 
   c.res.headers.set('Set-Cookie', clearCookieHeader)
 

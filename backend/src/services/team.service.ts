@@ -201,7 +201,7 @@ export async function getTeamWithMembers(
         u.institution_id as u_institution_id, u.profile_completed_at as u_profile_completed_at
        FROM team_members tm
        LEFT JOIN users u ON tm.user_id = u.id
-       WHERE tm.team_id = ?
+       WHERE tm.team_id = ? AND tm.status IN ('ACCEPTED', 'INVITED')
        ORDER BY tm.role DESC, tm.invited_at ASC`
     )
     .bind(teamId)
@@ -234,7 +234,7 @@ export async function getTeamWithMembers(
   if (currentUser) {
     const isMember = members.some(
       (m) =>
-        (m.user_id === currentUser.id || m.invited_email === currentUser.email) &&
+        (m.user_id === currentUser.id || m.invited_email.toLowerCase() === currentUser.email.toLowerCase()) &&
         (m.status === 'ACCEPTED' || m.status === 'INVITED')
     )
     if (!isMember && !isSuperAdmin(currentUser)) {
@@ -426,7 +426,7 @@ export async function getUserPendingInvites(
        JOIN teams t ON tm.team_id = t.id
        JOIN events e ON t.event_id = e.id
        JOIN users u ON t.leader_id = u.id
-       WHERE (tm.user_id = ? OR tm.invited_email = ?)
+       WHERE (tm.user_id = ? OR lower(tm.invited_email) = lower(?))
          AND tm.status = 'INVITED'
          AND t.status = 'DRAFT'
        ORDER BY tm.invited_at DESC`
@@ -456,7 +456,7 @@ export async function acceptTeamInvite(
   }
 
   // 2. Restrict accept to the exact invitee (existence hiding if someone else tries)
-  if (member.invited_email !== currentUser.email && member.user_id !== currentUser.id) {
+  if (member.invited_email.toLowerCase() !== currentUser.email.toLowerCase() && member.user_id !== currentUser.id) {
     throw new AppError(404, 'NOT_FOUND', 'Invitation not found')
   }
 
@@ -548,7 +548,7 @@ export async function declineTeamInvite(
     throw new AppError(404, 'NOT_FOUND', 'Invitation not found')
   }
 
-  if (member.invited_email !== currentUser.email && member.user_id !== currentUser.id) {
+  if (member.invited_email.toLowerCase() !== currentUser.email.toLowerCase() && member.user_id !== currentUser.id) {
     throw new AppError(404, 'NOT_FOUND', 'Invitation not found')
   }
 
