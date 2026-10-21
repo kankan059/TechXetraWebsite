@@ -103,11 +103,18 @@ authRoutes.post('/login', async (c) => {
 })
 
 authRoutes.post('/logout', async (c) => {
-  const cookieHeader = c.req.header('cookie') || ''
-  const match =
-    cookieHeader.match(/(?:^|;\s*)__Host-session=([^;]+)/) ||
-    cookieHeader.match(/(?:^|;\s*)session=([^;]+)/)
-  const token = match ? match[1] : ''
+  const authHeader = c.req.header('authorization')
+  let token = ''
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7).trim()
+  } else {
+    const cookieHeader = c.req.header('cookie') || ''
+    const match =
+      cookieHeader.match(/(?:^|;\s*)__Host-session=([^;]+)/) ||
+      cookieHeader.match(/(?:^|;\s*)session=([^;]+)/)
+    token = match ? match[1] : ''
+  }
 
   const now = c.get('now') || Date.now()
   const clearCookieHeader = await revokeSession(c.env.DB, token, c.env, now)

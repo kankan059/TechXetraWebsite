@@ -12,6 +12,7 @@ export interface CloudflareBindings {
   PURCHASE_RESERVATION_TTL_MS?: string | number
   PARTICIPANT_SESSION_TTL_MS?: string | number
   STAFF_SESSION_TTL_MS?: string | number
+  COOKIE_SAMESITE?: string
 }
 
 export interface AppVariables {

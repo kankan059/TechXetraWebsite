@@ -24,8 +24,16 @@ export const requireAuth = (): MiddlewareHandler<{
   Variables: AppVariables
 }> => {
   return async (c, next) => {
-    const cookieHeader = c.req.header('cookie')
-    const token = extractSessionToken(cookieHeader)
+    const authHeader = c.req.header('authorization')
+    let token: string | null = null
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7).trim()
+    }
+    if (!token) {
+      const cookieHeader = c.req.header('cookie')
+      token = extractSessionToken(cookieHeader)
+    }
 
     if (!token) {
       throw new AppError(401, 'UNAUTHORIZED', 'Authentication session required')
@@ -46,8 +54,16 @@ export const optionalAuth = (): MiddlewareHandler<{
   Variables: AppVariables
 }> => {
   return async (c, next) => {
-    const cookieHeader = c.req.header('cookie')
-    const token = extractSessionToken(cookieHeader)
+    const authHeader = c.req.header('authorization')
+    let token: string | null = null
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7).trim()
+    }
+    if (!token) {
+      const cookieHeader = c.req.header('cookie')
+      token = extractSessionToken(cookieHeader)
+    }
 
     if (token) {
       try {

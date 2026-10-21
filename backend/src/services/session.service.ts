@@ -82,11 +82,25 @@ export async function createSession(
     .run()
 
   const maxAgeSec = Math.floor(ttlMs / 1000)
-  const isProd = env.ENVIRONMENT === 'production'
-  const cookieName = isProd ? '__Host-session' : 'session'
-  const secureFlag = isProd ? '; Secure' : ''
-  // __Host-session in production (requires HTTPS), fallback to session in local dev (plain HTTP)
-  const cookieHeader = `${cookieName}=${rawToken}; HttpOnly${secureFlag}; SameSite=Lax; Path=/; Max-Age=${maxAgeSec}`
+  const isDev = env.ENVIRONMENT === 'development'
+  const sameSiteConfig = env.COOKIE_SAMESITE?.toLowerCase()
+
+  let cookieName: string
+  let cookieHeader: string
+
+  if (sameSiteConfig === 'none' || (isDev && env.FRONTEND_ORIGIN)) {
+    // Cross-site cookie for deployed workers communicating across origins (e.g. localhost -> workers.dev)
+    cookieName = 'session'
+    cookieHeader = `${cookieName}=${rawToken}; HttpOnly; Secure; SameSite=None; Partitioned; Path=/; Max-Age=${maxAgeSec}`
+  } else if (isDev) {
+    // Plain HTTP local development
+    cookieName = 'session'
+    cookieHeader = `${cookieName}=${rawToken}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAgeSec}`
+  } else {
+    // Production/Tests with HTTPS and same-site CSRF protection
+    cookieName = '__Host-session'
+    cookieHeader = `${cookieName}=${rawToken}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${maxAgeSec}`
+  }
 
   return { session, rawToken, cookieHeader }
 }
@@ -201,8 +215,22 @@ export async function revokeSession(
       .run()
   }
 
-  const isProd = env?.ENVIRONMENT === 'production'
-  const cookieName = isProd ? '__Host-session' : 'session'
-  const secureFlag = isProd ? '; Secure' : ''
-  return `${cookieName}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly${secureFlag}; SameSite=Lax`
+  const isDev = env?.ENVIRONMENT === 'development'
+  const sameSiteConfig = env?.COOKIE_SAMESITE?.toLowerCase()
+
+  let cookieName: string
+  let attributes: string
+
+  if (sameSiteConfig === 'none' || (isDev && env?.FRONTEND_ORIGIN)) {
+    cookieName = 'session'
+    attributes = 'Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=None; Partitioned'
+  } else if (isDev) {
+    cookieName = 'session'
+    attributes = 'Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax'
+  } else {
+    cookieName = '__Host-session'
+    attributes = 'Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; Secure; SameSite=Lax'
+  }
+
+  return `${cookieName}=; ${attributes}`
 }

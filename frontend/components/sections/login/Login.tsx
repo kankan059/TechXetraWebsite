@@ -81,7 +81,7 @@ export default function Login() {
 
         try {
             const apiUrl =
-                process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
+                process.env.NEXT_PUBLIC_API_URL ?? "https://techxetra-backend.ppriyankuu.workers.dev";
 
             const response = await fetch(`${apiUrl}/api/auth/google`, {
                 method: "POST",
