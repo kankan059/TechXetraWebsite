@@ -338,7 +338,12 @@ const GooeyNav = ({
     vertical = false,
 }: GooeyNavProps) => {
     const [innerIndex, setInnerIndex] = useState(initialActiveIndex);
-    const current = Math.min(Math.max(0, activeIndex ?? innerIndex), Math.max(0, items.length - 1));
+    const current =
+        activeIndex === undefined
+            ? Math.min(Math.max(0, innerIndex), Math.max(0, items.length - 1))
+            : activeIndex < 0
+                ? -1
+                : Math.min(activeIndex, Math.max(0, items.length - 1));
     const stageRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const listRef = useRef<HTMLUListElement>(null);

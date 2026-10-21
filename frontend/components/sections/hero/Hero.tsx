@@ -7,7 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { heroData } from "@/data/info/hero";
 import { TECHXETRA_COLORS } from "@/constants/colors";
 import HeroTitle from "./HeroTitle";
-import EarthScene from "@/components/animations/EarthScene";
+// import EarthScene from "@/components/animations/EarthScene";
 import SilverFlight from "@/components/animations/SilverFlight";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -195,7 +195,7 @@ const Hero = () => {
         />
       </div>
 
-      <EarthScene />
+      {/* <EarthScene /> */}
 
       <SilverFlight />
 

@@ -1,6 +1,7 @@
 "use client";
 
 import type { RefObject } from "react";
+import Star from "./Star";
 
 interface SectionTitleProps {
   title: string;
@@ -48,9 +49,7 @@ export default function SectionTitle({
             </span>
           ))}
 
-          <span className="section-title-dot ml-1 inline-block text-cyan-400">
-            .
-          </span>
+          <Star className="bg-cyan-400" size="1.7rem"/>
         </span>
       </h2>
     </div>
