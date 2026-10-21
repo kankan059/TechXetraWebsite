@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function EventsDirectoryPage() {
   return (
-    <main className="min-h-screen bg-[#07090e] text-white">
+    <main className="min-h-screen">
       <EventsDirectory />
     </main>
   );
