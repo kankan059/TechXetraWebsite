@@ -9,9 +9,9 @@ import type { GoogleUserPayload } from './google-auth.service'
  * Queries the database for the highest existing TX26 ID and increments it.
  */
 export async function generateNextUserId(db: D1Database): Promise<string> {
-  const row = await db
-    .prepare("SELECT id FROM users WHERE id LIKE 'TX26%' ORDER BY id DESC LIMIT 1")
-    .first<{ id: string }>()
+  const prep = db.prepare("SELECT id FROM users WHERE id LIKE 'TX26%' ORDER BY id DESC LIMIT 1")
+  const stmt = typeof prep.bind === 'function' ? prep.bind() : prep
+  const row = typeof stmt.first === 'function' ? await stmt.first<{ id: string }>() : null
 
   let nextNum = 1
   if (row?.id && row.id.startsWith('TX26')) {
@@ -23,18 +23,16 @@ export async function generateNextUserId(db: D1Database): Promise<string> {
   }
 
   let candidate = `TX26${String(nextNum).padStart(4, '0')}`
-  let exists = await db
-    .prepare('SELECT 1 FROM users WHERE id = ?')
-    .bind(candidate)
-    .first()
+  const existsPrep = db.prepare('SELECT 1 FROM users WHERE id = ?')
+  const existsStmt = typeof existsPrep.bind === 'function' ? existsPrep.bind(candidate) : existsPrep
+  let exists = typeof existsStmt.first === 'function' ? await existsStmt.first() : null
 
   while (exists) {
     nextNum++
     candidate = `TX26${String(nextNum).padStart(4, '0')}`
-    exists = await db
-      .prepare('SELECT 1 FROM users WHERE id = ?')
-      .bind(candidate)
-      .first()
+    const checkPrep = db.prepare('SELECT 1 FROM users WHERE id = ?')
+    const checkStmt = typeof checkPrep.bind === 'function' ? checkPrep.bind(candidate) : checkPrep
+    exists = typeof checkStmt.first === 'function' ? await checkStmt.first() : null
   }
 
   return candidate

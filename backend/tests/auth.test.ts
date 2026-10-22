@@ -386,7 +386,12 @@ describe('Account Resolution & Conflict Rules', () => {
       const mockDb = {
         prepare: vi.fn((sql: string) => ({
           bind: vi.fn(() => ({
-            first: vi.fn().mockResolvedValue(null),
+            first: vi.fn().mockImplementation(async () => {
+              if (sql.includes("WHERE id LIKE 'TX26%'")) {
+                return { id: 'TX260042' }
+              }
+              return null
+            }),
           })),
           first: vi.fn().mockImplementation(async () => {
             if (sql.includes("WHERE id LIKE 'TX26%'")) {
