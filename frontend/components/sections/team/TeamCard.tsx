@@ -2,8 +2,6 @@
 "use client";
 
 import { memo, useEffect, useRef, type CSSProperties } from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { Mail01Icon } from "@hugeicons/core-free-icons";
 
 type Palette = "dark" | "light";
 
@@ -14,6 +12,7 @@ interface TeamCardProps {
     name?: string;
     title?: string;
     handle?: string;
+    email?: string;
     status?: string;
     statusColor?: string;
     contactText?: string;
@@ -202,10 +201,10 @@ const ROOT =
     "relative w-[320px] max-w-full touch-pan-y [perspective:1000px]";
 
 const BODY =
-    "relative flex flex-col gap-3 rounded-xl border border-[#00E5FF]/30 bg-[#050B12] p-2.5 shadow-[0_0_25px_rgba(0,229,255,0.08)] transition-all duration-300 hover:border-[#00E5FF]/70 hover:shadow-[0_0_32px_rgba(0,229,255,0.2)] [transform:rotateX(var(--pc-rotate-x))_rotateY(var(--pc-rotate-y))]";
+    "relative flex flex-col gap-3 border border-[#55DFFF]/75 bg-[#050B12] p-2.5 shadow-[0_0_25px_rgba(85,223,255,0.12)] transition-all duration-300 hover:border-[#55DFFF] hover:shadow-[0_0_32px_rgba(85,223,255,0.28)] [clip-path:polygon(0_0,calc(100%_-_48px)_0,100%_48px,100%_100%,48px_100%,0_calc(100%_-_48px))] [transform:rotateX(var(--pc-rotate-x))_rotateY(var(--pc-rotate-y))]";
 
 const TILE =
-    "relative isolate aspect-[4/5] overflow-hidden rounded-lg border border-[#168BFF]/25 bg-[#07121D]";
+    "relative isolate aspect-[4/5] overflow-hidden border border-[#55DFFF]/45 bg-[#07121D] [clip-path:polygon(0_0,calc(100%_-_32px)_0,100%_32px,100%_100%,32px_100%,0_calc(100%_-_32px))]";
 
 const FOOTER =
     "flex min-w-0 items-center gap-3 border-t border-[#00E5FF]/20 px-3 pb-1 pt-3";
@@ -219,8 +218,8 @@ const STATUS =
 const CONTACT =
     "flex h-9 flex-none cursor-pointer items-center gap-2 rounded-md border border-[#00E5FF]/50 bg-[#00E5FF]/10 px-3.5 text-xs font-semibold uppercase tracking-wider text-[#8AF5FF] transition-all duration-200 hover:bg-[#00E5FF] hover:text-[#02070D] hover:shadow-[0_0_18px_rgba(0,229,255,0.35)] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8AF5FF]";
 
-const LAYER = "pointer-events-none absolute inset-0 rounded-[inherit]";
-const RIM = `${LAYER} rounded-xl border border-[#00E5FF]/20`;
+const LAYER = "pointer-events-none absolute inset-0";
+const RIM = `${LAYER} box-border border-[3px] border-[#55DFFF] shadow-[0_0_12px_rgba(85,223,255,0.45)] [clip-path:polygon(0_0,calc(100%_-_48px)_0,100%_48px,100%_100%,48px_100%,0_calc(100%_-_48px))]`;
 const HOLO = `${LAYER} [mix-blend-mode:var(--pc-blend)]`;
 const HOLO_LAYER = "absolute inset-0";
 const PHOTO = "pointer-events-none absolute select-none object-cover object-bottom";
@@ -260,6 +259,7 @@ const TeamCard = ({
     name = "",
     title = "",
     handle = "",
+    email = "",
     status = "",
     statusColor = "#22c55e",
     contactText = "Email",
@@ -614,40 +614,15 @@ const TeamCard = ({
                     <span className={TILE_RIM} />
                 </div>
 
-                {showUserInfo && (
-                    <div className={FOOTER}>
-                        {miniAvatarUrl && (
-                            <span className={AVATAR}>
-                                <img
-                                    className={AVATAR_IMAGE}
-                                    src={miniAvatarUrl}
-                                    alt=""
-                                    loading="lazy"
-                                    draggable={false}
-                                />
-                            </span>
-                        )}
-
-                        <div className={META}>
-                            {handle && <span className={HANDLE}>@{handle}</span>}
-                            {status && <span className={STATUS}>{status}</span>}
-                        </div>
-
-                        {contactText && (
-                            <button
-                                type="button"
-                                className={CONTACT}
-                                onClick={onContactClick}
-                                aria-label={name ? `${contactText} ${name}` : contactText}
-                            >
-                                <HugeiconsIcon
-                                    icon={Mail01Icon}
-                                    size={16}
-                                    strokeWidth={1.8}
-                                />
-                                {contactText}
-                            </button>
-                        )}
+                {showUserInfo && email && (
+                    <div className={`${FOOTER} justify-center text-center`}>
+                        <a
+                            href={`mailto:${email}`}
+                            className="min-w-0 max-w-full break-all text-center text-xs font-medium tracking-wide text-[#55DFFF] transition-colors duration-200 hover:text-white"
+                            aria-label={`Email ${name || email}`}
+                        >
+                            {email}
+                        </a>
                     </div>
                 )}
 

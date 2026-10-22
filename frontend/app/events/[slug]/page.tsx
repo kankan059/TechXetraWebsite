@@ -127,7 +127,7 @@ export default function EventDetailPage({
           }
         }
 
-        // 2. If not a single event, check if it's a category match
+        //. If not a single event, check if it's a category match
         const normalizedCategory = slug.toUpperCase().replace("-", "_");
         const catRes = await fetch(
           `${API_BASE}/api/events?category=${encodeURIComponent(normalizedCategory)}`,
@@ -252,7 +252,7 @@ export default function EventDetailPage({
 
   if (loading) {
     return (
-      <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pt-32 text-white">
+      <main className="relative z-10 min-h-screen px-4 pt-32 text-white">
         <div className="mx-auto max-w-4xl animate-pulse space-y-6">
           <div className="h-8 w-48 rounded-xl bg-white/10" />
           <div className="h-64 rounded-3xl bg-white/5" />
@@ -264,7 +264,7 @@ export default function EventDetailPage({
 
   if (error || (!event && !isCategoryView)) {
     return (
-      <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pt-32 text-white">
+      <main className="relative z-10 min-h-screen  px-4 pt-32 text-white">
         <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center">
           <AlertCircle className="mx-auto h-12 w-12 text-amber-400" />
           <h1 className="mt-4 text-xl font-bold">Event Unavailable</h1>
@@ -283,7 +283,7 @@ export default function EventDetailPage({
   // Category track view (e.g. /events/technical or /events/cultural)
   if (isCategoryView) {
     return (
-      <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pb-24 pt-32 text-white sm:px-8">
+      <main className="relative z-10 min-h-screen  px-4 pb-24 pt-32 text-white sm:px-8">
         <div className="mx-auto max-w-6xl">
           <Link
             href="/events"
@@ -432,7 +432,7 @@ export default function EventDetailPage({
   }
 
   return (
-    <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pb-24 pt-32 text-white sm:px-8">
+    <main className="relative z-10 min-h-screen  px-4 pb-24 pt-32 text-white sm:px-8">
       <div className="mx-auto max-w-4xl space-y-8">
         <Link
           href="/events"
@@ -443,7 +443,7 @@ export default function EventDetailPage({
         </Link>
 
         {/* 1. Header Hero Card */}
-        <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.01] p-6 sm:p-10">
+        <div className="rounded-3xl border bg-[#07090e] border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.01] p-6 sm:p-10">
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-300">
               {event.category}
@@ -458,8 +458,8 @@ export default function EventDetailPage({
             </span>
             <span
               className={`rounded-full px-3 py-1 text-xs font-semibold ${event.status === "OPEN"
-                  ? "bg-emerald-400/10 text-emerald-300"
-                  : "bg-amber-400/10 text-amber-300"
+                ? "bg-emerald-400/10 text-emerald-300"
+                : "bg-amber-400/10 text-amber-300"
                 }`}
             >
               {event.status}
@@ -525,34 +525,70 @@ export default function EventDetailPage({
           </div>
 
           {/* Call to Action Bar */}
-          <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-white/10 pt-6">
+          <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-white/10 pt-6">
             {event.is_team_event ? (
               <button
                 type="button"
                 onClick={() => setShowTeamModal(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-sky-400 to-blue-500 px-6 py-3.5 text-sm font-bold text-black shadow-lg shadow-cyan-400/20 transition hover:shadow-cyan-400/30"
+                className="group relative inline-flex min-h-[54px] items-center gap-4 overflow-hidden bg-[#55DFFF] px-6 py-4 text-[#09151B] transition-all duration-300 hover:bg-[#8BE9FF] hover:shadow-[0_0_32px_rgba(85,223,255,0.2)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
+                style={{
+                  clipPath:
+                    "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))",
+                  fontFamily: "var(--font-gotham-bold)",
+                }}
               >
-                <Users className="h-4 w-4" />
-                Create a Team
+                <span className="flex h-9 w-9 items-center justify-center border border-[#09151B]/20 bg-[#09151B]/[0.07]">
+                  <Users className="h-4 w-4" />
+                </span>
+                <span className="flex flex-col items-start gap-1">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.14em]">
+                    Create a Team
+                  </span>
+                  <span className="text-[9px] font-medium uppercase tracking-[0.12em] opacity-60">
+                    Build your squad
+                  </span>
+                </span>
+                <ArrowRight className="ml-3 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1.5" />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleSoloRegister}
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-300 via-sky-400 to-blue-500 px-6 py-3.5 text-sm font-bold text-black shadow-lg shadow-cyan-400/20 transition hover:shadow-cyan-400/30"
+                className="group relative inline-flex min-h-[54px] cursor-pointer items-center gap-4 overflow-hidden bg-[#55DFFF] px-6 py-4 text-[#09151B] transition-all duration-300 hover:bg-[#8BE9FF] hover:shadow-[0_0_32px_rgba(85,223,255,0.2)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
+                style={{
+                  clipPath:
+                    "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))",
+                  fontFamily: "var(--font-gotham-bold)",
+                }}
               >
-                Register Now
-                <ArrowRight className="h-4 w-4" />
+                <span className="flex h-9 w-9 items-center justify-center border border-[#09151B]/20 bg-[#09151B]/[0.07]">
+                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                </span>
+                <span className="flex flex-col items-start gap-1">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.14em]">
+                    Register Now
+                  </span>
+                  <span className="text-[9px] font-medium uppercase tracking-[0.12em] opacity-60">
+                    Secure your spot
+                  </span>
+                </span>
               </button>
             )}
 
             {event.leaderboard_public && (
               <Link
                 href={`/events/${event.id}/leaderboard`}
-                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
+                className="group inline-flex min-h-[54px] items-center gap-3 border border-white/15 bg-white/[0.025] px-5 py-3.5 text-white/70 transition-all duration-300 hover:border-[#8FE388]/50 hover:bg-[#8FE388]/[0.06] hover:text-[#8FE388] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#8FE388]"
+                style={{
+                  clipPath:
+                    "polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px))",
+                }}
               >
-                <Trophy className="h-4 w-4 text-amber-400" />
-                View Leaderboard
+                <Trophy className="h-4 w-4 text-[#8FE388]" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em]">
+                  Leaderboard
+                </span>
+                <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
               </Link>
             )}
           </div>
@@ -865,14 +901,14 @@ export default function EventDetailPage({
                   <button
                     type="button"
                     onClick={() => setShowTeamModal(false)}
-                    className="rounded-xl border border-white/10 px-4 py-2 text-xs text-white/60 hover:text-white"
+                    className="rounded-xl border border-white/10 px-4 py-2 text-xs text-white/60 hover:text-white cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={creatingTeam}
-                    className="rounded-xl bg-cyan-300 px-5 py-2 text-xs font-semibold text-black hover:bg-cyan-200 disabled:opacity-50"
+                    className="rounded-xl bg-cyan-300 cursor-pointer px-5 py-2 text-xs font-semibold text-black hover:bg-cyan-200 disabled:opacity-50"
                   >
                     {creatingTeam ? "Creating..." : "Confirm & Continue"}
                   </button>

@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -144,7 +145,11 @@ export default function EventCard({
   return (
     <article
       data-event-card
-      className={`group flex min-w-0 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#101F26] transition-colors duration-300 ${tone.border}`}
+      className={`group relative flex min-w-0 flex-col overflow-hidden border border-white/10 bg-[#101F26] transition-colors duration-300 ${tone.border}`}
+      style={{
+        clipPath:
+          "polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px))",
+      }}
     >
       <button
         type="button"

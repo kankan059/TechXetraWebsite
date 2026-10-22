@@ -48,6 +48,7 @@ const Team = () => {
                     <TeamCard
                       name={member.name}
                       title={member.role}
+                      email={member.email}
                       handle={member.name
                         .toLowerCase()
                         .replace(/[^a-z0-9]+/g, "")}
@@ -74,31 +75,6 @@ const Team = () => {
                       }}
                     />
 
-                    {group.showContact && (
-                      <div className="mt-4 space-y-2 text-center text-sm text-white/60">
-                        {member.phone && (
-                          <p>
-                            <a
-                              href={`tel:${member.phone}`}
-                              className="transition-colors hover:text-[#168BFF]"
-                            >
-                              {member.phone}
-                            </a>
-                          </p>
-                        )}
-
-                        {member.email && (
-                          <p className="break-all">
-                            <a
-                              href={`mailto:${member.email}`}
-                              className="transition-colors hover:text-[#168BFF]"
-                            >
-                              {member.email}
-                            </a>
-                          </p>
-                        )}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
