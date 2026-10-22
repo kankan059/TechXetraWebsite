@@ -12,6 +12,7 @@ import {
   AlertCircle,
   Users,
   CheckCircle,
+  CalendarDays,
 } from "lucide-react";
 import type { UserProfile, EventItem } from "@/types/api";
 
@@ -130,7 +131,30 @@ export default function StaffPortalHubPage() {
         </div>
 
         {/* Operational Tool Cards */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Event Committee Management Card */}
+          <div className="flex flex-col justify-between rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.01] p-7 shadow-xl">
+            <div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-400/10 text-purple-300">
+                <CalendarDays className="h-6 w-6" />
+              </div>
+              <h2 className="mt-4 text-xl font-bold text-white">Event Committee Console</h2>
+              <p className="mt-2 text-xs leading-relaxed text-white/60">
+                Manage your assigned competitions and activities. View live registrations, check-in stats, participant rosters, and verify attendee UPI payments.
+              </p>
+            </div>
+
+            <div className="mt-8 border-t border-white/10 pt-5">
+              <Link
+                href="/staff/events"
+                className="inline-flex w-full items-center justify-between rounded-xl bg-purple-400 px-5 py-3 text-xs font-bold text-black transition hover:bg-purple-300"
+              >
+                <span>Open Committee Events Hub</span>
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+
           {/* QR Scanner Tool */}
           <div className="flex flex-col justify-between rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.01] p-7 shadow-xl">
             <div>

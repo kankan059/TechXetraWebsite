@@ -116,6 +116,16 @@ export default function RegistrationsPage() {
             {registrations.map((reg) => {
               const isConfirmed = reg.status === "CONFIRMED";
               const isReserved = reg.status === "RESERVED";
+              const parsedResponses: Record<string, any> | null = (() => {
+                if (!reg.form_responses) return null;
+                if (typeof reg.form_responses === "object") return reg.form_responses;
+                try {
+                  const p = JSON.parse(reg.form_responses);
+                  return typeof p === "object" && p !== null ? p : null;
+                } catch {
+                  return null;
+                }
+              })();
 
               return (
                 <div
@@ -173,6 +183,22 @@ export default function RegistrationsPage() {
                         </div>
                       )}
                     </div>
+
+                    {parsedResponses && Object.keys(parsedResponses).length > 0 && (
+                      <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.03] p-3 text-xs">
+                        <p className="font-semibold text-white/70">Custom Questionnaire Answers:</p>
+                        <div className="mt-2 space-y-1">
+                          {Object.entries(parsedResponses).map(([key, val]) => (
+                            <div key={key} className="flex justify-between gap-2 text-white/50">
+                              <span className="capitalize">{key.replace(/_/g, " ")}:</span>
+                              <span className="font-medium text-white/80 text-right break-all">
+                                {String(val)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-6 flex items-center justify-between border-t border-white/[0.06] pt-4">

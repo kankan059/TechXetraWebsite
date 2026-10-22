@@ -197,7 +197,36 @@ export async function listAdminUsers(
     nextCursor = `${last.created_at}:${last.id}`
   }
 
-  return { users: pagedItems, next_cursor: nextCursor }
+  // Enrich users with active event_staff assignments
+  const userIds = pagedItems.map((u) => u.id)
+  const staffMap: Record<string, Array<{ role: string; event_id: string; event_title: string }>> = {}
+  if (userIds.length > 0) {
+    const placeholders = userIds.map(() => '?').join(',')
+    const staffRows = await db
+      .prepare(
+        `SELECT es.user_id, es.role, e.id as event_id, e.title as event_title
+         FROM event_staff es
+         JOIN events e ON es.event_id = e.id
+         WHERE es.user_id IN (${placeholders})`
+      )
+      .bind(...userIds)
+      .all<any>()
+    for (const row of staffRows.results || []) {
+      if (!staffMap[row.user_id]) staffMap[row.user_id] = []
+      staffMap[row.user_id].push({
+        role: row.role,
+        event_id: row.event_id,
+        event_title: row.event_title,
+      })
+    }
+  }
+
+  const enrichedUsers = pagedItems.map((u) => ({
+    ...u,
+    event_staff_assignments: staffMap[u.id] || [],
+  }))
+
+  return { users: enrichedUsers, next_cursor: nextCursor }
 }
 
 export async function getAdminUserDetail(

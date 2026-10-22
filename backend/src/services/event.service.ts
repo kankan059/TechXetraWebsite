@@ -87,7 +87,7 @@ export async function getPublicEvents(
   filters: EventFilterQuery,
   now = Date.now()
 ): Promise<{ events: PublicEventResponse[]; next_cursor: string | null }> {
-  const limit = Math.min(Math.max(filters.limit || 20, 1), 50)
+  const limit = Math.min(Math.max(filters.limit || 20, 1), 100)
   const conditions: string[] = ["status != 'DRAFT'"]
   const bindings: any[] = []
 

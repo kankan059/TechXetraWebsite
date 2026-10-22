@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -26,7 +26,8 @@ import {
   Scale,
   Compass,
 } from "lucide-react";
-import type { EventItem, UserProfile } from "@/types/api";
+import type { EventItem, UserProfile, FormFieldDefinition } from "@/types/api";
+import DynamicQuestionnaireModal from "@/components/forms/DynamicQuestionnaireModal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
 
@@ -99,6 +100,21 @@ export default function EventDetailPage({
   const [creatingTeam, setCreatingTeam] = useState(false);
   const [teamError, setTeamError] = useState<string | null>(null);
 
+  // Questionnaire modal state
+  const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
+  const [submittingRegistration, setSubmittingRegistration] = useState(false);
+  const [registrationModalError, setRegistrationModalError] = useState<string | null>(null);
+
+  const parsedSchema: FormFieldDefinition[] = useMemo(() => {
+    if (!event?.form_schema) return [];
+    try {
+      const parsed = JSON.parse(event.form_schema);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [event?.form_schema]);
+
   useEffect(() => {
     async function loadEventData() {
       try {
@@ -170,7 +186,7 @@ export default function EventDetailPage({
     void loadEventData();
   }, [slug]);
 
-  const handleSoloRegister = async () => {
+  const handleSoloRegister = () => {
     if (!user) {
       router.push(`/login?redirect=/events/${slug}`);
       return;
@@ -183,13 +199,32 @@ export default function EventDetailPage({
 
     if (!event) return;
 
+    if (parsedSchema.length > 0) {
+      setRegistrationModalError(null);
+      setShowQuestionnaireModal(true);
+    } else {
+      void executeCheckout({});
+    }
+  };
+
+  const executeCheckout = async (responses: Record<string, any>) => {
+    if (!event || !user) return;
+    setSubmittingRegistration(true);
+    setRegistrationModalError(null);
+
     try {
       const res = await fetch(`${API_BASE}/api/purchases`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: [{ item_type: "EVENT_PASS", event_id: event.id }],
+          items: [
+            {
+              item_type: "EVENT_PASS",
+              event_id: event.id,
+              form_responses: Object.keys(responses).length > 0 ? responses : undefined,
+            },
+          ],
           acknowledge_student_id_policy: user.is_student,
         }),
       });
@@ -199,13 +234,22 @@ export default function EventDetailPage({
         throw new Error(data.error?.message || "Could not start registration");
       }
 
+      setShowQuestionnaireModal(false);
+
       if (data.data.status === "PAID") {
         router.push("/dashboard");
       } else {
         router.push(`/checkout/${data.data.id}/pay`);
       }
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Registration error");
+      const msg = err instanceof Error ? err.message : "Registration error";
+      if (parsedSchema.length > 0) {
+        setRegistrationModalError(msg);
+      } else {
+        alert(msg);
+      }
+    } finally {
+      setSubmittingRegistration(false);
     }
   };
 
@@ -916,6 +960,18 @@ export default function EventDetailPage({
               </form>
             </div>
           </div>
+        )}
+        {/* Dynamic Questionnaire Modal */}
+        {event && (
+          <DynamicQuestionnaireModal
+            isOpen={showQuestionnaireModal}
+            onClose={() => setShowQuestionnaireModal(false)}
+            eventTitle={event.title}
+            formSchema={parsedSchema}
+            onSubmit={executeCheckout}
+            isSubmitting={submittingRegistration}
+            externalError={registrationModalError}
+          />
         )}
       </div>
     </main>

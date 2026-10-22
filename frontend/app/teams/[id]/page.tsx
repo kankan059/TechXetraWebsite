@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -15,7 +15,8 @@ import {
   ArrowLeft,
   ShieldAlert,
 } from "lucide-react";
-import type { TeamDetail, UserProfile } from "@/types/api";
+import type { TeamDetail, UserProfile, EventItem, FormFieldDefinition } from "@/types/api";
+import DynamicQuestionnaireModal from "@/components/forms/DynamicQuestionnaireModal";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
 
@@ -28,6 +29,7 @@ export default function TeamWorkspacePage({
   const router = useRouter();
 
   const [team, setTeam] = useState<TeamDetail | null>(null);
+  const [event, setEvent] = useState<EventItem | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,6 +38,20 @@ export default function TeamWorkspacePage({
   const [inviteEmail, setInviteEmail] = useState("");
   const [sendingInvite, setSendingInvite] = useState(false);
   const [processingAction, setProcessingAction] = useState(false);
+
+  // Dynamic Questionnaire modal state
+  const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
+  const [questionnaireError, setQuestionnaireError] = useState<string | null>(null);
+
+  const parsedSchema: FormFieldDefinition[] = useMemo(() => {
+    if (!event?.form_schema) return [];
+    try {
+      const parsed = JSON.parse(event.form_schema);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }, [event?.form_schema]);
 
   const loadTeamData = async () => {
     try {
@@ -60,6 +76,23 @@ export default function TeamWorkspacePage({
       }
 
       setTeam(teamData.data);
+
+      // 3. Get event details to inspect form_schema
+      if (teamData.data.event_id) {
+        try {
+          const eventRes = await fetch(`${API_BASE}/api/events/${teamData.data.event_id}`, {
+            credentials: "include",
+          });
+          if (eventRes.ok) {
+            const eventJson = await eventRes.json();
+            if (eventJson.success && eventJson.data) {
+              setEvent(eventJson.data);
+            }
+          }
+        } catch {
+          // Non-critical if event fails to load immediately
+        }
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load team");
     } finally {
@@ -197,11 +230,22 @@ export default function TeamWorkspacePage({
     }
   };
 
-  const handleProceedToCheckout = async () => {
+  const handleProceedToCheckout = () => {
+    if (!team) return;
+    if (parsedSchema.length > 0) {
+      setQuestionnaireError(null);
+      setShowQuestionnaireModal(true);
+    } else {
+      void executeCheckout({});
+    }
+  };
+
+  const executeCheckout = async (responses: Record<string, any>) => {
     if (!team) return;
 
     setProcessingAction(true);
     setError(null);
+    setQuestionnaireError(null);
 
     try {
       const res = await fetch(`${API_BASE}/api/purchases`, {
@@ -209,7 +253,14 @@ export default function TeamWorkspacePage({
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: [{ item_type: "EVENT_PASS", event_id: team.event_id, team_id: team.id }],
+          items: [
+            {
+              item_type: "EVENT_PASS",
+              event_id: team.event_id,
+              team_id: team.id,
+              form_responses: Object.keys(responses).length > 0 ? responses : undefined,
+            },
+          ],
           acknowledge_student_id_policy: user?.is_student || false,
         }),
       });
@@ -219,13 +270,20 @@ export default function TeamWorkspacePage({
         throw new Error(data.error?.message || "Could not start checkout");
       }
 
+      setShowQuestionnaireModal(false);
+
       if (data.data.status === "PAID") {
         router.push("/dashboard");
       } else {
         router.push(`/checkout/${data.data.id}/pay`);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Checkout error");
+      const msg = err instanceof Error ? err.message : "Checkout error";
+      if (parsedSchema.length > 0) {
+        setQuestionnaireError(msg);
+      } else {
+        setError(msg);
+      }
       setProcessingAction(false);
     }
   };
@@ -540,6 +598,18 @@ export default function TeamWorkspacePage({
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
+        )}
+        {/* Dynamic Questionnaire Modal */}
+        {team && (
+          <DynamicQuestionnaireModal
+            isOpen={showQuestionnaireModal}
+            onClose={() => setShowQuestionnaireModal(false)}
+            eventTitle={event?.title || team.event?.title || "Event Registration"}
+            formSchema={parsedSchema}
+            onSubmit={executeCheckout}
+            isSubmitting={processingAction}
+            externalError={questionnaireError}
+          />
         )}
       </div>
     </main>

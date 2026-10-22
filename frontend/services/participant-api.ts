@@ -54,10 +54,15 @@ export const participantApi = {
   },
 
   events: {
-    list: (params?: Record<string, QueryValue>) =>
-      apiRequest<{ events: EventItem[]; next_cursor: string | null }>(
-        `/api/events${queryString(params)}`,
-      ),
+    list: (params?: Record<string, QueryValue>) => {
+      const sanitized = { ...params };
+      if (sanitized.limit && Number(sanitized.limit) > 50) {
+        sanitized.limit = 50;
+      }
+      return apiRequest<{ events: EventItem[]; next_cursor: string | null }>(
+        `/api/events${queryString(sanitized)}`,
+      );
+    },
     get: (idOrSlug: string) =>
       apiRequest<EventItem>(`/api/events/${encodeURIComponent(idOrSlug)}`),
     leaderboards: () =>

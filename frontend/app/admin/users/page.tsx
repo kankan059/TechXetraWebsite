@@ -12,12 +12,16 @@ import {
   RefreshCw,
   Edit2,
   Lock,
+  CalendarDays,
+  MapPin,
+  AlertTriangle,
 } from "lucide-react";
 import { adminApi } from "@/services/admin-api";
-import type { AdminUser, UserRole } from "@/types/api";
+import type { AdminUser, AdminEvent, UserRole } from "@/types/api";
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [events, setEvents] = useState<AdminEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -31,12 +35,14 @@ export default function AdminUsersPage() {
   const [preRegEmail, setPreRegEmail] = useState("");
   const [preRegName, setPreRegName] = useState("");
   const [preRegRole, setPreRegRole] = useState<UserRole>("VOLUNTEER");
+  const [preRegEventId, setPreRegEventId] = useState("");
   const [preRegCanReview, setPreRegCanReview] = useState(false);
   const [submittingPreReg, setSubmittingPreReg] = useState(false);
 
   // Edit User Modal
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [editRole, setEditRole] = useState<UserRole>("PARTICIPANT");
+  const [editEventId, setEditEventId] = useState("");
   const [editCanReview, setEditCanReview] = useState(false);
   const [editActive, setEditActive] = useState(true);
   const [submittingEdit, setSubmittingEdit] = useState(false);
@@ -50,8 +56,13 @@ export default function AdminUsersPage() {
       if (roleFilter !== "ALL") params.role = roleFilter;
       if (search.trim()) params.search = search.trim();
 
-      const res = await adminApi.users.list(params);
-      setUsers(res.users || []);
+      const [usersRes, eventsRes] = await Promise.all([
+        adminApi.users.list(params),
+        adminApi.events.list({ limit: 50 }).catch(() => ({ events: [], next_cursor: null })),
+      ]);
+
+      setUsers(usersRes.users || []);
+      setEvents(eventsRes.events || []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load users list");
     } finally {
@@ -76,17 +87,30 @@ export default function AdminUsersPage() {
     setSuccess(null);
 
     try {
-      await adminApi.users.preRegister({
+      const createdUser = await adminApi.users.preRegister({
         email: preRegEmail.trim().toLowerCase(),
         name: preRegName.trim(),
         role: preRegRole,
         can_review_payments: preRegCanReview,
       });
 
+      // If an event was selected for Lead or Volunteer, assign them
+      if (
+        preRegEventId &&
+        (preRegRole === "LEAD" || preRegRole === "VOLUNTEER") &&
+        createdUser?.id
+      ) {
+        await adminApi.events.assignStaff(preRegEventId, {
+          user_id: createdUser.id,
+          role: preRegRole,
+        });
+      }
+
       setSuccess(`Staff user ${preRegEmail} pre-registered successfully!`);
       setShowPreRegModal(false);
       setPreRegEmail("");
       setPreRegName("");
+      setPreRegEventId("");
       void loadUsers();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Pre-registration failed");
@@ -100,6 +124,8 @@ export default function AdminUsersPage() {
     setEditRole(u.role);
     setEditCanReview(Boolean(u.can_review_payments));
     setEditActive(u.is_active === 1 || u.is_active === true);
+    const currentAssigned = u.event_staff_assignments?.[0]?.event_id || "";
+    setEditEventId(currentAssigned);
   };
 
   const handleUpdateUser = async (e: React.FormEvent) => {
@@ -117,6 +143,14 @@ export default function AdminUsersPage() {
         is_active: editActive,
       });
 
+      // If assigned to an event as Lead or Volunteer, persist assignment
+      if (editEventId && (editRole === "LEAD" || editRole === "VOLUNTEER")) {
+        await adminApi.events.assignStaff(editEventId, {
+          user_id: editingUser.id,
+          role: editRole,
+        });
+      }
+
       setSuccess(`User ${editingUser.name} updated successfully!`);
       setEditingUser(null);
       void loadUsers();
@@ -133,13 +167,13 @@ export default function AdminUsersPage() {
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-[#55DFFF]">
-            ACCESS CONTROL & STAFF ASSIGNMENTS
+            ACCESS CONTROL & COMMITTEE ASSIGNMENTS
           </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-white sm:text-3xl">
             User & Staff Management
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Pre-register event staff, adjust permissions, and manage attendee accounts.
+            Pre-register event staff, assign them to competitions, adjust permissions, and manage attendee accounts.
           </p>
         </div>
 
@@ -223,11 +257,11 @@ export default function AdminUsersPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[750px] text-left text-xs">
+            <table className="w-full min-w-[850px] text-left text-xs">
               <thead>
                 <tr className="border-b border-white/[0.08] font-semibold uppercase text-slate-400">
                   <th className="px-5 py-4">User</th>
-                  <th className="px-5 py-4">Role</th>
+                  <th className="px-5 py-4">Role & Assigned Event</th>
                   <th className="px-5 py-4">Payment Reviewer</th>
                   <th className="px-5 py-4">Account Status</th>
                   <th className="px-5 py-4">Student Status</th>
@@ -237,6 +271,7 @@ export default function AdminUsersPage() {
               <tbody className="divide-y divide-white/[0.04]">
                 {users.map((u) => {
                   const isActive = u.is_active === 1 || u.is_active === true;
+                  const assignments = u.event_staff_assignments || [];
 
                   return (
                     <tr key={u.id} className="transition hover:bg-white/[0.02]">
@@ -246,20 +281,52 @@ export default function AdminUsersPage() {
                         {u.phone && <p className="text-[10px] text-slate-500">+91 {u.phone}</p>}
                       </td>
 
+                      {/* Role & Event Assignment */}
                       <td className="px-5 py-4">
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                            u.role === "SUPER_ADMIN"
-                              ? "bg-purple-400/10 text-purple-300"
-                              : u.role === "LEAD"
-                              ? "bg-blue-400/10 text-blue-300"
-                              : u.role === "VOLUNTEER"
-                              ? "bg-cyan-400/10 text-cyan-300"
-                              : "bg-white/10 text-slate-400"
-                          }`}
-                        >
-                          {u.role}
-                        </span>
+                        <div className="flex flex-col gap-1">
+                          <div>
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
+                                u.role === "SUPER_ADMIN"
+                                  ? "bg-purple-400/10 text-purple-300"
+                                  : u.role === "LEAD"
+                                  ? "bg-blue-400/10 text-blue-300"
+                                  : u.role === "VOLUNTEER"
+                                  ? "bg-cyan-400/10 text-cyan-300"
+                                  : "bg-white/10 text-slate-400"
+                              }`}
+                            >
+                              {u.role}
+                            </span>
+                          </div>
+
+                          {u.role === "SUPER_ADMIN" ? (
+                            <span className="text-[11px] text-purple-300/70">
+                              All Events (Global Admin)
+                            </span>
+                          ) : assignments.length > 0 ? (
+                            <div className="flex flex-col gap-0.5">
+                              {assignments.map((a, idx) => (
+                                <span
+                                  key={idx}
+                                  className="text-[11px] font-medium text-cyan-300 truncate max-w-xs"
+                                >
+                                  📍 {a.event_title} ({a.role})
+                                </span>
+                              ))}
+                            </div>
+                          ) : u.role === "LEAD" || u.role === "VOLUNTEER" ? (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(u)}
+                              className="text-left text-[11px] font-medium text-amber-400 hover:underline"
+                            >
+                              ⚠️ Unassigned (Click to assign event)
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-slate-600">—</span>
+                          )}
+                        </div>
                       </td>
 
                       <td className="px-5 py-4">
@@ -307,7 +374,7 @@ export default function AdminUsersPage() {
                           className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] text-slate-300 transition hover:bg-white/10 hover:text-white"
                         >
                           <Edit2 className="h-3 w-3" />
-                          Edit Role
+                          Edit Role & Event
                         </button>
                       </td>
                     </tr>
@@ -325,7 +392,7 @@ export default function AdminUsersPage() {
           <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0C1017] p-6 shadow-2xl">
             <h3 className="text-lg font-bold text-white">Pre-Register Staff Member</h3>
             <p className="mt-1 text-xs text-slate-400">
-              Assign staff roles to an email before they sign in with Google.
+              Assign staff roles and festival competitions to an email before they sign in with Google.
             </p>
 
             <form onSubmit={handlePreRegister} className="mt-5 space-y-4">
@@ -366,11 +433,35 @@ export default function AdminUsersPage() {
                   onChange={(e) => setPreRegRole(e.target.value as UserRole)}
                   className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#080B10] p-3 text-xs text-white outline-none focus:border-[#55DFFF]"
                 >
-                  <option value="VOLUNTEER">VOLUNTEER (Gate / Event Scanner)</option>
-                  <option value="LEAD">LEAD (Event Lead / Referee)</option>
+                  <option value="VOLUNTEER">VOLUNTEER (Event Volunteer / Scanner)</option>
+                  <option value="LEAD">LEAD (Event Lead / Coordinator)</option>
                   <option value="SUPER_ADMIN">SUPER ADMIN</option>
                 </select>
               </div>
+
+              {/* Event assignment dropdown for Lead & Volunteer */}
+              {(preRegRole === "LEAD" || preRegRole === "VOLUNTEER") && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase text-slate-400">
+                    Assigned Festival Event
+                  </label>
+                  <select
+                    value={preRegEventId}
+                    onChange={(e) => setPreRegEventId(e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#080B10] p-3 text-xs text-white outline-none focus:border-[#55DFFF]"
+                  >
+                    <option value="">-- Select Event ({preRegRole}) --</option>
+                    {events.map((evt) => (
+                      <option key={evt.id} value={evt.id}>
+                        {evt.title} (Day {evt.day_of_event} • {evt.category})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Assign which event this {preRegRole.toLowerCase()} will operate and lead.
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center gap-2 pt-1">
                 <input
@@ -410,7 +501,7 @@ export default function AdminUsersPage() {
       {editingUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0C1017] p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-white">Edit User Permissions</h3>
+            <h3 className="text-lg font-bold text-white">Edit User Permissions & Event</h3>
             <p className="mt-1 text-xs text-slate-400">
               Modifying {editingUser.name} ({editingUser.email})
             </p>
@@ -431,6 +522,30 @@ export default function AdminUsersPage() {
                   <option value="SUPER_ADMIN">SUPER_ADMIN</option>
                 </select>
               </div>
+
+              {/* Event assignment dropdown for Lead & Volunteer */}
+              {(editRole === "LEAD" || editRole === "VOLUNTEER") && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase text-slate-400">
+                    Assigned Festival Event
+                  </label>
+                  <select
+                    value={editEventId}
+                    onChange={(e) => setEditEventId(e.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#080B10] p-3 text-xs text-white outline-none focus:border-[#55DFFF]"
+                  >
+                    <option value="">-- No specific event assigned --</option>
+                    {events.map((evt) => (
+                      <option key={evt.id} value={evt.id}>
+                        {evt.title} (Day {evt.day_of_event} • {evt.category})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Assigns {editingUser.name} as {editRole} for this specific competition.
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center gap-2 pt-1">
                 <input

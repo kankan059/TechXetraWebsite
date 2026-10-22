@@ -14,6 +14,7 @@ import { executeBatch } from '../db/batch'
 import { createAuditStatement } from '../services/audit.service'
 import { jsonSuccess } from '../common/response'
 import { AppError } from '../common/errors'
+import type { Event } from '../types'
 
 export const adminEventRoutes = new Hono<{
   Bindings: CloudflareBindings
@@ -21,6 +22,20 @@ export const adminEventRoutes = new Hono<{
 }>()
 
 adminEventRoutes.use('*', requireAuth(), requireSuperAdminOnly())
+
+// GET /api/admin/events - List all events for SuperAdmin
+adminEventRoutes.get('/', async (c) => {
+  const now = c.get('now') || Date.now()
+  const rows = await c.env.DB.prepare(
+    'SELECT * FROM events ORDER BY day_of_event ASC, starts_at ASC, id ASC'
+  ).all<Event>()
+
+  const items = rows.results || []
+  return jsonSuccess(c, {
+    events: items.map((e) => formatPublicEvent(e, now)),
+    next_cursor: null,
+  })
+})
 
 const EventCategoryEnum = z.enum([
   'CULTURAL',

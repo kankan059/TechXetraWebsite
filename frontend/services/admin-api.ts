@@ -112,10 +112,48 @@ export const adminApi = {
   },
 
   events: {
-    list: (params?: Record<string, QueryValue>) =>
-      apiRequest<{ events: AdminEvent[]; next_cursor: string | null }>(
-        `/api/admin/events${queryString(params)}`,
-      ),
+    list: async (params?: Record<string, QueryValue>) => {
+      const sanitized: Record<string, QueryValue> = { ...params };
+      if (sanitized.limit && Number(sanitized.limit) > 50) {
+        sanitized.limit = 50;
+      }
+
+      try {
+        return await apiRequest<{ events: AdminEvent[]; next_cursor: string | null }>(
+          `/api/admin/events${queryString(sanitized)}`,
+        );
+      } catch {
+        // Fallback to public catalog /api/events (enforcing limit <= 50)
+        const firstPage = await apiRequest<{ events: AdminEvent[]; next_cursor: string | null }>(
+          `/api/events${queryString({ ...sanitized, limit: 50 })}`,
+        );
+
+        let allEvents = [...(firstPage.events || [])];
+        let cursor = firstPage.next_cursor;
+
+        // Auto-fetch subsequent pages if more than 50 events exist
+        while (cursor) {
+          try {
+            const nextPage = await apiRequest<{ events: AdminEvent[]; next_cursor: string | null }>(
+              `/api/events${queryString({ ...sanitized, limit: 50, cursor })}`,
+            );
+            if (nextPage.events && nextPage.events.length > 0) {
+              allEvents = allEvents.concat(nextPage.events);
+              cursor = nextPage.next_cursor;
+            } else {
+              break;
+            }
+          } catch {
+            break;
+          }
+        }
+
+        return {
+          events: allEvents,
+          next_cursor: null,
+        };
+      }
+    },
 
     create: (body: unknown) =>
       apiRequest<AdminEvent>("/api/admin/events", {
@@ -154,6 +192,40 @@ export const adminApi = {
         `/api/admin/events/${encodeURIComponent(eventId)}/scores/reopen`,
         {
           method: "POST",
+        },
+      ),
+
+    /**
+     * DELETE /api/admin/events/:id
+     * Safely deletes event (hard-deletes if 0 attendees; sets CANCELLED if attendees exist)
+     */
+    delete: (eventId: string) =>
+      apiRequest<{ deleted: boolean; status: "DELETED" | "CANCELLED"; message: string }>(
+        `/api/admin/events/${encodeURIComponent(eventId)}`,
+        {
+          method: "DELETE",
+        },
+      ),
+
+    /**
+     * GET /api/admin/events/:id/staff
+     * Lists assigned staff members for an event
+     */
+    listStaff: (eventId: string) =>
+      apiRequest<Array<{ user_id: string; role: "LEAD" | "VOLUNTEER"; name: string; email: string }>>(
+        `/api/admin/events/${encodeURIComponent(eventId)}/staff`,
+      ),
+
+    /**
+     * PATCH /api/admin/events/:id
+     * Full Super Admin update across pricing, capacity, dates, status, and form schema
+     */
+    fullUpdate: (eventId: string, body: Record<string, any>) =>
+      apiRequest<AdminEvent>(
+        `/api/admin/events/${encodeURIComponent(eventId)}`,
+        {
+          method: "PATCH",
+          body,
         },
       ),
   },

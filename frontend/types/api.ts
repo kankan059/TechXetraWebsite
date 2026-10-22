@@ -71,6 +71,30 @@ export type PriceModel = "FREE" | "PER_PARTICIPANT" | "PER_TEAM";
 export type CapacityUnit = "SEATS" | "TEAMS";
 export type ScoringStatus = "NOT_APPLICABLE" | "OPEN" | "FINALIZED";
 
+export type FormFieldType =
+  | "text"
+  | "number"
+  | "email"
+  | "tel"
+  | "url"
+  | "textarea"
+  | "select";
+
+export interface FormFieldOption {
+  label: string;
+  value: string;
+}
+
+export interface FormFieldDefinition {
+  id: string;
+  label: string;
+  type: FormFieldType;
+  required: boolean;
+  placeholder?: string;
+  options?: FormFieldOption[];
+  description?: string;
+}
+
 export interface EventItem {
   id: string;
   slug: string;
@@ -97,6 +121,7 @@ export interface EventItem {
   scoring_enabled: boolean;
   leaderboard_public: boolean;
   metadata?: string | null;
+  form_schema?: string | null;
 }
 
 export type TeamStatus = "DRAFT" | "LOCKED" | "CONFIRMED" | "CANCELLED";
@@ -184,6 +209,14 @@ export interface Registration {
   day_of_event?: number;
   event_venue?: string | null;
   team_name?: string | null;
+  form_responses?: string | Record<string, any> | null;
+}
+
+export interface PurchaseItemInput {
+  item_type: "GATE_PASS" | "EVENT_PASS";
+  event_id?: string;
+  team_id?: string;
+  form_responses?: Record<string, any>;
 }
 
 export interface PurchaseDetail {
@@ -468,6 +501,7 @@ export type AdminUser = {
   institution_id: string | null;
   profile_complete: boolean;
   created_at: number;
+  event_staff_assignments?: Array<{ role: "LEAD" | "VOLUNTEER"; event_id: string; event_title: string }>;
   [key: string]: unknown;
 };
 
@@ -528,3 +562,97 @@ export type AdminAuditLog = {
 };
 
 export type AdminSettings = Record<string, string | number | boolean>;
+
+export interface StaffEventSummary {
+  id: string;
+  slug: string;
+  title: string;
+  category: EventCategory;
+  role: "LEAD" | "VOLUNTEER" | "SUPER_ADMIN";
+  day_of_event: number;
+  venue: string | null;
+  status: EventStatus;
+  capacity: number | null;
+  seats_taken: number;
+  seats_remaining: number | null;
+  confirmed_registrations_count: number;
+  reserved_registrations_count: number;
+  pending_payments_count: number;
+}
+
+export interface EventStaffMember {
+  role: "LEAD" | "VOLUNTEER";
+  assigned_at: number;
+  user_id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+}
+
+export interface StaffEventDashboard {
+  event: EventItem;
+  metrics: {
+    confirmed_count: number;
+    reserved_count: number;
+    checked_in_count: number;
+    pending_payments_count: number;
+    seats_remaining: number | null;
+  };
+  staff: EventStaffMember[];
+}
+
+export interface EventRegistrationDetail {
+  registration_id: string;
+  status: "RESERVED" | "CONFIRMED" | "CANCELLED" | "EXPIRED";
+  seat_count: number;
+  registered_at: number;
+  participant: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    institution_name: string | null;
+    institution_id: string | null;
+  };
+  team: {
+    id: string;
+    name: string;
+  } | null;
+  ticket: {
+    id: string;
+    status: string;
+    checked_in: boolean;
+    checked_in_at: number | null;
+  } | null;
+  form_responses: Record<string, any> | null;
+}
+
+export interface StaffEventPayment {
+  payment_id: string;
+  purchase_id: string;
+  transaction_id: string;
+  expected_amount_paise: number;
+  payment_status: "PENDING" | "SUCCESS" | "FAILED" | "ON_HOLD" | "WITHDRAWN";
+  rejection_reason: string | null;
+  submitted_at: number;
+  reviewed_at: number | null;
+  buyer_id: string;
+  buyer_name: string;
+  buyer_email: string;
+  buyer_phone: string | null;
+  total_amount_paise: number;
+  purchase_status: string;
+}
+
+export interface ReviewStaffPaymentBody {
+  action: "APPROVE" | "REJECT" | "HOLD";
+  reason?: string;
+}
+
+export interface LeadUpdateEventBody {
+  description?: string | null;
+  venue?: string | null;
+  metadata?: string | null;
+  form_schema?: string | null;
+  registration_closes_at?: number | null;
+}

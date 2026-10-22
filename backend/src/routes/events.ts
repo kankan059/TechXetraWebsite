@@ -42,7 +42,7 @@ const EventFilterQuerySchema = z
       .transform((val) => (val === undefined ? undefined : val === 'true' || val === '1')),
     search: z.string().max(100).optional(),
     cursor: z.string().optional(),
-    limit: z.coerce.number().int().min(1).max(50).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
   })
   .strict()
 
