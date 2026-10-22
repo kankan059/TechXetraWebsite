@@ -4,6 +4,42 @@ import { logger } from '../common/logger'
 import type { User, UserRole } from '../types'
 import type { GoogleUserPayload } from './google-auth.service'
 
+/**
+ * Generate sequential user ID in format TX26XXXX (e.g. TX260001).
+ * Queries the database for the highest existing TX26 ID and increments it.
+ */
+export async function generateNextUserId(db: D1Database): Promise<string> {
+  const row = await db
+    .prepare("SELECT id FROM users WHERE id LIKE 'TX26%' ORDER BY id DESC LIMIT 1")
+    .first<{ id: string }>()
+
+  let nextNum = 1
+  if (row?.id && row.id.startsWith('TX26')) {
+    const numPart = row.id.slice(4)
+    const parsed = parseInt(numPart, 10)
+    if (!isNaN(parsed) && parsed >= 1) {
+      nextNum = parsed + 1
+    }
+  }
+
+  let candidate = `TX26${String(nextNum).padStart(4, '0')}`
+  let exists = await db
+    .prepare('SELECT 1 FROM users WHERE id = ?')
+    .bind(candidate)
+    .first()
+
+  while (exists) {
+    nextNum++
+    candidate = `TX26${String(nextNum).padStart(4, '0')}`
+    exists = await db
+      .prepare('SELECT 1 FROM users WHERE id = ?')
+      .bind(candidate)
+      .first()
+  }
+
+  return candidate
+}
+
 export async function resolveOrCreateGoogleUser(
   db: D1Database,
   payload: GoogleUserPayload,
@@ -103,7 +139,7 @@ export async function resolveOrCreateGoogleUser(
   }
 
   // 3. Create new PARTICIPANT user
-  const newUserId = generateId()
+  const newUserId = await generateNextUserId(db)
   const newUser: User = {
     id: newUserId,
     google_sub: sub,
@@ -212,7 +248,7 @@ export async function preRegisterStaff(
     }
   }
 
-  const newId = generateId()
+  const newId = await generateNextUserId(db)
   const user: User = {
     id: newId,
     google_sub: null,

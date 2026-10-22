@@ -74,6 +74,7 @@ describe('Password Registration Service', () => {
     expect(user.name).toBe('Fest Attendee')
     expect(user.password_hash).toBeDefined()
     expect(user.google_sub).toBeNull()
+    expect(user.id).toBe('TX260001')
   })
 
   it('throws 409 if user already exists with password_hash', async () => {

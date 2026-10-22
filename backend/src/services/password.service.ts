@@ -1,5 +1,6 @@
 import { AppError } from '../common/errors'
 import { generateId, normalizeEmail } from '../common/utils'
+import { generateNextUserId } from './user.service'
 import type { User } from '../types'
 
 const PBKDF2_ITERATIONS = 100000
@@ -167,7 +168,7 @@ export async function registerWithPassword(
   }
 
   const passwordHash = await hashPassword(input.password)
-  const newUserId = generateId()
+  const newUserId = await generateNextUserId(db)
 
   const newUser: User = {
     id: newUserId,

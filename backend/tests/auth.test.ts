@@ -8,7 +8,7 @@ import {
   validateSession,
   revokeSession,
 } from '../src/services/session.service'
-import { resolveOrCreateGoogleUser, preRegisterStaff } from '../src/services/user.service'
+import { resolveOrCreateGoogleUser, preRegisterStaff, generateNextUserId } from '../src/services/user.service'
 import { AppError } from '../src/common/errors'
 import type { User } from '../src/types'
 
@@ -221,6 +221,7 @@ describe('Account Resolution & Conflict Rules', () => {
     expect(user.role).toBe('PARTICIPANT')
     expect(user.email).toBe('newbie@example.com')
     expect(user.google_sub).toBe('sub-new')
+    expect(user.id).toBe('TX260001')
   })
 
   it('links pre-registered staff by email and preserves role', async () => {
@@ -363,6 +364,41 @@ describe('Account Resolution & Conflict Rules', () => {
     ).rejects.toMatchObject({
       status: 403,
       code: 'ACCOUNT_DISABLED',
+    })
+  })
+
+  describe('Sequential TX26XXXX User ID Generator', () => {
+    it('starts with TX260001 when no existing TX26 users exist', async () => {
+      const mockDb = {
+        prepare: vi.fn(() => ({
+          bind: vi.fn(() => ({
+            first: vi.fn().mockResolvedValue(null),
+          })),
+          first: vi.fn().mockResolvedValue(null),
+        })),
+      } as unknown as D1Database
+
+      const id = await generateNextUserId(mockDb)
+      expect(id).toBe('TX260001')
+    })
+
+    it('increments sequentially from the highest existing TX26 ID', async () => {
+      const mockDb = {
+        prepare: vi.fn((sql: string) => ({
+          bind: vi.fn(() => ({
+            first: vi.fn().mockResolvedValue(null),
+          })),
+          first: vi.fn().mockImplementation(async () => {
+            if (sql.includes("WHERE id LIKE 'TX26%'")) {
+              return { id: 'TX260042' }
+            }
+            return null
+          }),
+        })),
+      } as unknown as D1Database
+
+      const id = await generateNextUserId(mockDb)
+      expect(id).toBe('TX260043')
     })
   })
 })
