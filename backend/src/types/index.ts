@@ -84,6 +84,7 @@ export interface Event {
   volunteers_can_score: number
   leaderboard_public: number
   metadata?: string | null
+  form_schema?: string | null
   created_at: number
   updated_at: number
 }
@@ -165,6 +166,7 @@ export interface Registration {
   participant_id: string
   status: RegistrationStatus
   seat_count: number
+  form_responses?: string | null
   created_at: number
   updated_at: number
 }

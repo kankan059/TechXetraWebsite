@@ -27,6 +27,7 @@ import { adminAuditRoutes } from './routes/admin-audit'
 import { staffScanRoutes } from './routes/staff-scan'
 import { leaderboardRoutes } from './routes/leaderboards'
 import { staffEsportsRoutes } from './routes/staff-esports'
+import { staffEventRoutes } from './routes/staff-events'
 
 export function createApp(): Hono<{
   Bindings: CloudflareBindings
@@ -68,8 +69,9 @@ export function createApp(): Hono<{
   // Payments (Participant)
   app.route('/api', paymentRoutes)
 
-  // Staff scanning and scoring
+  // Staff scanning, committee management, and scoring
   app.route('/api/staff/scan', staffScanRoutes)
+  app.route('/api/staff/events', staffEventRoutes)
   app.route('/api/staff/events', staffEsportsRoutes)
 
   // Admin management

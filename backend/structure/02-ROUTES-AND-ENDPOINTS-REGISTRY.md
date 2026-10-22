@@ -1,6 +1,6 @@
 # 02 — Routes and Endpoints Registry
 
-This document catalogues all 23 route controllers in `src/routes/`, detailing HTTP methods, URL paths, middleware guards, input validation schemas, execution logic, database effects, and error codes.
+This document catalogues all 24 route controllers in `src/routes/`, detailing HTTP methods, URL paths, middleware guards, input validation schemas, execution logic, database effects, and error codes.
 
 ---
 
@@ -33,9 +33,15 @@ Participant Features
 ├── /api/tickets                          -> tickets.ts (GET /mine, GET /:id)
 └── /api/registrations/mine               -> registrations.ts (GET)
 
-Staff Portal (Volunteer & Lead)
+Staff Portal (Volunteer, Lead & Committee)
 ├── /api/staff/scan/lookup                -> staff-scan.ts (POST)
 ├── /api/staff/scan/admit                 -> staff-scan.ts (POST)
+├── /api/staff/events/mine                -> staff-events.ts (GET)
+├── /api/staff/events/:id/dashboard       -> staff-events.ts (GET)
+├── /api/staff/events/:id/registrations   -> staff-events.ts (GET)
+├── /api/staff/events/:id/payments        -> staff-events.ts (GET)
+├── /api/staff/events/:id/payments/:pid/review -> staff-events.ts (POST)
+├── /api/staff/events/:id                 -> staff-events.ts (PATCH)
 ├── /api/staff/events/:id/scores          -> staff-esports.ts (POST)
 ├── /api/staff/events/:id/scores/:scoreId -> staff-esports.ts (DELETE)
 ├── /api/staff/events/:id/finalize        -> staff-esports.ts (POST)
@@ -43,7 +49,8 @@ Staff Portal (Volunteer & Lead)
 
 Admin Portal (Reviewer & Super Admin)
 ├── /api/admin/users                      -> admin-users.ts (GET, PATCH /:id)
-├── /api/admin/events                     -> admin-events.ts (POST, PATCH /:id)
+├── /api/admin/events                     -> admin-events.ts (POST, PATCH /:id, DELETE /:id)
+├── /api/admin/events/:id/staff           -> admin-events.ts (GET, POST, DELETE /:userId)
 ├── /api/admin/payments                   -> admin-payments.ts (GET queue, GET /:id, POST /:id/review)
 ├── /api/admin/purchases                  -> admin-purchases.ts (GET, GET /:id, POST /:id/retry-fulfillment)
 ├── /api/admin/tickets                    -> admin-tickets.ts (POST revoke, reissue, rotate-qr, undo-checkin)
@@ -266,7 +273,8 @@ Mounted at `/api/purchases`.
     items: Array<{
       item_type: 'GATE_PASS' | 'EVENT_PASS',
       event_id?: string,
-      team_id?: string
+      team_id?: string,
+      form_responses?: Record<string, any>
     }>,
     acknowledge_student_id_policy?: boolean,
     idempotency_key?: string
@@ -278,15 +286,16 @@ Mounted at `/api/purchases`.
   3. Auto-cancels any expired `AWAITING_PAYMENT` orders for buyer.
   4. Validates items (max 10 items; max 1 gate pass).
   5. Computes pricing: General vs Student based on profile. If student tier applied, requires `acknowledge_student_id_policy === true`.
-  6. For team events: validates caller is leader, team size satisfies `min_team_size` and `max_team_size`, all members have completed profiles.
-  7. Atomic D1 Batch:
+  6. **Dynamic Form Questionnaire Validation**: If the event has a configured `form_schema`, parses the schema and checks that every field marked `required: true` has a non-empty, non-null value in `item.form_responses`. If missing, throws `400 VALIDATION_ERROR`.
+  7. For team events: validates caller is leader, team size satisfies `min_team_size` and `max_team_size`, all members have completed profiles.
+  8. Atomic D1 Batch:
      - Inserts `purchases` row (`AWAITING_PAYMENT`, expires in 15 mins).
      - Inserts `purchase_items` rows.
-     - Inserts `registrations` rows (`status: 'RESERVED'`).
+     - Inserts `registrations` rows (`status: 'RESERVED'`, persisting serialized `form_responses` JSON string).
      - Conditional `UPDATE events SET seats_taken = seats_taken + ? WHERE seats_taken + ? <= capacity`.
      - Appends `guardVerifyRow(...)` to guarantee atomicity and rollback on capacity exhaustion (`409 CAPACITY_FULL`).
      - Sets `teams.status = 'LOCKED'` if team event.
-  8. **Special Case (0 Paise / Free)**: If total is ₹0, immediately transitions to `PAID`, marks registrations `CONFIRMED`, fulfills tickets, and sets team to `CONFIRMED`.
+  9. **Special Case (0 Paise / Free)**: If total is ₹0, immediately transitions to `PAID`, marks registrations `CONFIRMED`, fulfills tickets, and sets team to `CONFIRMED`.
 - **Response**: `201 Created` Detailed purchase with reservation expiry timestamp.
 
 ### 6.2 Get My Purchases
@@ -420,9 +429,49 @@ Mounted at `/api/staff/events`.
 
 ---
 
-## 11. Admin Portal (`src/routes/admin-*.ts`)
+## 11. Event Committee & Staff Portal (`src/routes/staff-events.ts`)
 
-### 11.1 Payment Review Queue (`admin-payments.ts`)
+Mounted at `/api/staff/events`.
+
+### 11.1 List My Assigned Events
+- **Method / Path**: `GET /api/staff/events/mine`
+- **Auth**: Staff Session (`LEAD`, `VOLUNTEER`, or `SUPER_ADMIN`)
+- **Logic**: Returns all events assigned to caller with live confirmed registrations count, reserved registrations count, seats remaining, and pending payment count. Super Admin receives all events.
+- **Response**: `200 OK` `StaffEventSummary[]`
+
+### 11.2 Event Dashboard
+- **Method / Path**: `GET /api/staff/events/:id/dashboard`
+- **Auth**: Assigned Staff (`VOLUNTEER` min) or Super Admin
+- **Logic**: Aggregates capacity, seats taken, seats remaining, confirmed count, checked-in count, pending payments count, and full assigned staff roster.
+- **Response**: `200 OK` `{ event: PublicEventResponse, metrics: { ... }, staff: EventStaffMember[] }`
+
+### 11.3 Event Attendee & Team Roster
+- **Method / Path**: `GET /api/staff/events/:id/registrations`
+- **Auth**: Assigned Staff (`VOLUNTEER` min) or Super Admin
+- **Query Params**: `search` (name, email, or team)
+- **Logic**: Returns all registrations with attendee profile, contact info, team info, check-in status, and parsed dynamic `form_responses`.
+- **Response**: `200 OK` `EventRegistrationDetail[]`
+
+### 11.4 Event Payment Queue & Review
+- **Method / Path**: `GET /api/staff/events/:id/payments` and `POST /api/staff/events/:id/payments/:paymentId/review`
+- **Auth**: Assigned `LEAD` or Super Admin
+- **Logic**: 
+  - `GET`: Returns payment verification requests for purchases that include this event.
+  - `POST`: Allows Lead to `APPROVE`, `REJECT`, or `HOLD` payment for orders containing their event. Enforces no self-review invariant.
+- **Response**: `200 OK`
+
+### 11.5 Lead Event Configuration Update
+- **Method / Path**: `PATCH /api/staff/events/:id`
+- **Auth**: Assigned `LEAD` or Super Admin (Volunteers rejected with `403 FORBIDDEN`)
+- **Schema**: `{ description?, venue?, metadata?, form_schema?, registration_closes_at? }`
+- **Logic**: Allows Lead to update operational event information, rules, dynamic form schema, and deadlines.
+- **Response**: `200 OK` `PublicEventResponse`
+
+---
+
+## 12. Admin Portal (`src/routes/admin-*.ts`)
+
+### 12.1 Payment Review Queue (`admin-payments.ts`)
 - **`GET /api/admin/payments`**: Lists submissions with filters (`status`, `search`, `cursor`, `limit`).
 - **`POST /api/admin/payments/:id/review`**:
   - Auth: `canReviewPayments(user)` or `SUPER_ADMIN`.
@@ -436,32 +485,36 @@ Mounted at `/api/staff/events`.
     - Fulfills tickets with `tx1...` HMACs.
     - If fulfillment throws, purchase stays `PAID` with `fulfillment_status = 'FAILED'`.
 
-### 11.2 Purchase Supervision (`admin-purchases.ts`)
+### 12.2 Purchase Supervision (`admin-purchases.ts`)
 - **`GET /api/admin/purchases`**: Filter purchases across the festival.
 - **`POST /api/admin/purchases/:id/retry-fulfillment`**: Retries ticket fulfillment on `PAID` purchases marked `FAILED`.
 
-### 11.3 User Management (`admin-users.ts`)
+### 12.3 User Management (`admin-users.ts`)
 - **`GET /api/admin/users`**: Search users by name, email, or role.
 - **`PATCH /api/admin/users/:id`**: Super Admin only. Updates `role`, `can_review_payments`, and `is_active`. Cannot demote or deactivate self.
 
-### 11.4 Event & Staff Control (`admin-events.ts`)
-- **`POST /api/admin/events`**: Super Admin creates events.
-- **`PATCH /api/admin/events/:id`**: Lead (venue/description only) or Super Admin (full update). Prevents capacity reduction below seats taken.
+### 12.4 Event & Staff Control (`admin-events.ts`)
+- **`POST /api/admin/events`**: Super Admin creates events (with optional `form_schema`).
+- **`PATCH /api/admin/events/:id`**: Super Admin full update (fees, dates, capacity, status, rules, `form_schema`).
+- **`DELETE /api/admin/events/:id`**: Safe deletion (hard delete if 0 registrations/tickets; transitions to `CANCELLED` if attendees exist).
+- **`POST /api/admin/events/:id/staff`**: Assigns Lead or Volunteer to an event.
+- **`DELETE /api/admin/events/:id/staff/:userId`**: Removes staff assignment.
+- **`GET /api/admin/events/:id/staff`**: Lists assigned staff for an event.
 
-### 11.5 Ticket Life Cycle Overrides (`admin-tickets.ts`)
+### 12.5 Ticket Life Cycle Overrides (`admin-tickets.ts`)
 - **`POST /api/admin/tickets/:id/revoke`**: Revokes ticket, removes from check-in.
 - **`POST /api/admin/tickets/:id/reissue`**: Marks old ticket `REPLACED` and issues fresh ticket with version 1.
 - **`POST /api/admin/tickets/:id/rotate-qr`**: Increments `qr_version` to invalidate screenshots.
 - **`POST /api/admin/tickets/:id/undo-checkin`**: Deletes admission log and clears check-in timestamp.
 
-### 11.6 Reports & BI (`admin-reports.ts`)
+### 12.6 Reports & BI (`admin-reports.ts`)
 - **`GET /api/admin/reports/summary`**: Total revenue, ticket sales count, verified attendees.
 - **`GET /api/admin/reports/financial`**: Detailed breakdown by payment method, General vs Student tier, item types.
 - **`GET /api/admin/reports/attendance`**: Gate turnstile counts per day and event admissions.
 
-### 11.7 Audit Logs (`admin-audit.ts`)
+### 12.7 Audit Logs (`admin-audit.ts`)
 - **`GET /api/admin/audit-logs`**: Paginated query of immutable audit trails.
 
-### 11.8 Global Settings & Fest Days (`admin-settings.ts`)
+### 12.8 Global Settings & Fest Days (`admin-settings.ts`)
 - **`PATCH /api/admin/settings`**: Super Admin updates prices, `purchases_enabled`, or support contact.
 - **`PATCH /api/admin/fest-days/:dayNumber`**: Updates fest day schedule. Automatically adjusts active ticket validity windows.

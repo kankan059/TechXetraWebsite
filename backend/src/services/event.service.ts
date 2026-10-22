@@ -31,6 +31,7 @@ export interface PublicEventResponse {
   scoring_enabled: boolean
   leaderboard_public: boolean
   metadata?: string | null
+  form_schema?: string | null
 }
 
 export function formatPublicEvent(event: Event, now = Date.now()): PublicEventResponse {
@@ -68,6 +69,7 @@ export function formatPublicEvent(event: Event, now = Date.now()): PublicEventRe
     scoring_enabled: Boolean(event.scoring_enabled),
     leaderboard_public: Boolean(event.leaderboard_public),
     metadata: event.metadata ?? null,
+    form_schema: event.form_schema ?? null,
   }
 }
 
@@ -180,6 +182,7 @@ export interface CreateEventInput {
   volunteers_can_score?: boolean
   leaderboard_public?: boolean
   metadata?: string | null
+  form_schema?: string | null
 }
 
 export async function createEvent(
@@ -237,6 +240,7 @@ export async function createEvent(
     volunteers_can_score: input.volunteers_can_score ? 1 : 0,
     leaderboard_public: input.leaderboard_public ? 1 : 0,
     metadata: input.metadata?.trim() || null,
+    form_schema: input.form_schema?.trim() || null,
     created_at: now,
     updated_at: now,
   }
@@ -248,8 +252,8 @@ export async function createEvent(
         ends_at, registration_closes_at, status, is_team_event, min_team_size,
         max_team_size, price_model, price_paise, student_price_paise, capacity,
         seats_taken, capacity_unit, scoring_enabled, scoring_status, max_rounds,
-        volunteers_can_score, leaderboard_public, metadata, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        volunteers_can_score, leaderboard_public, metadata, form_schema, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       event.id,
@@ -278,6 +282,7 @@ export async function createEvent(
       event.volunteers_can_score,
       event.leaderboard_public,
       event.metadata || null,
+      event.form_schema || null,
       event.created_at,
       event.updated_at
     )
@@ -322,6 +327,7 @@ export interface UpdateEventInput {
   volunteers_can_score?: boolean
   leaderboard_public?: boolean
   metadata?: string | null
+  form_schema?: string | null
 }
 
 export async function updateEvent(
@@ -340,15 +346,20 @@ export async function updateEvent(
       throw new AppError(403, 'FORBIDDEN', 'Event lead or administrator access required')
     }
 
-    // Lead is ONLY allowed to edit description and venue
-    const disallowedKeys = Object.keys(input).filter(
-      (k) => k !== 'description' && k !== 'venue'
-    )
+    // Lead is allowed to edit description, venue, metadata, form_schema, and registration_closes_at
+    const allowedLeadKeys = new Set([
+      'description',
+      'venue',
+      'metadata',
+      'form_schema',
+      'registration_closes_at',
+    ])
+    const disallowedKeys = Object.keys(input).filter((k) => !allowedLeadKeys.has(k))
     if (disallowedKeys.length > 0) {
       throw new AppError(
         403,
         'FORBIDDEN',
-        `Event leads may only update description and venue (disallowed: ${disallowedKeys.join(', ')})`
+        `Event leads may only update description, venue, rules/metadata, form fields, and registration closing time (disallowed: ${disallowedKeys.join(', ')})`
       )
     }
   }
@@ -478,6 +489,10 @@ export async function updateEvent(
         : event.leaderboard_public,
     metadata:
       input.metadata !== undefined ? input.metadata?.trim() || null : (event.metadata ?? null),
+    form_schema:
+      input.form_schema !== undefined
+        ? input.form_schema?.trim() || null
+        : (event.form_schema ?? null),
     updated_at: now,
   }
 
@@ -489,7 +504,7 @@ export async function updateEvent(
         is_team_event = ?, min_team_size = ?, max_team_size = ?, price_model = ?,
         price_paise = ?, student_price_paise = ?, capacity = ?, capacity_unit = ?,
         scoring_enabled = ?, scoring_status = ?, max_rounds = ?, volunteers_can_score = ?,
-        leaderboard_public = ?, metadata = ?, updated_at = ?
+        leaderboard_public = ?, metadata = ?, form_schema = ?, updated_at = ?
       WHERE id = ?`
     )
     .bind(
@@ -516,6 +531,7 @@ export async function updateEvent(
       updatedEvent.volunteers_can_score,
       updatedEvent.leaderboard_public,
       updatedEvent.metadata || null,
+      updatedEvent.form_schema || null,
       updatedEvent.updated_at,
       event.id
     )
@@ -539,4 +555,86 @@ export async function updateEvent(
   await executeBatch(db, statements)
 
   return updatedEvent
+}
+
+export async function deleteEventByAdmin(
+  db: D1Database,
+  eventId: string,
+  actor: User,
+  meta?: { ipAddress?: string; userAgent?: string; now?: number }
+): Promise<{ deleted: boolean; status: 'DELETED' | 'CANCELLED'; message: string }> {
+  const now = meta?.now || Date.now()
+  const event = await db
+    .prepare('SELECT * FROM events WHERE id = ?')
+    .bind(eventId)
+    .first<Event>()
+
+  if (!event) {
+    throw new AppError(404, 'NOT_FOUND', 'Event not found')
+  }
+
+  // Check if any tickets or active registrations exist
+  const activeReg = await db
+    .prepare(
+      "SELECT count(*) as count FROM registrations WHERE event_id = ? AND status IN ('RESERVED', 'CONFIRMED')"
+    )
+    .bind(eventId)
+    .first<{ count: number }>()
+
+  const totalTickets = await db
+    .prepare('SELECT count(*) as count FROM tickets WHERE event_id = ?')
+    .bind(eventId)
+    .first<{ count: number }>()
+
+  const hasRegistrations = (activeReg?.count || 0) > 0 || (totalTickets?.count || 0) > 0
+
+  if (hasRegistrations) {
+    // Cannot hard-delete due to foreign key integrity and attendee records.
+    // Instead, safely cancel the event and release remaining capacity.
+    const cancelStmt = db
+      .prepare("UPDATE events SET status = 'CANCELLED', updated_at = ? WHERE id = ?")
+      .bind(now, eventId)
+
+    const auditStmt = createAuditStatement(db, {
+      actorId: actor.id,
+      action: 'EVENT_CANCELLED',
+      targetType: 'EVENT',
+      targetId: eventId,
+      beforeJson: event,
+      afterJson: { ...event, status: 'CANCELLED' },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+      now,
+    })
+
+    await executeBatch(db, [cancelStmt, auditStmt])
+    return {
+      deleted: false,
+      status: 'CANCELLED',
+      message:
+        'Event has active registrations/tickets; status was transitioned to CANCELLED to preserve attendee records.',
+    }
+  }
+
+  // Hard delete event and its staff assignments
+  const deleteStaffStmt = db.prepare('DELETE FROM event_staff WHERE event_id = ?').bind(eventId)
+  const deleteEventStmt = db.prepare('DELETE FROM events WHERE id = ?').bind(eventId)
+
+  const auditStmt = createAuditStatement(db, {
+    actorId: actor.id,
+    action: 'EVENT_DELETED',
+    targetType: 'EVENT',
+    targetId: eventId,
+    beforeJson: event,
+    ipAddress: meta?.ipAddress,
+    userAgent: meta?.userAgent,
+    now,
+  })
+
+  await executeBatch(db, [deleteStaffStmt, deleteEventStmt, auditStmt])
+  return {
+    deleted: true,
+    status: 'DELETED',
+    message: 'Event successfully deleted.',
+  }
 }

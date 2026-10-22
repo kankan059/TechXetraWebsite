@@ -95,7 +95,7 @@ backend/
 | [`user.service.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/services/user.service.ts) | Google user resolution, staff pre-registration, sequential TX26 ID generation | `resolveOrCreateGoogleUser`, `preRegisterStaff`, `generateNextUserId` | `users`, `team_members` |
 | [`profile.service.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/services/profile.service.ts) | Profile completeness calculation, profile editing | `computeProfileCompleteness`, `formatUserProfile`, `updateParticipantProfile` | `users` |
 | [`authz.service.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/services/authz.service.ts) | Authorization asserts & staff assignments | `isSuperAdmin`, `canReviewPayments`, `isGateStaff`, `isEventStaff`, `assertSuperAdmin`, `assertEventStaff`, `assertOwnership` | `gate_staff`, `event_staff` |
-| [`event.service.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/services/event.service.ts) | Public event browsing, event creation, updates | `getPublicEvents`, `getEventByIdOrSlug`, `createEvent`, `updateEvent`, `formatPublicEvent` | `events`, `fest_days`, `tickets`, `registrations`, `audit_logs` |
+| [`event.service.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/services/event.service.ts) | Public event browsing, event creation, updates, and safe deletion | `getPublicEvents`, `getEventByIdOrSlug`, `createEvent`, `updateEvent`, `deleteEventByAdmin`, `formatPublicEvent` | `events`, `fest_days`, `tickets`, `registrations`, `event_staff`, `audit_logs` |
 | [`settings.service.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/services/settings.service.ts) | Global settings & fest day configurations | `getAllSettings`, `updateSettings`, `getAllFestDays`, `updateFestDay` | `settings`, `fest_days`, `tickets`, `events`, `audit_logs` |
 | [`team.service.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/services/team.service.ts) | Team formation, invites, accept/decline, checkout validation | `createTeam`, `getTeamWithMembers`, `getUserTeams`, `inviteTeamMember`, `acceptTeamInvite`, `declineTeamInvite`, `removeTeamMember`, `cancelTeam`, `validateTeamForPurchase` | `teams`, `team_members`, `events`, `users`, `audit_logs` |
 | [`purchase.service.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/services/purchase.service.ts) | Checkout reservations, capacity holding, automatic free fulfillment, cancellation | `createPurchase`, `getPurchaseById`, `getUserPurchases`, `releasePurchase` | `purchases`, `purchase_items`, `events`, `teams`, `registrations`, `tickets`, `settings`, `audit_logs` |
@@ -108,6 +108,7 @@ backend/
 | [`admin-ticket.service.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/services/admin-ticket.service.ts) | Ticket revocation, reissuance, QR rotation, undo check-in | `revokeTicket`, `reissueTicket`, `rotateQrVersion`, `undoCheckIn` | `tickets`, `check_in_logs`, `audit_logs` |
 | [`admin-registration.service.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/services/admin-registration.service.ts) | Admin registration management, cancellation & capacity release | `getAdminRegistrations`, `cancelRegistrationByAdmin` | `registrations`, `events`, `tickets`, `audit_logs` |
 | [`report.service.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/services/report.service.ts) | Financial totals, registration counts, gate check-in stats | `getSummaryReport`, `getEventAttendanceReport`, `getFinancialReport` | `purchases`, `payments`, `registrations`, `check_in_logs`, `events` |
+| [`staff-event.service.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/services/staff-event.service.ts) | Event committee (Lead/Volunteer) dashboard, roster & payments | `getMyStaffEvents`, `getStaffEventDashboard`, `getStaffEventRegistrations`, `getStaffEventPayments`, `reviewStaffEventPayment` | `events`, `event_staff`, `registrations`, `tickets`, `payments`, `purchases` |
 | [`idempotency.service.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/services/idempotency.service.ts) | Request deduplication cache | `checkIdempotency`, `saveIdempotency` | `idempotency_keys` |
 
 ---
@@ -129,9 +130,10 @@ backend/
 | [`tickets.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/routes/tickets.ts) | `/api/tickets` | `GET /mine`, `GET /:id` (with signed QR token). |
 | [`registrations.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/routes/registrations.ts) | `/api/registrations` | `GET /mine` (participant confirmed/reserved registrations). |
 | [`staff-scan.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/routes/staff-scan.ts) | `/api/staff/scan` | `POST /lookup` (decode & inspect QR), `POST /admit` (execute admission). |
+| [`staff-events.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/routes/staff-events.ts) | `/api/staff/events` | `GET /mine`, `GET /:id/dashboard`, `GET /:id/registrations`, `GET /:id/payments`, `POST /:id/payments/:paymentId/review`, `PATCH /:id`. |
 | [`staff-esports.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/routes/staff-esports.ts) | `/api/staff/events` | `POST /:id/scores`, `DELETE /:id/scores/:scoreId`, `POST /:id/finalize`, `POST /:id/reopen`. |
 | [`admin-users.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/routes/admin-users.ts) | `/api/admin/users` | `GET /` (search users), `PATCH /:id` (role, active state, reviewer permissions). |
-| [`admin-events.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/routes/admin-events.ts) | `/api/admin/events` | `POST /` (create event), `PATCH /:id` (update event / lead limited update). |
+| [`admin-events.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/routes/admin-events.ts) | `/api/admin/events` | `POST /` (create event), `PATCH /:id` (full update), `DELETE /:id` (safe delete/cancel), `POST/DELETE /:id/staff`. |
 | [`admin-payments.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/routes/admin-payments.ts) | `/api/admin/payments` | `GET /` (queue), `GET /:id`, `POST /:id/review` (approve/reject/hold). |
 | [`admin-purchases.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/routes/admin-purchases.ts) | `/api/admin/purchases` | `GET /` (list), `GET /:id`, `POST /:id/retry-fulfillment`. |
 | [`admin-tickets.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/src/routes/admin-tickets.ts) | `/api/admin/tickets` | `POST /:id/revoke`, `POST /:id/reissue`, `POST /:id/rotate-qr`, `POST /:id/undo-checkin`. |
@@ -148,7 +150,8 @@ backend/
 |---|---|
 | [`0001_init.sql`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/migrations/0001_init.sql) | Core database schema, partial unique indices, check constraints, append-only triggers, and the `_guard` table. |
 | [`0002_seed.sql`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/migrations/0002_seed.sql) | Initial seed data: Fest days 1, 2, and 3, default gate pass prices, purchases enabled, and support email. |
-| [`0003_add_password_auth.sql`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/migrations/0003_add_password_auth.sql) | Schema alteration adding `password_hash TEXT` column to `users` for native password login. |
+| [`0003_add_password_auth.sql`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/migrations/0003_add_password_auth.sql) | Adds `password_hash` column to `users` table for email/password authentication. |
+| [`0003_custom_forms_and_event_enhancements.sql`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/migrations/0003_custom_forms_and_event_enhancements.sql) | Dynamic registration form schemas (`form_schema`), attendee questionnaire answers (`form_responses`), and performance indices (`event_staff`, `purchase_items`). |
 
 ---
 
@@ -160,3 +163,24 @@ backend/
 | [`scripts/generate-hashes.mjs`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/scripts/generate-hashes.mjs) | Generates PBKDF2 password hashes for seeding dummy accounts. |
 | [`scripts/import-events.mjs`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/scripts/import-events.mjs) | Ingests `techxetra_2026_events.json` and inserts event records into D1. |
 | [`scripts/seed-staff.mjs`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/scripts/seed-staff.mjs) | Generates `seed-staff-users.sql` with default credentials for staff roles. |
+
+---
+
+### 10. Automated Tests (`tests/`)
+
+| Test Suite | Purpose & Coverage |
+|---|---|
+| [`tests/foundation.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/foundation.test.ts) | System bootstrap, environment variables, health and readiness checks. |
+| [`tests/auth.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/auth.test.ts) | Google OAuth JWKS verification, session lifecycle, sliding TTLs. |
+| [`tests/password-auth.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/password-auth.test.ts) | Native password registration, PBKDF2 hashing, login verification. |
+| [`tests/profile-authz.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/profile-authz.test.ts) | Profile completion, student verification locking, and role authorization asserts. |
+| [`tests/teams.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/teams.test.ts) | Team creation, invitation workflow, accepting/declining, team disbanding. |
+| [`tests/purchases-capacity.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/purchases-capacity.test.ts) | 15-minute reservation timer, capacity deduction, oversell prevention, atomic rollback. |
+| [`tests/payments.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/payments.test.ts) | Manual UPI submission, review queue, approval/rejection/hold, ticket fulfillment. |
+| [`tests/tickets.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/tickets.test.ts) | Signed HMAC QR token generation, token verification, ticket detail retrieval. |
+| [`tests/scanning.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/scanning.test.ts) | Volunteer QR scanning, gate multi-entry, single-use event check-in. |
+| [`tests/esports.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/esports.test.ts) | E-Sports scoring, optimistic concurrency locking, scoreboards, finalize/reopen. |
+| [`tests/staff-events-and-forms.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/staff-events-and-forms.test.ts) | Event committee hub, roster, payment review, dynamic form schema validation, safe event deletion. |
+| [`tests/catalog-and-event-admin.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/catalog-and-event-admin.test.ts) | Catalog passes, event creation, Super Admin updates, capacity constraints. |
+| [`tests/admin.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/admin.test.ts) | User management, ticket lifecycle overrides, reports, settings, audit trails. |
+| [`tests/batch-guard.test.ts`](file:///home/ppriyankuu/Projects/TechXetraWebsite/backend/tests/batch-guard.test.ts) | D1 atomic multi-statement batch rollback verification using the `_guard` table. |

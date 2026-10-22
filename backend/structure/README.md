@@ -11,8 +11,8 @@
 |---|---|---|
 | **[`00-OVERVIEW-AND-ARCHITECTURE.md`](./00-OVERVIEW-AND-ARCHITECTURE.md)** | System overview & non-negotiable invariants | Cloudflare Workers edge runtime, Hono v4, D1 SQLite batch mechanics, `_guard` verify-after-write pattern, monetary safety, session lifetimes |
 | **[`01-DIRECTORY-AND-FILE-INDEX.md`](./01-DIRECTORY-AND-FILE-INDEX.md)** | Exhaustive file-by-file map | Every single file in `src/`, `migrations/`, `scripts/`, `tests/`, its layer, exports, dependencies, and DB tables accessed |
-| **[`02-ROUTES-AND-ENDPOINTS-REGISTRY.md`](./02-ROUTES-AND-ENDPOINTS-REGISTRY.md)** | Complete route catalogue (All 23 route modules) | Method, path, auth/role guards, Zod validation schemas, step-by-step logic execution, service calls, error codes, response shapes |
-| **[`03-SERVICES-AND-BUSINESS-LOGIC.md`](./03-SERVICES-AND-BUSINESS-LOGIC.md)** | Core domain services (All 20 services) | Business workflows: Checkout & reservation holds, manual UPI verification, HMAC QR tokens, check-in rules, e-sports scoring & concurrency |
+| **[`02-ROUTES-AND-ENDPOINTS-REGISTRY.md`](./02-ROUTES-AND-ENDPOINTS-REGISTRY.md)** | Complete route catalogue (All 24 route modules) | Method, path, auth/role guards, Zod validation schemas, step-by-step logic execution, service calls, error codes, response shapes |
+| **[`03-SERVICES-AND-BUSINESS-LOGIC.md`](./03-SERVICES-AND-BUSINESS-LOGIC.md)** | Core domain services (All 21 services) | Business workflows: Checkout & reservation holds, manual UPI verification, HMAC QR tokens, check-in rules, e-sports scoring & concurrency |
 | **[`04-DATABASE-SCHEMA-AND-CONSTRAINTS.md`](./04-DATABASE-SCHEMA-AND-CONSTRAINTS.md)** | Database models & SQL triggers | Table schemas, foreign keys, CHECK constraints, partial unique indexes, append-only SQLite triggers, D1 batch guard mechanics |
 
 ---

@@ -122,6 +122,7 @@ const UpdateEventSchema = z
     volunteers_can_score: z.boolean().optional(),
     leaderboard_public: z.boolean().optional(),
     metadata: z.string().nullable().optional(),
+    form_schema: z.string().nullable().optional(),
   })
   .strict()
 

@@ -63,18 +63,27 @@ function run() {
     statements.push('')
   }
 
+  // Fest days schedule mapping
+  const festDays = [
+    { day: 1, startsAt: 1793923200000, endsAt: 1794009599999 },
+    { day: 2, startsAt: 1794009600000, endsAt: 1794095999999 },
+    { day: 3, startsAt: 1794096000000, endsAt: 1794182399999 },
+  ]
+
   // 2. Seed Events
   if (Array.isArray(data.events) && data.events.length > 0) {
     statements.push('-- Seed Events')
-    for (const e of data.events) {
+    for (let i = 0; i < data.events.length; i++) {
+      const e = data.events[i]
       const slug = slugify(e.name)
       const title = e.name
       const category = e.category
       const description = e.description || null
       const venue = e.venue || null
-      const dayOfEvent = 1
-      const startsAt = 1793923200000
-      const endsAt = 1794009599999
+      const festSchedule = festDays[i % festDays.length]
+      const dayOfEvent = festSchedule.day
+      const startsAt = festSchedule.startsAt
+      const endsAt = festSchedule.endsAt
       const status = 'OPEN'
       const isTeamEvent = e.is_team_event ? 1 : 0
       const minTeamSize = e.min_team_size || 1

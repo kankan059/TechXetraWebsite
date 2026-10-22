@@ -21,6 +21,7 @@ export interface PurchaseItemInput {
   item_type: ItemType
   event_id?: string
   team_id?: string
+  form_responses?: Record<string, any>
 }
 
 export interface CreatePurchaseInput {
@@ -188,6 +189,7 @@ export async function createPurchase(
     team_id: string | null
     participant_id: string
     seat_count: number
+    form_responses?: string | null
   }
 
   interface EventSeatIncrement {
@@ -267,6 +269,36 @@ export async function createPurchase(
         throw new AppError(400, 'BAD_REQUEST', `Registration deadline for ${event.title} has passed`)
       }
 
+      // Validate custom registration form if event requires one
+      if (event.form_schema) {
+        try {
+          const schema = JSON.parse(event.form_schema)
+          if (Array.isArray(schema)) {
+            const responses = itemInput.form_responses || {}
+            for (const field of schema) {
+              if (
+                field.required &&
+                (responses[field.id] === undefined ||
+                  responses[field.id] === null ||
+                  String(responses[field.id]).trim() === '')
+              ) {
+                throw new AppError(
+                  400,
+                  'VALIDATION_ERROR',
+                  `Field "${field.label || field.id}" is required for registration to ${event.title}`
+                )
+              }
+            }
+          }
+        } catch (e) {
+          if (e instanceof AppError) throw e
+        }
+      }
+
+      const formResponsesStr = itemInput.form_responses
+        ? JSON.stringify(itemInput.form_responses)
+        : null
+
       if (event.is_team_event === 1) {
         if (!itemInput.team_id) {
           throw new AppError(400, 'VALIDATION_ERROR', `team_id is required for team event ${event.title}`)
@@ -288,6 +320,7 @@ export async function createPurchase(
           team_id: team.id,
           participant_id: buyer.id,
           seat_count: seats,
+          form_responses: formResponsesStr,
         })
         seatIncrements.push({ event_id: event.id, seats })
 
@@ -358,6 +391,7 @@ export async function createPurchase(
           team_id: null,
           participant_id: buyer.id,
           seat_count: 1,
+          form_responses: formResponsesStr,
         })
         seatIncrements.push({ event_id: event.id, seats: 1 })
 
@@ -450,10 +484,20 @@ export async function createPurchase(
     statements.push(
       db
         .prepare(
-          `INSERT INTO registrations (id, event_id, team_id, participant_id, status, seat_count, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          `INSERT INTO registrations (id, event_id, team_id, participant_id, status, seat_count, form_responses, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
-        .bind(reg.id, reg.event_id, reg.team_id, reg.participant_id, regStatus, reg.seat_count, now, now)
+        .bind(
+          reg.id,
+          reg.event_id,
+          reg.team_id,
+          reg.participant_id,
+          regStatus,
+          reg.seat_count,
+          reg.form_responses || null,
+          now,
+          now
+        )
     )
   }
 

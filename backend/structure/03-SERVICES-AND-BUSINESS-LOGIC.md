@@ -1,6 +1,6 @@
 # 03 — Services and Business Logic
 
-This document details the core business workflows, transaction builders, algorithms, and domain rules implemented across the 20 service modules in `src/services/`.
+This document details the core business workflows, transaction builders, algorithms, and domain rules implemented across the 21 service modules in `src/services/`.
 
 ---
 
@@ -25,6 +25,7 @@ This document details the core business workflows, transaction builders, algorit
                             - admin-user.service.ts
                             - admin-ticket.service.ts
                             - admin-registration.service.ts
+                            - staff-event.service.ts
                             - esports.service.ts
                             - report.service.ts
                             - settings.service.ts
@@ -254,3 +255,37 @@ tx1.<ticket_id>.<qr_version>.<hmac_signature>
 ### 7.2 Financial & Operational Reporting
 - **Paise Precision**: Aggregates revenues in integer paise to eliminate rounding errors.
 - **Summary Metrics**: Total gross revenue, approved payments count, active participant count, ticket distribution (Gate vs Event), and capacity utilization percentage.
+
+---
+
+## 8. Event Committee Operations & Dynamic Forms (`staff-event.service.ts`)
+
+### 8.1 Scoped Access Control Matrix
+| Resource / Operation | Super Admin | Event Lead | Event Volunteer | General Participant |
+|---|---|---|---|---|
+| View All Events in Hub | All | Assigned Only | Assigned Only | None (Forbidden) |
+| View Event Dashboard & Metrics | Any Event | Assigned Event | Assigned Event | None |
+| View Attendee & Team Roster | Any Event | Assigned Event | Assigned Event | None |
+| View Payment Queue & UTRs | Any Event | Assigned Event | Forbidden | None |
+| Approve / Reject Event Payments | Yes | Yes (No Self-Review) | Forbidden | None |
+| Update Event Venue / Description / Rules | Yes | Yes | Forbidden | None |
+| Update Fees / Capacity / Schedule | Yes | Forbidden | Forbidden | None |
+| Scan QR Pass at Venue (`context: EVENT`) | Any Event | Assigned Event | Assigned Event | None |
+
+### 8.2 Dynamic Registration Form Schema & Responses
+- **Schema (`events.form_schema`)**: Stored as a JSON array of question definitions (`id`, `label`, `type`, `required`, `placeholder`, `options`).
+- **Validation during Checkout**:
+  - In `purchase.service.ts`, when a user reserves an `EVENT_PASS`, if the event has `form_schema`, each question marked `required: true` must have a non-empty answer in `form_responses`.
+  - Missing answers reject checkout with `400 VALIDATION_ERROR`.
+- **Persistence (`registrations.form_responses`)**: User responses are stored as JSON with the registration record, returned in attendee rosters, and made accessible to event committee leads for operational planning.
+
+### 8.3 Event Updates & Lead Scope (`event.service.ts`)
+- **Lead Scope**: Event Leads can update `description`, `venue`, `metadata`, `form_schema`, and `registration_closes_at`. Any attempt to modify fees, capacity, team sizing, or category throws `403 FORBIDDEN`.
+- **Super Admin Scope**: Full edit permissions across all event parameters.
+- **Capacity Integrity**: Reductions in `capacity` below current `seats_taken` are rejected with `400 VALIDATION_ERROR`.
+
+### 8.4 Safe Event Deletion & Graceful Cancellation (`event.service.ts`)
+- **`deleteEventByAdmin(db, eventId, actor)`**:
+  - Checks for active registrations (`RESERVED`, `CONFIRMED`) or issued tickets for the event.
+  - **With Attendees**: Cannot hard-delete without breaking relational integrity and participant records. Automatically transitions `events.status = 'CANCELLED'`, retains all attendee records, and logs `EVENT_CANCELLED` to `audit_logs`.
+  - **Zero Attendees**: Atomically hard-deletes `event_staff` assignments and the `events` row in a batch, logging `EVENT_DELETED` to `audit_logs`.

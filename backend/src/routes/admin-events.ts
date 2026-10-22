@@ -2,7 +2,13 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import type { CloudflareBindings, AppVariables } from '../types/env'
 import { requireAuth, requireSuperAdminOnly } from '../middleware/auth'
-import { createEvent, getEventByIdOrSlug, formatPublicEvent } from '../services/event.service'
+import {
+  createEvent,
+  updateEvent,
+  deleteEventByAdmin,
+  getEventByIdOrSlug,
+  formatPublicEvent,
+} from '../services/event.service'
 import { reopenScores } from '../services/esports.service'
 import { executeBatch } from '../db/batch'
 import { createAuditStatement } from '../services/audit.service'
@@ -56,6 +62,7 @@ const CreateEventSchema = z
     volunteers_can_score: z.boolean().optional(),
     leaderboard_public: z.boolean().optional(),
     metadata: z.string().nullable().optional(),
+    form_schema: z.string().nullable().optional(),
   })
   .strict()
 
@@ -75,6 +82,79 @@ adminEventRoutes.post('/', async (c) => {
   })
 
   return jsonSuccess(c, formatPublicEvent(created, now), 201)
+})
+
+const UpdateEventSchema = z
+  .object({
+    title: z.string().min(3).max(100).optional(),
+    category: EventCategoryEnum.optional(),
+    description: z.string().max(2000).nullable().optional(),
+    venue: z.string().max(200).nullable().optional(),
+    day_of_event: z.number().int().min(1).max(3).optional(),
+    starts_at: z.number().int().optional(),
+    ends_at: z.number().int().optional(),
+    registration_closes_at: z.number().int().nullable().optional(),
+    status: z.enum(['DRAFT', 'OPEN', 'CLOSED', 'COMPLETED', 'CANCELLED']).optional(),
+    is_team_event: z.boolean().optional(),
+    min_team_size: z.number().int().min(1).max(50).optional(),
+    max_team_size: z.number().int().min(1).max(50).optional(),
+    price_model: z.enum(['FREE', 'PER_PARTICIPANT', 'PER_TEAM']).optional(),
+    price_paise: z.number().int().min(0).optional(),
+    student_price_paise: z.number().int().min(0).nullable().optional(),
+    capacity: z.number().int().min(1).nullable().optional(),
+    capacity_unit: z.enum(['SEATS', 'TEAMS']).optional(),
+    scoring_enabled: z.boolean().optional(),
+    scoring_status: z.enum(['NOT_APPLICABLE', 'OPEN', 'FINALIZED']).optional(),
+    max_rounds: z.number().int().min(1).max(20).optional(),
+    volunteers_can_score: z.boolean().optional(),
+    leaderboard_public: z.boolean().optional(),
+    metadata: z.string().nullable().optional(),
+    form_schema: z.string().nullable().optional(),
+  })
+  .strict()
+
+// PATCH /api/admin/events/:id - SuperAdmin full event update
+adminEventRoutes.patch('/:id', async (c) => {
+  const user = c.get('user')!
+  const eventId = c.req.param('id')
+  const event = await getEventByIdOrSlug(c.env.DB, eventId)
+
+  if (!event) {
+    throw new AppError(404, 'NOT_FOUND', 'Event not found')
+  }
+
+  const body = await c.req.json().catch(() => ({}))
+  const validated = UpdateEventSchema.parse(body)
+
+  const now = c.get('now') || Date.now()
+  const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')
+  const userAgent = c.req.header('user-agent')
+
+  const updated = await updateEvent(c.env.DB, event, validated, user, {
+    ipAddress,
+    userAgent,
+    now,
+  })
+
+  return jsonSuccess(c, formatPublicEvent(updated, now))
+})
+
+// DELETE /api/admin/events/:id - SuperAdmin safe event deletion or cancellation
+adminEventRoutes.delete('/:id', async (c) => {
+  const user = c.get('user')!
+  const eventId = c.req.param('id')
+
+  const now = c.get('now') || Date.now()
+  const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for')
+  const userAgent = c.req.header('user-agent')
+
+  const result = await deleteEventByAdmin(c.env.DB, eventId, user, {
+    ipAddress,
+    userAgent,
+    now,
+  })
+
+  return jsonSuccess(c, result)
 })
 
 const StaffAssignmentSchema = z

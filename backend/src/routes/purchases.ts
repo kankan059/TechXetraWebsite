@@ -30,6 +30,7 @@ const PurchaseItemSchema = z
     item_type: z.enum(['GATE_PASS', 'EVENT_PASS']),
     event_id: z.string().optional(),
     team_id: z.string().optional(),
+    form_responses: z.record(z.string(), z.any()).optional(),
   })
   .strict()
 

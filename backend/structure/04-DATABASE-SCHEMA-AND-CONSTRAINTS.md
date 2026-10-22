@@ -142,6 +142,7 @@ CREATE TABLE IF NOT EXISTS events (
   volunteers_can_score INTEGER NOT NULL DEFAULT 0 CHECK (volunteers_can_score IN (0, 1)),
   leaderboard_public INTEGER NOT NULL DEFAULT 0 CHECK (leaderboard_public IN (0, 1)),
   metadata TEXT,
+  form_schema TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
   CONSTRAINT ck_events_capacity CHECK (capacity IS NULL OR seats_taken <= capacity),
@@ -164,6 +165,8 @@ CREATE TABLE IF NOT EXISTS event_staff (
   assigned_by TEXT NOT NULL REFERENCES users(id),
   PRIMARY KEY (event_id, user_id)
 );
+CREATE INDEX IF NOT EXISTS idx_event_staff_user ON event_staff(user_id);
+CREATE INDEX IF NOT EXISTS idx_event_staff_event_user ON event_staff(event_id, user_id);
 
 CREATE TABLE IF NOT EXISTS gate_staff (
   user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -240,6 +243,7 @@ CREATE TABLE IF NOT EXISTS purchase_items (
   holds_slot INTEGER NOT NULL DEFAULT 1 CHECK (holds_slot IN (0, 1)),
   created_at INTEGER NOT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_purchase_items_event ON purchase_items(event_id, purchase_id);
 ```
 
 ---
@@ -253,6 +257,7 @@ CREATE TABLE IF NOT EXISTS registrations (
   participant_id TEXT NOT NULL REFERENCES users(id),
   status TEXT NOT NULL DEFAULT 'RESERVED' CHECK (status IN ('RESERVED', 'CONFIRMED', 'CANCELLED', 'EXPIRED')),
   seat_count INTEGER NOT NULL DEFAULT 1 CHECK (seat_count >= 1),
+  form_responses TEXT,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );

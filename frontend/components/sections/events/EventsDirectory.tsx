@@ -29,6 +29,92 @@ function shuffleEvents<T>(items: T[]): T[] {
   return shuffled;
 }
 
+function getCategoryTone(category: string) {
+  const normalized = category.toUpperCase();
+
+  if (normalized === "E_SPORTS" || normalized === "ESPORTS") {
+    return {
+      background: "#142C25",
+      border: "border-emerald-300/20",
+      accent: "text-emerald-300",
+      mutedAccent: "text-emerald-200/70",
+      hover: "hover:border-emerald-300/50",
+      button: "hover:text-emerald-200",
+      code: "ES",
+    };
+  }
+
+  if (normalized === "TECHNICAL") {
+    return {
+      background: "#142630",
+      border: "border-sky-300/20",
+      accent: "text-sky-300",
+      mutedAccent: "text-sky-200/70",
+      hover: "hover:border-sky-300/50",
+      button: "hover:text-sky-200",
+      code: "TX",
+    };
+  }
+
+  if (normalized === "INTERACTIVE") {
+    return {
+      background: "#282315",
+      border: "border-amber-300/20",
+      accent: "text-amber-300",
+      mutedAccent: "text-amber-200/70",
+      hover: "hover:border-amber-300/50",
+      button: "hover:text-amber-200",
+      code: "IX",
+    };
+  }
+
+  if (normalized === "RECREATIONAL") {
+    return {
+      background: "#132824",
+      border: "border-teal-300/20",
+      accent: "text-teal-300",
+      mutedAccent: "text-teal-200/70",
+      hover: "hover:border-teal-300/50",
+      button: "hover:text-teal-200",
+      code: "RX",
+    };
+  }
+
+  if (normalized === "SHOWCASE") {
+    return {
+      background: "#24182E",
+      border: "border-purple-300/20",
+      accent: "text-purple-300",
+      mutedAccent: "text-purple-200/70",
+      hover: "hover:border-purple-300/50",
+      button: "hover:text-purple-200",
+      code: "SX",
+    };
+  }
+
+  if (normalized === "CULTURAL") {
+    return {
+      background: "#301B22",
+      border: "border-rose-300/20",
+      accent: "text-rose-300",
+      mutedAccent: "text-rose-200/70",
+      hover: "hover:border-rose-300/50",
+      button: "hover:text-rose-200",
+      code: "CL",
+    };
+  }
+
+  return {
+    background: "#301B22",
+    border: "border-rose-300/20",
+    accent: "text-rose-300",
+    mutedAccent: "text-rose-200/70",
+    hover: "hover:border-rose-300/50",
+    button: "hover:text-rose-200",
+    code: "NX",
+  };
+}
+
 function ArrowIcon({ className = "" }: { className?: string }) {
   return (
     <svg

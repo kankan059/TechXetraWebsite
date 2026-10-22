@@ -26,7 +26,7 @@ Any developer or AI agent modifying this codebase MUST uphold these rules:
 3. **Monetary Safety**: Never use floating-point numbers for money. All prices, totals, and balances are integers in **paise** (`₹300.00` = `30000`).
 4. **Time Safety**: All timestamps are 64-bit integer Unix epoch milliseconds (`Date.now()`). No local timezone strings are persisted in the database.
 5. **Durable Payment Truth**: Never create tickets before a purchase is `PAID`. If ticket fulfillment fails after payment approval, **never downgrade the purchase back to unpaid**. Payment approval is durable truth; record `fulfillment_status = 'FAILED'` and allow retry.
-6. **No Self-Review of Payments**: Reviewers with `can_review_payments` or `SUPER_ADMIN` cannot review or approve their own payment submissions.
+6. **No Self-Review of Payments**: Reviewers with `can_review_payments`, `SUPER_ADMIN`, or assigned event `LEAD` cannot review, approve, or hold their own payment submissions.
 7. **Append-Only Auditing**: `audit_logs`, `payment_audit_logs`, and `esports_score_history` have SQLite triggers that abort on `UPDATE` or `DELETE`. Never write code that attempts to mutate or delete audit rows.
 8. **E-Sports Exclusivity**: Scoring and public leaderboards are strictly restricted to events with `category = 'E_SPORTS'` (enforced by SQL check constraint).
 9. **Strict Validation**: All HTTP request bodies, query params, and path params must be validated with Zod `.strict()` schemas. Unknown fields must be rejected.
