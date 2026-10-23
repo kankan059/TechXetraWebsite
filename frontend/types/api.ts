@@ -84,18 +84,8 @@ export type CapacityUnit = "SEATS" | "TEAMS";
 export type ScoringStatus = "NOT_APPLICABLE" | "OPEN" | "FINALIZED";
 
 export type FormFieldType =
-  | "text"
-  | "number"
-  | "email"
-  | "tel"
-  | "url"
-  | "textarea"
-  | "select";
-
-export interface FormFieldOption {
-  label: string;
-  value: string;
-}
+  | "shortText" | "longText" | "number" | "singleChoice"
+  | "multipleChoice" | "checkbox" | "date" | "email" | "phone";
 
 export interface FormFieldDefinition {
   id: string;
@@ -103,8 +93,14 @@ export interface FormFieldDefinition {
   type: FormFieldType;
   required: boolean;
   placeholder?: string;
-  options?: FormFieldOption[];
-  description?: string;
+  options?: string[];          // was FormFieldOption[]
+  helperText?: string;         // was description
+  scope?: "PARTICIPANT" | "TEAM";
+}
+
+export interface FormFieldOption {
+  label: string;
+  value: string;
 }
 
 export interface EventItem {

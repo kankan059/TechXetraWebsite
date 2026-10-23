@@ -60,7 +60,7 @@ export default function DynamicQuestionnaireModal({
         newErrors[field.id] = `${field.label} is required.`;
         continue;
       }
-      if (val && field.type === "url") {
+      if (val && field.type === "longText") {
         try {
           new URL(String(val));
         } catch {

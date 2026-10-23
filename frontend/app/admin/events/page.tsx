@@ -33,6 +33,7 @@ import type {
   CapacityUnit,
   FormFieldDefinition,
   ScoringStatus,
+  FormFieldType,
 } from "@/types/api";
 
 function toDatetimeLocal(ms: number | null | undefined): string {
@@ -47,6 +48,28 @@ function fromDatetimeLocal(val: string): number | null {
   if (!val) return null;
   const d = new Date(val);
   return isNaN(d.getTime()) ? null : d.getTime();
+}
+
+const LEGACY_TYPE_MAP: Record<string, FormFieldType> = {
+  text: "shortText",
+  textarea: "longText",
+  tel: "phone",
+  url: "shortText",
+  select: "singleChoice",
+};
+
+function normalizeSchema(raw: any[]): FormFieldDefinition[] {
+  return raw.map((f) => {
+    const { description, options, type, ...rest } = f;
+    return {
+      ...rest,
+      type: LEGACY_TYPE_MAP[type] ?? type,
+      ...(description || f.helperText ? { helperText: f.helperText ?? description } : {}),
+      ...(Array.isArray(options)
+        ? { options: options.map((o: any) => (typeof o === "string" ? o : o.label ?? o.value)) }
+        : {}),
+    };
+  });
 }
 
 export default function AdminEventsPage() {
@@ -316,7 +339,7 @@ export default function AdminEventsPage() {
     setEditScoringEnabled(Boolean(evt.scoring_enabled));
     setEditScoringStatus(
       (evt as any).scoring_status ||
-        (evt.category === "E_SPORTS" ? "OPEN" : "NOT_APPLICABLE")
+      (evt.category === "E_SPORTS" ? "OPEN" : "NOT_APPLICABLE")
     );
     setEditMaxRounds((evt as any).max_rounds || 1);
     setEditVolunteersCanScore((evt as any).volunteers_can_score !== false);
@@ -325,7 +348,7 @@ export default function AdminEventsPage() {
     if (evt.form_schema) {
       try {
         const parsed = JSON.parse(evt.form_schema);
-        setEditFormSchema(Array.isArray(parsed) ? parsed : []);
+        setEditFormSchema(Array.isArray(parsed) ? normalizeSchema(parsed) : []);
       } catch {
         setEditFormSchema([]);
       }
@@ -368,7 +391,7 @@ export default function AdminEventsPage() {
         capacity: editCapacity ? Number(editCapacity) : null,
         capacity_unit: editCapacityUnit,
         scoring_enabled: editCategory === "E_SPORTS" ? editScoringEnabled : false,
-        form_schema: editFormSchema.length > 0 ? JSON.stringify(editFormSchema) : null,
+        form_schema: editFormSchema.length > 0 ? editFormSchema : null,
       };
 
       if (editCategory === "E_SPORTS") {
@@ -500,15 +523,14 @@ export default function AdminEventsPage() {
 
                     <td className="px-5 py-4">
                       <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          evt.status === "OPEN"
-                            ? "bg-emerald-400/10 text-emerald-300"
-                            : evt.status === "CLOSED"
+                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${evt.status === "OPEN"
+                          ? "bg-emerald-400/10 text-emerald-300"
+                          : evt.status === "CLOSED"
                             ? "bg-amber-400/10 text-amber-300"
                             : evt.status === "CANCELLED"
-                            ? "bg-red-400/10 text-red-300"
-                            : "bg-white/10 text-slate-400"
-                        }`}
+                              ? "bg-red-400/10 text-red-300"
+                              : "bg-white/10 text-slate-400"
+                          }`}
                       >
                         {evt.status}
                       </span>
@@ -795,11 +817,10 @@ export default function AdminEventsPage() {
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-white">{m.name}</span>
                           <span
-                            className={`rounded px-1.5 py-0.2 text-[10px] font-bold ${
-                              m.role === "LEAD"
-                                ? "bg-purple-400/20 text-purple-300"
-                                : "bg-cyan-400/20 text-cyan-300"
-                            }`}
+                            className={`rounded px-1.5 py-0.2 text-[10px] font-bold ${m.role === "LEAD"
+                              ? "bg-purple-400/20 text-purple-300"
+                              : "bg-cyan-400/20 text-cyan-300"
+                              }`}
                           >
                             {m.role}
                           </span>
@@ -1012,11 +1033,10 @@ export default function AdminEventsPage() {
               <button
                 type="button"
                 onClick={() => setEditTab("BASIC")}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-semibold transition ${
-                  editTab === "BASIC"
-                    ? "bg-[#55DFFF] text-black font-bold"
-                    : "text-white/60 hover:text-white"
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-semibold transition ${editTab === "BASIC"
+                  ? "bg-[#55DFFF] text-black font-bold"
+                  : "text-white/60 hover:text-white"
+                  }`}
               >
                 <Calendar className="h-3.5 w-3.5" />
                 <span>1. Basic Info & Dates</span>
@@ -1025,11 +1045,10 @@ export default function AdminEventsPage() {
               <button
                 type="button"
                 onClick={() => setEditTab("PRICING")}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-semibold transition ${
-                  editTab === "PRICING"
-                    ? "bg-[#55DFFF] text-black font-bold"
-                    : "text-white/60 hover:text-white"
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-semibold transition ${editTab === "PRICING"
+                  ? "bg-[#55DFFF] text-black font-bold"
+                  : "text-white/60 hover:text-white"
+                  }`}
               >
                 <DollarSign className="h-3.5 w-3.5" />
                 <span>2. Pricing & Capacity</span>
@@ -1039,11 +1058,10 @@ export default function AdminEventsPage() {
                 <button
                   type="button"
                   onClick={() => setEditTab("ESPORTS")}
-                  className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-semibold transition ${
-                    editTab === "ESPORTS"
-                      ? "bg-[#55DFFF] text-black font-bold"
-                      : "text-white/60 hover:text-white"
-                  }`}
+                  className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-semibold transition ${editTab === "ESPORTS"
+                    ? "bg-[#55DFFF] text-black font-bold"
+                    : "text-white/60 hover:text-white"
+                    }`}
                 >
                   <Gamepad2 className="h-3.5 w-3.5" />
                   <span>3. E-Sports Scoring</span>
@@ -1053,11 +1071,10 @@ export default function AdminEventsPage() {
               <button
                 type="button"
                 onClick={() => setEditTab("FORM")}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-semibold transition ${
-                  editTab === "FORM"
-                    ? "bg-[#55DFFF] text-black font-bold"
-                    : "text-white/60 hover:text-white"
-                }`}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-semibold transition ${editTab === "FORM"
+                  ? "bg-[#55DFFF] text-black font-bold"
+                  : "text-white/60 hover:text-white"
+                  }`}
               >
                 <ClipboardList className="h-3.5 w-3.5" />
                 <span>4. Dynamic Form ({editFormSchema.length})</span>

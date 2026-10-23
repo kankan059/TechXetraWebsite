@@ -20,13 +20,15 @@ interface FormSchemaBuilderProps {
 }
 
 const FIELD_TYPES: { label: string; value: FormFieldType }[] = [
-  { label: "Single-line Text (text)", value: "text" },
-  { label: "Multi-line Text (textarea)", value: "textarea" },
-  { label: "Number (number)", value: "number" },
-  { label: "Email Address (email)", value: "email" },
-  { label: "Website / URL Link (url)", value: "url" },
-  { label: "Phone Number (tel)", value: "tel" },
-  { label: "Dropdown Select (select)", value: "select" },
+  { label: "Short Text", value: "shortText" },
+  { label: "Long Text", value: "longText" },
+  { label: "Number", value: "number" },
+  { label: "Email Address", value: "email" },
+  { label: "Phone Number", value: "phone" },
+  { label: "Date", value: "date" },
+  { label: "Checkbox", value: "checkbox" },
+  { label: "Single Choice (dropdown)", value: "singleChoice" },
+  { label: "Multiple Choice", value: "multipleChoice" },
 ];
 
 function slugify(text: string): string {
@@ -49,7 +51,7 @@ export default function FormSchemaBuilder({
     const newField: FormFieldDefinition = {
       id: `question_${Date.now()}`,
       label: "New Question",
-      type: "text",
+      type: "shortText",
       required: false,
       placeholder: "",
     };
@@ -90,30 +92,20 @@ export default function FormSchemaBuilder({
 
   // Select Option handlers
   const handleAddOption = (fieldIndex: number) => {
-    const field = schema[fieldIndex];
-    const options = field.options || [];
-    const newOpt = {
-      label: `Option ${options.length + 1}`,
-      value: `option_${options.length + 1}`,
-    };
-    handleUpdateField(fieldIndex, { options: [...options, newOpt] });
+    const options = schema[fieldIndex].options || [];
+    handleUpdateField(fieldIndex, {
+      options: [...options, `Option ${options.length + 1}`],
+    });
   };
 
-  const handleUpdateOption = (
-    fieldIndex: number,
-    optIndex: number,
-    label: string,
-    value: string
-  ) => {
-    const field = schema[fieldIndex];
-    const nextOpts = [...(field.options || [])];
-    nextOpts[optIndex] = { label, value };
+  const handleUpdateOption = (fieldIndex: number, optIndex: number, value: string) => {
+    const nextOpts = [...(schema[fieldIndex].options || [])];
+    nextOpts[optIndex] = value;
     handleUpdateField(fieldIndex, { options: nextOpts });
   };
 
   const handleRemoveOption = (fieldIndex: number, optIndex: number) => {
-    const field = schema[fieldIndex];
-    const nextOpts = (field.options || []).filter((_, i) => i !== optIndex);
+    const nextOpts = (schema[fieldIndex].options || []).filter((_, i) => i !== optIndex);
     handleUpdateField(fieldIndex, { options: nextOpts });
   };
 
@@ -125,11 +117,10 @@ export default function FormSchemaBuilder({
           <button
             type="button"
             onClick={() => setActiveTab("BUILDER")}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
-              activeTab === "BUILDER"
-                ? "bg-purple-400 text-black font-bold"
-                : "text-white/60 hover:text-white"
-            }`}
+            className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${activeTab === "BUILDER"
+              ? "bg-purple-400 text-black font-bold"
+              : "text-white/60 hover:text-white"
+              }`}
           >
             <Settings2 className="h-3.5 w-3.5" />
             <span>Form Builder ({schema.length})</span>
@@ -137,11 +128,10 @@ export default function FormSchemaBuilder({
           <button
             type="button"
             onClick={() => setActiveTab("PREVIEW")}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${
-              activeTab === "PREVIEW"
-                ? "bg-cyan-400 text-black font-bold"
-                : "text-white/60 hover:text-white"
-            }`}
+            className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition ${activeTab === "PREVIEW"
+              ? "bg-cyan-400 text-black font-bold"
+              : "text-white/60 hover:text-white"
+              }`}
           >
             <Eye className="h-3.5 w-3.5" />
             <span>Live Checkout Preview</span>
@@ -305,9 +295,9 @@ export default function FormSchemaBuilder({
                   </label>
                   <input
                     type="text"
-                    value={field.description || ""}
+                    value={field.helperText || ""}
                     onChange={(e) =>
-                      handleUpdateField(idx, { description: e.target.value })
+                      handleUpdateField(idx, { helperText: e.target.value })
                     }
                     placeholder="Instructions displayed below question..."
                     disabled={disabled}
@@ -332,7 +322,7 @@ export default function FormSchemaBuilder({
                 </div>
 
                 {/* Options Builder for 'select' type */}
-                {field.type === "select" && (
+                {(field.type === "singleChoice" || field.type === "multipleChoice") && (
                   <div className="rounded-xl border border-white/10 bg-black/30 p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-semibold text-cyan-300 uppercase">
@@ -357,33 +347,11 @@ export default function FormSchemaBuilder({
                         <div key={optIdx} className="flex items-center gap-2">
                           <input
                             type="text"
-                            value={opt.label}
-                            onChange={(e) =>
-                              handleUpdateOption(
-                                idx,
-                                optIdx,
-                                e.target.value,
-                                slugify(e.target.value) || opt.value
-                              )
-                            }
-                            placeholder="Option Label (e.g. Size L)"
+                            value={opt}
+                            onChange={(e) => handleUpdateOption(idx, optIdx, e.target.value)}
+                            placeholder="Option text (e.g. Size L)"
                             disabled={disabled}
                             className="flex-1 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white outline-none"
-                          />
-                          <input
-                            type="text"
-                            value={opt.value}
-                            onChange={(e) =>
-                              handleUpdateOption(
-                                idx,
-                                optIdx,
-                                opt.label,
-                                e.target.value
-                              )
-                            }
-                            placeholder="Option Value"
-                            disabled={disabled}
-                            className="w-28 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 font-mono text-[11px] text-cyan-300 outline-none"
                           />
                           <button
                             type="button"
