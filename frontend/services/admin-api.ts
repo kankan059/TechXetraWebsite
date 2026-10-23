@@ -1,5 +1,10 @@
 import { apiRequest } from "@/lib/api-client";
 import { normalizeEventItem } from "@/services/participant-api";
+import {
+  adaptAttendanceReport,
+  adaptSalesReport,
+  adaptPendingReport,
+} from "@/lib/report-adapters";
 
 import type {
   DashboardSalesReport,
@@ -33,28 +38,59 @@ function queryString(params: Record<string, QueryValue> = {}) {
   return query ? `?${query}` : "";
 }
 
+function normalizeAdminUser(u: any): AdminUser {
+  return {
+    ...u,
+    is_active: u.is_active ?? u.isActive ?? 0,
+    can_review_payments: Boolean(u.can_review_payments ?? u.canReviewPayments ?? false),
+    phone: u.phone ?? null,
+    is_student: Boolean(u.is_student ?? u.isStudent),
+    institution_name: u.institution_name ?? u.institutionName ?? null,
+    institution_id: u.institution_id ?? u.institutionId ?? null,
+    profile_complete: Boolean(u.profile_complete ?? u.profileComplete ?? false),
+    created_at: u.created_at ?? u.createdAt ?? 0,
+  };
+}
+
 export const adminApi = {
   reports: {
     summary: () =>
       apiRequest<Record<string, unknown>>("/admin/reports/summary"),
 
-    sales: () =>
-      apiRequest<DashboardSalesReport>("/admin/reports/financial"),
+    sales: async () =>
+      adaptSalesReport(await apiRequest<unknown>("/admin/reports/financial")),
 
-    pendingVerification: () =>
-      apiRequest<DashboardPaymentReport>(
-        "/admin/payments?status=PENDING",
-      ),
+    pendingVerification: async () => {
+      const [submitted, pending] = await Promise.all([
+        apiRequest<unknown[]>("/admin/payments?status=SUBMITTED&pageSize=100"),
+        apiRequest<unknown[]>("/admin/payments?status=PENDING&pageSize=100"),
+      ]);
+      return adaptPendingReport([...submitted, ...pending]);
+    },
 
-    registrations: () =>
-      apiRequest<DashboardRegistrationReport>(
-        "/admin/reports/summary",
-      ),
+    attendance: async () =>
+      adaptAttendanceReport(await apiRequest<unknown>("/admin/reports/attendance")),
 
-    attendance: () =>
-      apiRequest<DashboardAttendanceReport>(
-        "/admin/reports/attendance",
-      ),
+    registrations: async (): Promise<DashboardRegistrationReport> => {
+      const { events } = await adminApi.events.list({ limit: 100 });
+      return events.map((e) => {
+        const r = e as unknown as Record<string, unknown>;
+        const taken = Number(r.seatsTaken ?? 0);
+        return {
+          event_id: String(r.id ?? ""),
+          slug: String(r.slug ?? ""),
+          title: String(r.title ?? ""),
+          category: String(r.category ?? ""),
+          day_of_event: Number(r.festDay ?? 0),
+          capacity: Number(r.capacity ?? 0),
+          seats_taken: taken,
+          confirmed_registrations_count: taken,
+          confirmed_seats_count: taken,
+          reserved_registrations_count: 0,
+          reserved_seats_count: 0,
+        };
+      });
+    },
 
     reconciliation: () =>
       apiRequest<Record<string, unknown>>(
@@ -78,10 +114,21 @@ export const adminApi = {
   },
 
   users: {
-    list: (params?: Record<string, QueryValue>) =>
-      apiRequest<{ users: AdminUser[]; next_cursor: string | null }>(
-        `/admin/users${queryString(params)}`,
-      ),
+    list: async (params?: Record<string, QueryValue>) => {
+      const { limit, ...rest } = params ?? {};
+      const raw = await apiRequest<unknown>(
+        `/admin/users${queryString({ ...rest, pageSize: limit ?? 100 })}`,
+      );
+      const rows = Array.isArray(raw)
+        ? raw
+        : Array.isArray((raw as { users?: unknown[] })?.users)
+          ? (raw as { users: unknown[] }).users
+          : [];
+      return {
+        users: rows.map(normalizeAdminUser),
+        next_cursor: null as string | null,
+      };
+    },
 
     get: (userId: string) =>
       apiRequest<AdminUser>(
@@ -234,10 +281,65 @@ export const adminApi = {
   },
 
   payments: {
-    list: (params?: Record<string, QueryValue>) =>
-      apiRequest<{ payments: AdminPayment[]; next_cursor: string | null }>(
-        `/admin/payments${queryString(params)}`,
-      ),
+    list: async (params?: Record<string, QueryValue>) => {
+      const tab = String(params?.status ?? "ALL");
+      const statusMap: Record<string, string[]> = {
+        PENDING: ["SUBMITTED", "PENDING"],
+        ON_HOLD: ["ON_HOLD"],
+        SUCCESS: ["SUCCESS", "APPROVED"],
+        FAILED: ["REJECTED"],
+      };
+      const backendStatuses: (string | undefined)[] = statusMap[tab] ?? [undefined];
+      const uiStatus: Record<string, string> = {
+        SUBMITTED: "PENDING",
+        APPROVED: "SUCCESS",
+        REJECTED: "FAILED",
+        WITHDRAWN: "FAILED",
+      };
+
+      const pages = await Promise.all(
+        backendStatuses.map((s) =>
+          apiRequest<Record<string, unknown>[]>(
+            `/admin/payments${queryString({ status: s, pageSize: 100 })}`,
+          ),
+        ),
+      );
+
+      const search = String(params?.search ?? "").trim().toLowerCase();
+
+      const payments = pages
+        .flat()
+        .map((p) => {
+          const b = (p.buyer ?? {}) as Record<string, unknown>;
+          const status = String(p.status ?? "");
+          return {
+            id: String(p.id ?? ""),
+            purchase_id: String(p.purchaseId ?? ""),
+            expected_amount_paise: Number(p.amountPaise ?? 0),
+            transaction_id: p.transactionId ? String(p.transactionId) : null,
+            status: (uiStatus[status] ?? status) as AdminPayment["status"],
+            reviewer_id: null,
+            reviewed_at: null,
+            rejection_reason: null,
+            internal_note: null,
+            created_at: Number(p.createdAt ?? 0),
+            buyer_id: String(b.id ?? ""),
+            buyer_name: String(b.name ?? ""),
+            buyer_email: String(b.email ?? ""),
+            buyer_phone: b.phone ? String(b.phone) : null,
+          } as AdminPayment;
+        })
+        .filter(
+          (p) =>
+            !search ||
+            [p.id, p.transaction_id, p.buyer_name, p.buyer_email].some((v) =>
+              (v ?? "").toLowerCase().includes(search),
+            ),
+        )
+        .sort((a, b) => b.created_at - a.created_at);
+
+      return { payments, next_cursor: null as string | null };
+    },
 
     get: (paymentId: string) =>
       apiRequest<AdminPayment>(
@@ -374,7 +476,18 @@ export const adminApi = {
   },
 
   settings: {
-    get: () => apiRequest<AdminSettings>("/catalog/passes"),
+    get: async () => {
+      const c = await apiRequest<{
+        gatePassPricePaise: number;
+        purchasesEnabled: boolean;
+        supportEmail: string;
+      }>("/catalog/passes");
+      return {
+        gate_pass_price_paise: c.gatePassPricePaise,
+        purchases_enabled: c.purchasesEnabled,
+        support_contact: c.supportEmail,
+      } as AdminSettings;
+    },
     update: (body: Record<string, unknown>) =>
       apiRequest<AdminSettings>("/admin/settings", {
         method: "PATCH",
@@ -383,7 +496,10 @@ export const adminApi = {
   },
 
   festDays: {
-    list: () => apiRequest<FestDay[]>("/catalog/passes"),
+    list: async () => {
+      const c = await apiRequest<{ festDays?: FestDay[] }>("/catalog/passes");
+      return c.festDays ?? [];
+    },
     update: (dayNumber: number, body: Record<string, unknown>) =>
       apiRequest<FestDay>(`/admin/fest-days/${dayNumber}`, {
         method: "PATCH",

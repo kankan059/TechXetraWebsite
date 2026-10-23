@@ -89,8 +89,8 @@ export default function AdminSettingsPage() {
     try {
       await adminApi.settings.update({
         gate_pass_price_paise: gatePassPricePaise ? Number(gatePassPricePaise) : undefined,
-        purchases_enabled: purchasesEnabled ? "1" : "0",
-        support_contact: supportContact.trim(),
+        purchases_enabled: purchasesEnabled,
+        support_email: supportContact.trim(),
       });
 
       setSuccess("Global festival settings updated successfully!");

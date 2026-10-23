@@ -139,7 +139,7 @@ export default function AdminUsersPage() {
     try {
       await adminApi.users.update(editingUser.id, {
         role: editRole,
-        can_review_payments: editCanReview,
+        // can_review_payments: editCanReview,
         is_active: editActive,
       });
 
@@ -232,11 +232,10 @@ export default function AdminUsersPage() {
               key={r}
               type="button"
               onClick={() => setRoleFilter(r)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                roleFilter === r
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${roleFilter === r
                   ? "bg-[#55DFFF] text-[#080B10] font-semibold"
                   : "border border-white/10 bg-white/[0.02] text-slate-400 hover:text-white"
-              }`}
+                }`}
             >
               {r.replace("_", " ")}
             </button>
@@ -286,15 +285,14 @@ export default function AdminUsersPage() {
                         <div className="flex flex-col gap-1">
                           <div>
                             <span
-                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
-                                u.role === "SUPER_ADMIN"
+                              className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${u.role === "SUPER_ADMIN"
                                   ? "bg-purple-400/10 text-purple-300"
                                   : u.role === "LEAD"
-                                  ? "bg-blue-400/10 text-blue-300"
-                                  : u.role === "VOLUNTEER"
-                                  ? "bg-cyan-400/10 text-cyan-300"
-                                  : "bg-white/10 text-slate-400"
-                              }`}
+                                    ? "bg-blue-400/10 text-blue-300"
+                                    : u.role === "VOLUNTEER"
+                                      ? "bg-cyan-400/10 text-cyan-300"
+                                      : "bg-white/10 text-slate-400"
+                                }`}
                             >
                               {u.role}
                             </span>
@@ -342,11 +340,10 @@ export default function AdminUsersPage() {
 
                       <td className="px-5 py-4">
                         <span
-                          className={`rounded px-2 py-0.5 text-[10px] font-medium ${
-                            isActive
+                          className={`rounded px-2 py-0.5 text-[10px] font-medium ${isActive
                               ? "bg-emerald-400/10 text-emerald-300"
                               : "bg-red-400/10 text-red-300"
-                          }`}
+                            }`}
                         >
                           {isActive ? "Active" : "Deactivated"}
                         </span>

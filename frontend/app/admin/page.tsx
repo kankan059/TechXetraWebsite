@@ -2,6 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { adminApi } from "@/services/admin-api";
+import {
+  adaptAttendanceReport,
+  adaptSalesReport,
+  adaptPendingReport,
+} from "@/lib/report-adapters";
 
 import type {
   SalesReport,
@@ -110,11 +115,22 @@ export default function AdminDashboardPage() {
         ]);
 
       setData({
-        sales: (salesRes.status === "fulfilled" ? salesRes.value : {}) as SalesReport,
-        pending: (pendingRes.status === "fulfilled" ? pendingRes.value : {}) as PendingVerificationReport,
-        registrations: (registrationsRes.status === "fulfilled" && Array.isArray(registrationsRes.value) ? registrationsRes.value : []) as EventRegistrationsReport,
-        attendance: (attendanceRes.status === "fulfilled" ? attendanceRes.value : {}) as AttendanceReport,
+        sales:
+          salesRes.status === "fulfilled" ? salesRes.value : adaptSalesReport({}),
+        pending:
+          pendingRes.status === "fulfilled"
+            ? pendingRes.value
+            : adaptPendingReport([]),
+        registrations: (registrationsRes.status === "fulfilled" &&
+          Array.isArray(registrationsRes.value)
+          ? registrationsRes.value
+          : []) as EventRegistrationsReport,
+        attendance:
+          attendanceRes.status === "fulfilled"
+            ? attendanceRes.value
+            : adaptAttendanceReport({}),
       });
+
     } catch (err) {
       console.error("Failed to load admin dashboard:", err);
 
@@ -416,11 +432,10 @@ export default function AdminDashboardPage() {
 
                     <td className="px-3 py-4">
                       <span
-                        className={`rounded-full px-2.5 py-1 text-xs ${
-                          payment.is_overdue
-                            ? "bg-red-400/10 text-red-300"
-                            : "bg-amber-400/10 text-amber-300"
-                        }`}
+                        className={`rounded-full px-2.5 py-1 text-xs ${payment.is_overdue
+                          ? "bg-red-400/10 text-red-300"
+                          : "bg-amber-400/10 text-amber-300"
+                          }`}
                       >
                         {payment.status}
                       </span>
