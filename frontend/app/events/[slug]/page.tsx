@@ -201,8 +201,10 @@ export default function EventDetailPage({
     }
   };
 
+
   const executeCheckout = async (responses: Record<string, any>) => {
     if (!event || !user) return;
+
     setSubmittingRegistration(true);
     setRegistrationModalError(null);
 
@@ -212,21 +214,34 @@ export default function EventDetailPage({
           {
             item_type: "EVENT_PASS",
             event_id: event.id,
-            form_responses: Object.keys(responses).length > 0 ? responses : undefined,
+            form_responses:
+              Object.keys(responses).length > 0 ? responses : undefined,
           } as any,
         ],
-        acknowledge_student_id_policy: Boolean(user.isStudent ?? user.is_student),
+        acknowledge_student_id_policy: Boolean(
+          user.isStudent ?? user.is_student
+        ),
       });
+
+      const purchase = data.purchase;
+
+      if (!purchase?.id) {
+        throw new Error("Purchase ID is missing from the response.");
+      }
 
       setShowQuestionnaireModal(false);
 
-      if (data.status === "PAID") {
+      if (purchase.status === "PAID") {
         router.push("/dashboard");
       } else {
-        router.push(`/checkout/${data.id}/pay`);
+        router.push(
+          `/checkout/${encodeURIComponent(purchase.id)}/pay`
+        );
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Registration error";
+      const msg =
+        err instanceof Error ? err.message : "Registration error";
+
       if (parsedSchema.length > 0) {
         setRegistrationModalError(msg);
       } else {
@@ -414,10 +429,10 @@ export default function EventDetailPage({
   const rawPrizes = Array.isArray(event.prizes) && event.prizes.length > 0
     ? event.prizes
     : Array.isArray(meta.prizes) && meta.prizes.length > 0
-    ? meta.prizes
-    : meta.prizes && typeof meta.prizes === "object"
-    ? [meta.prizes]
-    : [];
+      ? meta.prizes
+      : meta.prizes && typeof meta.prizes === "object"
+        ? [meta.prizes]
+        : [];
 
   if (rawPrizes.length > 0) {
     const firstItem = rawPrizes[0] as any;
@@ -453,10 +468,10 @@ export default function EventDetailPage({
   }[] = (Array.isArray(event.timeline) && event.timeline.length > 0)
       ? (event.timeline as any)
       : meta.timeline
-      ? meta.timeline
-      : meta.rounds
-        ? meta.rounds
-        : meta.event_format ?? [];
+        ? meta.timeline
+        : meta.rounds
+          ? meta.rounds
+          : meta.event_format ?? [];
   // Extract coordinators
   const coordinatorsList: { name?: string; phone?: string; email?: string; role?: string }[] = [];
   if (Array.isArray(meta.coordinators)) {

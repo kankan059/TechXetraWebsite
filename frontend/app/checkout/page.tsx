@@ -102,10 +102,12 @@ export default function CheckoutPassPage() {
     return () => context.revert();
   }, [loading, catalog, user, prefersReducedMotion]);
 
-  const handlePurchaseGatePass = async () => {
+
+  const handlePurchaseGatePass = async (): Promise<void> => {
     if (!user || !catalog || submitting) return;
 
     const isStudentUser = Boolean(user.isStudent ?? user.is_student);
+
     if (isStudentUser && !acknowledgeStudentPolicy) {
       setError(
         "You must acknowledge the student physical ID verification policy."
@@ -119,14 +121,28 @@ export default function CheckoutPassPage() {
     try {
       const data = await participantApi.purchases.create({
         items: [{ item_type: "GATE_PASS" }],
-        acknowledge_student_id_policy: isStudentUser ? acknowledgeStudentPolicy : false,
+        acknowledge_student_id_policy: isStudentUser
+          ? acknowledgeStudentPolicy
+          : false,
+        acknowledgeStudentIdPolicy: isStudentUser
+          ? acknowledgeStudentPolicy
+          : false,
       });
 
-      if (data.status === "PAID") {
-        router.push("/dashboard");
-      } else {
-        router.push(`/checkout/${data.id}/pay`);
+      const purchase = data.purchase;
+
+      if (!purchase?.id) {
+        throw new Error(
+          "Purchase creation succeeded, but the response has no purchase ID."
+        );
       }
+
+      if (purchase.status === "PAID") {
+        router.push("/dashboard");
+        return;
+      }
+
+      router.push(`/checkout/${encodeURIComponent(purchase.id)}/pay`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Checkout error.");
       setSubmitting(false);
@@ -147,7 +163,7 @@ export default function CheckoutPassPage() {
 
   if (!catalog || !user) return null;
 
-  const isStudent = user.is_student;
+  const isStudent = Boolean(user.isStudent ?? user.is_student);
   const pricePaise = isStudent
     ? catalog.gatePassStudentPricePaise
     : catalog.gatePassPricePaise;
@@ -289,9 +305,10 @@ export default function CheckoutPassPage() {
                   onChange={(e) =>
                     setAcknowledgeStudentPolicy(e.target.checked)
                   }
-                  className="mt-1 h-4 w-4 shrink-0 accent-cyan-300"
+                  className="mt-1 block h-5 w-5 shrink-0 cursor-pointer appearance-auto accent-cyan-400"
                 />
-                <span>
+
+                <span className="min-w-0 flex-1">
                   I understand and will bring my physical institution ID card.
                 </span>
               </label>

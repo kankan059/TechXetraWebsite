@@ -277,21 +277,81 @@ export interface PurchaseDetail {
   registrations: Registration[];
 }
 
+
+export interface CreatedPurchase {
+  id: string;
+  publicId: string;
+  status: PurchaseStatus;
+  currency: string;
+  totalAmountPaise: number;
+  totalAmountInr: number;
+  paymentMethod: "UPI" | "FREE" | null;
+  reservationExpiresAt: number | null;
+  createdAt: number;
+}
+
+export interface CreatePurchaseResponse {
+  purchase: CreatedPurchase;
+  items: Array<{
+    id: string;
+    purchaseId: string;
+    itemType: ItemType;
+    eventId: string | null;
+    teamId: string | null;
+    beneficiaryId: string;
+    quantity: number;
+    unitPricePaise: number;
+    lineTotalPaise: number;
+    tier: PriceTier;
+    descriptionSnapshot: {
+      tier: PriceTier;
+      title: string;
+    };
+    holdsSlot: number;
+    createdAt: number;
+  }>;
+  tickets: DigitalTicket[];
+  isFreeOrder: boolean;
+  upiInstructions: {
+    vpa: string;
+    payeeName: string;
+    amountPaise: number;
+    orderRef: string;
+  } | null;
+}
+
+// export interface PaymentInstructions {
+//   purchase_id?: string;
+//   purchaseId?: string;
+//   amount_paise?: number;
+//   amountPaise?: number;
+//   amount_rupees?: string;
+//   amountRupees?: string;
+//   payee_vpa?: string;
+//   payeeVpa?: string;
+//   payee_name?: string;
+//   payeeName?: string;
+//   upi_uri?: string;
+//   upiUri?: string;
+//   reservation_expires_at?: number | null;
+//   reservationExpiresAt?: number | null;
+// }
+
+
 export interface PaymentInstructions {
-  purchase_id?: string;
-  purchaseId?: string;
-  amount_paise?: number;
-  amountPaise?: number;
-  amount_rupees?: string;
-  amountRupees?: string;
-  payee_vpa?: string;
-  payeeVpa?: string;
-  payee_name?: string;
-  payeeName?: string;
-  upi_uri?: string;
-  upiUri?: string;
-  reservation_expires_at?: number | null;
-  reservationExpiresAt?: number | null;
+  purchaseId: string;
+  publicId: string;
+  status: PurchaseStatus;
+  totalAmountPaise: number;
+  totalAmountInr: number;
+  currency: string;
+  reservationExpiresAt: number | null;
+  upi: {
+    vpa: string;
+    payeeName: string;
+    amountPaise: number;
+    orderRef: string;
+  } | null;
 }
 
 export interface PaymentDecisionBody {

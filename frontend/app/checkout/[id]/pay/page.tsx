@@ -88,7 +88,7 @@ export default function CheckoutPaymentPage({
 
   // Interval timer for countdown
   useEffect(() => {
-    const expiresAt = instructions?.reservationExpiresAt ?? instructions?.reservation_expires_at;
+    const expiresAt = instructions?.reservationExpiresAt ?? instructions?.reservationExpiresAt;
     if (!expiresAt) return;
 
     const interval = setInterval(() => {
@@ -111,7 +111,7 @@ export default function CheckoutPaymentPage({
     return `${min.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
   };
 
-  const handleSubmitUtr = async (e: React.FormEvent) => {
+  const handleSubmitUtr = async (e: React.SubmitEvent) => {
     e.preventDefault();
     const cleanUtr = utr.trim();
     if (cleanUtr.length < 8) {
@@ -199,16 +199,29 @@ export default function CheckoutPaymentPage({
 
   if (!instructions || !purchase) return null;
 
-  const isPendingVerification = purchase.status === "PENDING_VERIFICATION";
-  const upiUri = instructions.upiUri || instructions.upi_uri || "";
-  const amountRupees = instructions.amountRupees || instructions.amount_rupees || (instructions.amountPaise ? (instructions.amountPaise / 100).toFixed(2) : "0");
-  const payeeName = instructions.payeeName || instructions.payee_name || "TechXetra";
-  const payeeVpa = instructions.payeeVpa || instructions.payee_vpa || "";
 
-  // Build QR code image URL from upi_uri
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data=${encodeURIComponent(
-    upiUri
-  )}`;
+  const isPendingVerification = purchase.status === "PENDING_VERIFICATION";
+
+  const amountRupees = instructions.totalAmountInr.toFixed(2);
+  const payeeName = instructions.upi?.payeeName ?? "TechXetra";
+  const payeeVpa = instructions.upi?.vpa ?? "";
+
+  const upiUri = instructions.upi
+    ? `upi://pay?${new URLSearchParams({
+      pa: instructions.upi.vpa,
+      pn: instructions.upi.payeeName,
+      am: (instructions.upi.amountPaise / 100).toFixed(2),
+      cu: instructions.currency,
+      tn: instructions.upi.orderRef,
+    }).toString()}`
+    : "";
+
+  const qrImageUrl = upiUri
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data=${encodeURIComponent(
+      upiUri
+    )}`
+    : "";
+
 
   return (
     <main className="relative z-10 min-h-screen bg-[#07090e] px-4 pb-24 pt-32 text-white sm:px-8">
@@ -334,7 +347,7 @@ export default function CheckoutPaymentPage({
               <p className="font-semibold text-white">How to complete payment:</p>
               <ol className="mt-2 list-decimal space-y-1 pl-4">
                 <li>Scan the QR code above or pay using any UPI app.</li>
-                <li>Ensure the exact payable amount matches (₹{instructions.amount_rupees}).</li>
+                <li>Ensure the exact payable amount matches (₹{amountRupees}).</li>
                 <li>Copy the 12-digit UTR / Reference number from your banking receipt.</li>
                 <li>Paste it below and submit for instant verification.</li>
               </ol>

@@ -15,6 +15,7 @@ import type {
   UserTicketsResponse,
   DigitalTicket,
   Registration,
+  CreatePurchaseResponse
 } from "@/types/api";
 
 type QueryValue = string | number | boolean | undefined;
@@ -54,12 +55,12 @@ export function normalizeEventItem(raw: any): EventItem {
       rules:
         typeof raw.rules === "string"
           ? raw.rules
-              .split("\n")
-              .map((r: string) => r.trim())
-              .filter(Boolean)
+            .split("\n")
+            .map((r: string) => r.trim())
+            .filter(Boolean)
           : Array.isArray(raw.rules)
-          ? raw.rules
-          : [],
+            ? raw.rules
+            : [],
       prizes: raw.prizes || [],
       timeline: raw.timeline || [],
     };
@@ -336,10 +337,12 @@ export const participantApi = {
       },
       idempotencyKey?: string,
     ) =>
-      apiRequest<PurchaseDetail>("/purchases", {
+      apiRequest<CreatePurchaseResponse>("/purchases", {
         method: "POST",
         body,
-        headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {},
+        headers: idempotencyKey
+          ? { "Idempotency-Key": idempotencyKey }
+          : {},
       }),
     list: () => apiRequest<PurchaseDetail[]>("/purchases/mine"),
     get: (purchaseId: string) =>

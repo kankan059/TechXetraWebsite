@@ -187,6 +187,7 @@ export default function TeamWorkspacePage({
     }
   };
 
+
   const executeCheckout = async (responses: Record<string, any>) => {
     if (!team) return;
 
@@ -201,26 +202,40 @@ export default function TeamWorkspacePage({
             item_type: "EVENT_PASS",
             event_id: team.event_id,
             team_id: team.id,
-            form_responses: Object.keys(responses).length > 0 ? responses : undefined,
+            form_responses:
+              Object.keys(responses).length > 0 ? responses : undefined,
           } as any,
         ],
-        acknowledge_student_id_policy: Boolean(user?.isStudent ?? user?.is_student),
+        acknowledge_student_id_policy: Boolean(
+          user?.isStudent ?? user?.is_student
+        ),
       });
+
+      const purchase = data.purchase;
+
+      if (!purchase?.id) {
+        throw new Error("Purchase ID is missing from the response.");
+      }
 
       setShowQuestionnaireModal(false);
 
-      if (data.status === "PAID") {
+      if (purchase.status === "PAID") {
         router.push("/dashboard");
       } else {
-        router.push(`/checkout/${data.id}/pay`);
+        router.push(
+          `/checkout/${encodeURIComponent(purchase.id)}/pay`
+        );
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Checkout error";
+      const msg =
+        err instanceof Error ? err.message : "Checkout error";
+
       if (parsedSchema.length > 0) {
         setQuestionnaireError(msg);
       } else {
         setError(msg);
       }
+    } finally {
       setProcessingAction(false);
     }
   };
@@ -327,13 +342,12 @@ export default function TeamWorkspacePage({
                   TEAM ROSTER
                 </span>
                 <span
-                  className={`rounded-full px-3 py-0.5 text-xs font-semibold ${
-                    team.status === "CONFIRMED"
-                      ? "bg-emerald-400/10 text-emerald-300"
-                      : team.status === "LOCKED"
+                  className={`rounded-full px-3 py-0.5 text-xs font-semibold ${team.status === "CONFIRMED"
+                    ? "bg-emerald-400/10 text-emerald-300"
+                    : team.status === "LOCKED"
                       ? "bg-amber-400/10 text-amber-300"
                       : "bg-white/10 text-white/70"
-                  }`}
+                    }`}
                 >
                   {team.status}
                 </span>
