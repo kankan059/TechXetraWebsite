@@ -22,6 +22,7 @@ export default function CheckoutPassPage() {
   const [catalog, setCatalog] = useState<FestCatalog | null>(null);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [redirecting, setRedirecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [acknowledgeStudentPolicy, setAcknowledgeStudentPolicy] =
     useState(false);
@@ -37,17 +38,33 @@ export default function CheckoutPassPage() {
         try {
           userData = await participantApi.auth.me();
           setUser(userData);
-        } catch (err) {
-          if (err instanceof ApiError && err.status === 401) {
-            router.push("/login?redirect=/checkout");
+        } catch (err: unknown) {
+          const status =
+            err instanceof ApiError
+              ? err.status
+              : typeof err === "object" && err !== null && "status" in err
+                ? Number((err as { status?: unknown }).status)
+                : undefined;
+
+          if (status === 401) {
+            setRedirecting(true);
+            window.location.replace("/login?redirect=%2Fcheckout");
             return;
           }
           throw err;
         }
 
+        // Some auth helpers return null instead of throwing on an expired session.
+        if (!userData) {
+          setRedirecting(true);
+          window.location.replace("/login?redirect=%2Fcheckout");
+          return;
+        }
+
         const isComplete = Boolean(userData.profileComplete ?? userData.profile_complete);
         if (!isComplete) {
-          router.push("/profile-completion");
+          setRedirecting(true);
+          router.replace("/profile-completion?redirect=%2Fcheckout");
           return;
         }
 
@@ -149,7 +166,7 @@ export default function CheckoutPassPage() {
     }
   };
 
-  if (loading) {
+  if (loading || redirecting) {
     return (
       <main className="flex min-h-screen items-center justify-center  px-5">
         <div className="w-full max-w-2xl animate-pulse space-y-5">
