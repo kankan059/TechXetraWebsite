@@ -186,7 +186,7 @@ export default function EventDetailPage({
       return;
     }
 
-    if (!user.profile_complete) {
+    if (!user.profileComplete) {
       router.push("/profile-completion");
       return;
     }

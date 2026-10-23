@@ -189,13 +189,18 @@ export default function Profile_fill() {
     try {
       setSaving(true);
 
-      await participantApi.auth.updateProfile({
+      const payload: Parameters<typeof participantApi.auth.updateProfile>[0] = {
         name: trimmedName,
         phone: trimmedPhone,
-        isStudent,
-        institutionName: isStudent ? trimmedInstitutionName : null,
-        institutionId: isStudent ? trimmedInstitutionId : null,
-      });
+      };
+      if (!studentFieldsLocked) {
+        payload.isStudent = isStudent;
+        if (isStudent) {
+          payload.institutionName = trimmedInstitutionName;
+          payload.institutionId = trimmedInstitutionId;
+        }
+      }
+      await participantApi.auth.updateProfile(payload);
 
       setSuccess("Profile saved successfully.");
 
@@ -260,7 +265,7 @@ export default function Profile_fill() {
                 Add your contact and institution details to continue to the TechXetra dashboard.
               </p>
               <div className="mt-6 flex items-center gap-3 sm:mt-10">
-                <Star className="bg-cyan-300"/>
+                <Star className="bg-cyan-300" />
                 <span className="font-cta text-xs uppercase tracking-[0.18em] text-white/40">
                   Participant profile · 2026
                 </span>
@@ -386,8 +391,8 @@ export default function Profile_fill() {
                       disabled={studentFieldsLocked}
                       onClick={() => setIsStudent((value) => !value)}
                       className={`relative h-6 w-11 shrink-0 rounded-full border transition ${isStudent
-                          ? "border-cyan-300/50 bg-cyan-300/25"
-                          : "border-white/20 bg-white/[0.06]"
+                        ? "border-cyan-300/50 bg-cyan-300/25"
+                        : "border-white/20 bg-white/[0.06]"
                         } ${studentFieldsLocked
                           ? "cursor-not-allowed opacity-50"
                           : "cursor-pointer"
@@ -395,8 +400,8 @@ export default function Profile_fill() {
                     >
                       <span
                         className={`absolute top-0.5 h-4 w-4 rounded-full transition-all ${isStudent
-                            ? "left-[1.35rem] bg-cyan-200"
-                            : "left-0.5 bg-white/60"
+                          ? "left-[1.35rem] bg-cyan-200"
+                          : "left-0.5 bg-white/60"
                           }`}
                       />
                     </button>

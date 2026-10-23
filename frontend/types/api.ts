@@ -355,7 +355,7 @@ export interface PaymentInstructions {
 }
 
 export interface PaymentDecisionBody {
-  decision: "APPROVE" | "APPROVED" | "REJECT" | "REJECTED" | "HOLD" | "ON_HOLD";
+  decision: "APPROVE" | "APPROVED" | "REJECT" | "REJECTED" | "HOLD" | "ON_HOLD" | "UNHOLD";
   rejectionReason?: string;
   reasonCode?: string;
   internalNote?: string;

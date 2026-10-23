@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/api-client";
+import { normalizeEventItem } from "@/services/participant-api";
 import type {
   ScanLookupResult,
   ScanAdmitResult,
@@ -147,16 +148,62 @@ export const staffApi = {
     listMine: () =>
       apiRequest<StaffEventSummary[]>("/staff/events/mine"),
 
-    getDashboard: (eventId: string) =>
-      apiRequest<StaffEventDashboard>(
+    getDashboard: async (eventId: string): Promise<StaffEventDashboard> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const raw = await apiRequest<any>(
         `/staff/events/${encodeURIComponent(eventId)}/dashboard`,
-      ),
+      );
+      const m = raw.metrics ?? {};
+      return {
+        event: normalizeEventItem(raw.event),
+        metrics: {
+          confirmed_count: Number(m.confirmedCount ?? 0),
+          reserved_count: Number(m.reservedCount ?? 0),
+          checked_in_count: Number(m.checkedInCount ?? 0),
+          pending_payments_count: 0, // payment review is Super Admin only
+          seats_remaining: raw.event?.seatsRemaining ?? null,
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        staff: (raw.staffRoster ?? []).map((s: any) => ({
+          user_id: s.userId,
+          name: s.name,
+          email: s.email,
+          phone: null,
+          role: s.role === "EVENT_LEAD" ? "LEAD" : s.role,
+          assigned_at: s.assignedAt,
+        })),
+      };
+    },
 
-    getRegistrations: (eventId: string, search?: string) => {
+    getRegistrations: async (eventId: string, search?: string) => {
       const query = search ? `?search=${encodeURIComponent(search)}` : "";
-      return apiRequest<EventRegistrationDetail[]>(
+      const raw = await apiRequest<any[]>(
         `/staff/events/${encodeURIComponent(eventId)}/participants${query}`,
       );
+      return (raw ?? []).map((r): EventRegistrationDetail => ({
+        registration_id: r.registrationId,
+        status: r.registrationStatus,
+        seat_count: r.seatCount,
+        registered_at: r.confirmedAt,
+        participant: {
+          id: r.attendee?.id ?? "",
+          name: r.attendee?.name ?? "",
+          email: r.attendee?.email ?? "",
+          phone: r.attendee?.phone ?? null,
+          institution_name: r.attendee?.institutionName ?? null,
+          institution_id: r.attendee?.institutionId ?? null,
+        },
+        team: r.team ? { id: r.team.id, name: r.team.name } : null,
+        ticket: r.ticket
+          ? {
+            id: r.ticket.id,
+            status: r.ticket.status,
+            checked_in: !!r.ticket.checkedInAt,
+            checked_in_at: r.ticket.checkedInAt ?? null,
+          }
+          : null,
+        form_responses: r.formResponses ?? null,
+      }));
     },
 
     getCheckIns: (eventId: string) =>

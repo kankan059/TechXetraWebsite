@@ -383,7 +383,7 @@ export const adminApi = {
 
     unhold: (paymentId: string) =>
       adminApi.payments.decision(paymentId, {
-        decision: "HOLD",
+        decision: "UNHOLD",
         internalNote: "Resumed review",
       }),
 

@@ -390,7 +390,53 @@ export const participantApi = {
   },
 
   tickets: {
-    myTickets: () => apiRequest<UserTicketsResponse>("/tickets/mine"),
+    myTickets: async (): Promise<UserTicketsResponse> => {
+      const raw = await apiRequest<unknown>("/tickets/mine");
+      const list: unknown[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray((raw as { tickets?: unknown[] })?.tickets)
+          ? (raw as { tickets: unknown[] }).tickets
+          : [];
+      const now = Date.now();
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tickets = list.map((t: any) => {
+        const validFrom = Number(t.validFrom ?? t.valid_from ?? 0);
+        const validTo = Number(t.validTo ?? t.valid_to ?? 0);
+        const status = String(t.status ?? "ACTIVE");
+        const state =
+          status === "REVOKED"
+            ? "REVOKED"
+            : status === "REPLACED"
+              ? "REPLACED"
+              : now < validFrom
+                ? "UPCOMING"
+                : now > validTo
+                  ? "EXPIRED"
+                  : "VALID";
+
+        return {
+          ...t,
+          purchase_item_id: t.purchaseItemId ?? t.purchase_item_id,
+          ticket_type: t.itemType ?? t.ticket_type,
+          ticketType: t.itemType ?? t.ticket_type,
+          qr_token: t.qrToken ?? t.qr_token,
+          qr_version: t.qrVersion ?? t.qr_version,
+          event_checked_in_at: t.eventCheckedInAt ?? t.event_checked_in_at ?? null,
+          created_at: t.createdAt ?? t.created_at,
+          updated_at: t.updatedAt ?? t.updated_at,
+          student_id_warning: t.student_id_warning ?? null,
+          validity: {
+            valid_from: validFrom,
+            valid_to: validTo,
+            state,
+            is_currently_valid: state === "VALID",
+          },
+        } as DigitalTicket;
+      });
+
+      return { tickets, preparing_tickets: [] };
+    },
     get: (ticketId: string) =>
       apiRequest<DigitalTicket>(
         `/tickets/${encodeURIComponent(ticketId)}`,
