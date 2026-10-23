@@ -14,9 +14,9 @@ import {
   Mail,
   Calendar,
 } from "lucide-react";
+import { participantApi } from "@/services/participant-api";
+import { ApiError } from "@/lib/api-client";
 import type { TeamMember } from "@/types/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
 
 export default function TeamInvitesPage() {
   const router = useRouter();
@@ -32,25 +32,13 @@ export default function TeamInvitesPage() {
       setLoading(true);
       setError(null);
 
-      // Verify session
-      const authRes = await fetch(`${API_BASE}/api/me`, { credentials: "include" });
-      if (authRes.status === 401) {
+      const data = await participantApi.teams.myInvites();
+      setInvites(data || []);
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 401) {
         router.push("/login?redirect=/me/team-invites");
         return;
       }
-
-      const res = await fetch(`${API_BASE}/api/me/team-invites`, {
-        credentials: "include",
-        headers: { Accept: "application/json" },
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to load team invitations");
-      }
-
-      setInvites(data.data || []);
-    } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error loading invitations");
     } finally {
       setLoading(false);
@@ -67,17 +55,7 @@ export default function TeamInvitesPage() {
     setSuccess(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/team-invites/${inviteId}/accept`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to accept team invitation");
-      }
-
+      await participantApi.teams.acceptInvite(inviteId);
       setSuccess("Team invitation accepted! You are now part of the roster.");
       void fetchInvites();
     } catch (err: unknown) {
@@ -93,17 +71,7 @@ export default function TeamInvitesPage() {
     setSuccess(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/team-invites/${inviteId}/decline`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to decline team invitation");
-      }
-
+      await participantApi.teams.declineInvite(inviteId);
       setSuccess("Team invitation declined.");
       void fetchInvites();
     } catch (err: unknown) {

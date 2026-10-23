@@ -28,8 +28,7 @@ import {
 } from "lucide-react";
 import type { EventItem, UserProfile, FormFieldDefinition } from "@/types/api";
 import DynamicQuestionnaireModal from "@/components/forms/DynamicQuestionnaireModal";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+import { participantApi } from "@/services/participant-api";
 
 interface EventMetadata {
   sub_category?: string;
@@ -122,50 +121,41 @@ export default function EventDetailPage({
         setError(null);
 
         // Fetch user auth status quietly
-        fetch(`${API_BASE}/api/me`, { credentials: "include" })
-          .then((r) => r.json())
+        participantApi.auth.me()
           .then((d) => {
-            if (d.success) setUser(d.data);
+            if (d) setUser(d);
           })
           .catch(() => null);
 
         // 1. Try fetching single event details first
-        const singleRes = await fetch(`${API_BASE}/api/events/${encodeURIComponent(slug)}`, {
-          credentials: "include",
-        });
-
-        if (singleRes.ok) {
-          const singleData = await singleRes.json();
-          if (singleData.success && singleData.data) {
-            setEvent(singleData.data);
+        try {
+          const singleData = await participantApi.events.get(slug);
+          if (singleData && (singleData.id || singleData.slug)) {
+            setEvent(singleData);
             setIsCategoryView(false);
             return;
           }
+        } catch {
+          // If single event fails, try category view
         }
 
-        //. If not a single event, check if it's a category match
+        // 2. If not a single event, check if it's a category match
         const normalizedCategory = slug.toUpperCase().replace("-", "_");
-        const catRes = await fetch(
-          `${API_BASE}/api/events?category=${encodeURIComponent(normalizedCategory)}`,
-          {
-            credentials: "include",
-          },
-        );
-
-        if (catRes.ok) {
-          const catData = await catRes.json();
-          if (catData.success && Array.isArray(catData.data?.events) && catData.data.events.length > 0) {
-            setCategoryEvents(catData.data.events);
+        try {
+          const catData = await participantApi.events.list({ category: normalizedCategory });
+          if (Array.isArray(catData?.events) && catData.events.length > 0) {
+            setCategoryEvents(catData.events);
             setIsCategoryView(true);
             return;
           }
+        } catch {
+          // Category lookup fallback
         }
 
         // 3. Fallback: list all events and see if slug matches title or slug
-        const listRes = await fetch(`${API_BASE}/api/events`, { credentials: "include" });
-        if (listRes.ok) {
-          const listData = await listRes.json();
-          const matched = listData.data?.events?.find(
+        try {
+          const listData = await participantApi.events.list({ limit: 100 });
+          const matched = listData?.events?.find(
             (e: EventItem) => e.slug === slug || e.id === slug,
           );
           if (matched) {
@@ -173,6 +163,8 @@ export default function EventDetailPage({
             setIsCategoryView(false);
             return;
           }
+        } catch {
+          // Fallback list failed
         }
 
         throw new Error("The requested event or category could not be found.");
@@ -213,33 +205,23 @@ export default function EventDetailPage({
     setRegistrationModalError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/purchases`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: [
-            {
-              item_type: "EVENT_PASS",
-              event_id: event.id,
-              form_responses: Object.keys(responses).length > 0 ? responses : undefined,
-            },
-          ],
-          acknowledge_student_id_policy: user.is_student,
-        }),
+      const data = await participantApi.purchases.create({
+        items: [
+          {
+            item_type: "EVENT_PASS",
+            event_id: event.id,
+            form_responses: Object.keys(responses).length > 0 ? responses : undefined,
+          } as any,
+        ],
+        acknowledge_student_id_policy: Boolean(user.isStudent ?? user.is_student),
       });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Could not start registration");
-      }
 
       setShowQuestionnaireModal(false);
 
-      if (data.data.status === "PAID") {
+      if (data.status === "PAID") {
         router.push("/dashboard");
       } else {
-        router.push(`/checkout/${data.data.id}/pay`);
+        router.push(`/checkout/${data.id}/pay`);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Registration error";
@@ -262,7 +244,8 @@ export default function EventDetailPage({
       return;
     }
 
-    if (!user.profile_complete) {
+    const isComplete = Boolean(user.profileComplete ?? user.profile_complete);
+    if (!isComplete) {
       router.push("/profile-completion");
       return;
     }
@@ -271,22 +254,12 @@ export default function EventDetailPage({
     setTeamError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/teams`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event_id: event.id,
-          name: teamName.trim(),
-        }),
+      const data = await participantApi.teams.create({
+        eventId: event.id,
+        name: teamName.trim(),
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to create team");
-      }
-
-      router.push(`/teams/${data.data.id}`);
+      router.push(`/teams/${data.id}`);
     } catch (err: unknown) {
       setTeamError(err instanceof Error ? err.message : "Team creation failed");
     } finally {

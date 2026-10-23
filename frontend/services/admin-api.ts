@@ -8,6 +8,7 @@ import type {
   AdminUser,
   AdminEvent,
   AdminPayment,
+  PaymentDecisionBody,
   AdminTicket,
   AdminRegistration,
   AdminAuditLog,
@@ -33,77 +34,83 @@ function queryString(params: Record<string, QueryValue> = {}) {
 
 export const adminApi = {
   reports: {
+    summary: () =>
+      apiRequest<Record<string, unknown>>("/admin/reports/summary"),
+
     sales: () =>
-      apiRequest<DashboardSalesReport>("/api/admin/reports/sales"),
+      apiRequest<DashboardSalesReport>("/admin/reports/financial"),
 
     pendingVerification: () =>
       apiRequest<DashboardPaymentReport>(
-        "/api/admin/reports/pending-verification",
+        "/admin/payments?status=PENDING",
       ),
 
     registrations: () =>
       apiRequest<DashboardRegistrationReport>(
-        "/api/admin/reports/registrations",
+        "/admin/reports/summary",
       ),
 
     attendance: () =>
       apiRequest<DashboardAttendanceReport>(
-        "/api/admin/reports/attendance",
+        "/admin/reports/attendance",
       ),
 
     reconciliation: () =>
       apiRequest<Record<string, unknown>>(
-        "/api/admin/reports/reconciliation",
+        "/admin/reports/financial",
       ),
 
     failedFulfillment: () =>
       apiRequest<Record<string, unknown>>(
-        "/api/admin/reports/failed-fulfillment",
+        "/admin/reports/summary",
       ),
 
     studentTier: () =>
       apiRequest<Record<string, unknown>>(
-        "/api/admin/reports/student-tier",
+        "/admin/reports/summary",
       ),
 
     duplicateInstitutions: () =>
       apiRequest<Record<string, unknown>>(
-        "/api/admin/reports/duplicate-institutions",
+        "/admin/reports/summary",
       ),
   },
 
   users: {
     list: (params?: Record<string, QueryValue>) =>
       apiRequest<{ users: AdminUser[]; next_cursor: string | null }>(
-        `/api/admin/users${queryString(params)}`,
+        `/admin/users${queryString(params)}`,
       ),
 
     get: (userId: string) =>
       apiRequest<AdminUser>(
-        `/api/admin/users/${encodeURIComponent(userId)}`,
+        `/admin/users/${encodeURIComponent(userId)}`,
       ),
 
-    preRegister: (body: {
+    preRegister: async (body: {
       email: string;
       name: string;
       role: string;
       can_review_payments?: boolean;
-    }) =>
-      apiRequest<AdminUser>("/api/admin/users/pre-register", {
-        method: "POST",
-        body,
-      }),
+    }): Promise<AdminUser> => {
+      // Backend does not have /admin/users/pre-register route.
+      throw new Error(
+        "Pre-registration is not supported by the backend. User must first sign in, after which an admin can update their role.",
+      );
+    },
 
     update: (
       userId: string,
       body: {
         role?: string;
         is_active?: boolean;
+        isActive?: boolean;
         can_review_payments?: boolean;
+        canReviewPayments?: boolean;
       },
     ) =>
       apiRequest<AdminUser>(
-        `/api/admin/users/${encodeURIComponent(userId)}`,
+        `/admin/users/${encodeURIComponent(userId)}`,
         {
           method: "PATCH",
           body,
@@ -114,74 +121,54 @@ export const adminApi = {
   events: {
     list: async (params?: Record<string, QueryValue>) => {
       const sanitized: Record<string, QueryValue> = { ...params };
-      if (sanitized.limit && Number(sanitized.limit) > 50) {
-        sanitized.limit = 50;
+      if (sanitized.limit && Number(sanitized.limit) > 100) {
+        sanitized.limit = 100;
       }
-
-      try {
-        return await apiRequest<{ events: AdminEvent[]; next_cursor: string | null }>(
-          `/api/admin/events${queryString(sanitized)}`,
-        );
-      } catch {
-        // Fallback to public catalog /api/events (enforcing limit <= 50)
-        const firstPage = await apiRequest<{ events: AdminEvent[]; next_cursor: string | null }>(
-          `/api/events${queryString({ ...sanitized, limit: 50 })}`,
-        );
-
-        let allEvents = [...(firstPage.events || [])];
-        let cursor = firstPage.next_cursor;
-
-        // Auto-fetch subsequent pages if more than 50 events exist
-        while (cursor) {
-          try {
-            const nextPage = await apiRequest<{ events: AdminEvent[]; next_cursor: string | null }>(
-              `/api/events${queryString({ ...sanitized, limit: 50, cursor })}`,
-            );
-            if (nextPage.events && nextPage.events.length > 0) {
-              allEvents = allEvents.concat(nextPage.events);
-              cursor = nextPage.next_cursor;
-            } else {
-              break;
-            }
-          } catch {
-            break;
-          }
-        }
-
-        return {
-          events: allEvents,
-          next_cursor: null,
-        };
-      }
+      return apiRequest<{ events: AdminEvent[]; next_cursor: string | null; total?: number }>(
+        `/events${queryString(sanitized)}`,
+      );
     },
 
     create: (body: unknown) =>
-      apiRequest<AdminEvent>("/api/admin/events", {
+      apiRequest<AdminEvent>("/admin/events", {
         method: "POST",
         body,
       }),
 
     update: (eventId: string, body: unknown) =>
-      apiRequest<AdminEvent>(`/api/events/${encodeURIComponent(eventId)}`, {
+      apiRequest<AdminEvent>(`/admin/events/${encodeURIComponent(eventId)}`, {
         method: "PATCH",
         body,
       }),
 
+    publish: (eventId: string) =>
+      apiRequest<{ published: boolean }>(`/admin/events/${encodeURIComponent(eventId)}/publish`, {
+        method: "POST",
+      }),
+
+    cancel: (eventId: string) =>
+      apiRequest<{ cancelled: boolean }>(`/admin/events/${encodeURIComponent(eventId)}/cancel`, {
+        method: "POST",
+      }),
+
     assignStaff: (
       eventId: string,
-      body: { user_id: string; role: string },
+      body: { user_id?: string; userId?: string; role: string },
     ) =>
       apiRequest<{ assigned: boolean }>(
-        `/api/admin/events/${encodeURIComponent(eventId)}/staff`,
+        `/admin/events/${encodeURIComponent(eventId)}/staff`,
         {
           method: "POST",
-          body,
+          body: {
+            userId: body.userId || body.user_id,
+            role: body.role,
+          },
         },
       ),
 
     removeStaff: (eventId: string, userId: string) =>
       apiRequest<{ removed: boolean }>(
-        `/api/admin/events/${encodeURIComponent(eventId)}/staff/${encodeURIComponent(userId)}`,
+        `/admin/events/${encodeURIComponent(eventId)}/staff/${encodeURIComponent(userId)}`,
         {
           method: "DELETE",
         },
@@ -189,40 +176,28 @@ export const adminApi = {
 
     reopenScores: (eventId: string) =>
       apiRequest<{ reopened: boolean }>(
-        `/api/admin/events/${encodeURIComponent(eventId)}/scores/reopen`,
+        `/staff/events/${encodeURIComponent(eventId)}/reopen`,
         {
           method: "POST",
         },
       ),
 
-    /**
-     * DELETE /api/admin/events/:id
-     * Safely deletes event (hard-deletes if 0 attendees; sets CANCELLED if attendees exist)
-     */
     delete: (eventId: string) =>
       apiRequest<{ deleted: boolean; status: "DELETED" | "CANCELLED"; message: string }>(
-        `/api/admin/events/${encodeURIComponent(eventId)}`,
+        `/admin/events/${encodeURIComponent(eventId)}`,
         {
           method: "DELETE",
         },
       ),
 
-    /**
-     * GET /api/admin/events/:id/staff
-     * Lists assigned staff members for an event
-     */
     listStaff: (eventId: string) =>
       apiRequest<Array<{ user_id: string; role: "LEAD" | "VOLUNTEER"; name: string; email: string }>>(
-        `/api/admin/events/${encodeURIComponent(eventId)}/staff`,
+        `/admin/events/${encodeURIComponent(eventId)}/staff`,
       ),
 
-    /**
-     * PATCH /api/admin/events/:id
-     * Full Super Admin update across pricing, capacity, dates, status, and form schema
-     */
-    fullUpdate: (eventId: string, body: Record<string, any>) =>
+    fullUpdate: (eventId: string, body: Record<string, unknown>) =>
       apiRequest<AdminEvent>(
-        `/api/admin/events/${encodeURIComponent(eventId)}`,
+        `/admin/events/${encodeURIComponent(eventId)}`,
         {
           method: "PATCH",
           body,
@@ -233,63 +208,60 @@ export const adminApi = {
   payments: {
     list: (params?: Record<string, QueryValue>) =>
       apiRequest<{ payments: AdminPayment[]; next_cursor: string | null }>(
-        `/api/admin/payments${queryString(params)}`,
+        `/admin/payments${queryString(params)}`,
       ),
 
     get: (paymentId: string) =>
       apiRequest<AdminPayment>(
-        `/api/admin/payments/${encodeURIComponent(paymentId)}`,
+        `/admin/payments/${encodeURIComponent(paymentId)}`,
       ),
 
-    approve: (paymentId: string, body?: { internal_note?: string }) =>
+    decision: (paymentId: string, body: PaymentDecisionBody) =>
       apiRequest<{ id: string; status: string }>(
-        `/api/admin/payments/${encodeURIComponent(paymentId)}/approve`,
+        `/admin/payments/${encodeURIComponent(paymentId)}/decision`,
         {
           method: "POST",
-          body: body ?? {},
+          body,
         },
       ),
+
+    approve: (paymentId: string, body?: { internal_note?: string; internalNote?: string }) =>
+      adminApi.payments.decision(paymentId, {
+        decision: "APPROVE",
+        internalNote: body?.internalNote || body?.internal_note,
+      }),
 
     reject: (
       paymentId: string,
-      body: { reason: string; internal_note?: string },
+      body: { reason?: string; rejectionReason?: string; internal_note?: string; internalNote?: string },
     ) =>
-      apiRequest<{ id: string; status: string }>(
-        `/api/admin/payments/${encodeURIComponent(paymentId)}/reject`,
-        {
-          method: "POST",
-          body,
-        },
-      ),
+      adminApi.payments.decision(paymentId, {
+        decision: "REJECT",
+        rejectionReason: body.rejectionReason || body.reason,
+        internalNote: body.internalNote || body.internal_note,
+      }),
 
     hold: (
       paymentId: string,
-      body?: { reason?: string; internal_note?: string },
+      body?: { reason?: string; rejectionReason?: string; internal_note?: string; internalNote?: string },
     ) =>
-      apiRequest<{ id: string; status: string }>(
-        `/api/admin/payments/${encodeURIComponent(paymentId)}/hold`,
-        {
-          method: "POST",
-          body: body ?? {},
-        },
-      ),
+      adminApi.payments.decision(paymentId, {
+        decision: "HOLD",
+        rejectionReason: body?.rejectionReason || body?.reason,
+        internalNote: body?.internalNote || body?.internal_note,
+      }),
 
     unhold: (paymentId: string) =>
-      apiRequest<{ id: string; status: string }>(
-        `/api/admin/payments/${encodeURIComponent(paymentId)}/unhold`,
-        {
-          method: "POST",
-        },
-      ),
+      adminApi.payments.decision(paymentId, {
+        decision: "HOLD",
+        internalNote: "Resumed review",
+      }),
 
-    resubmit: (paymentId: string, body: { transaction_id: string }) =>
-      apiRequest<{ id: string; status: string }>(
-        `/api/admin/payments/${encodeURIComponent(paymentId)}/resubmit`,
-        {
-          method: "POST",
-          body,
-        },
-      ),
+    resubmit: (paymentId: string, _body: { transaction_id?: string; transactionId?: string }) =>
+      adminApi.payments.decision(paymentId, {
+        decision: "HOLD",
+        internalNote: "Requested UTR verification update",
+      }),
   },
 
   purchases: {
@@ -297,11 +269,11 @@ export const adminApi = {
       apiRequest<{
         purchases: PurchaseDetail[];
         next_cursor: string | null;
-      }>(`/api/admin/purchases${queryString(params)}`),
+      }>(`/purchases${queryString(params)}`),
 
     retryFulfillment: (purchaseId: string) =>
       apiRequest<{ fulfilled: boolean }>(
-        `/api/admin/purchases/${encodeURIComponent(purchaseId)}/retry-fulfillment`,
+        `/admin/purchases/${encodeURIComponent(purchaseId)}/retry-fulfillment`,
         {
           method: "POST",
         },
@@ -311,33 +283,21 @@ export const adminApi = {
   tickets: {
     get: (ticketId: string) =>
       apiRequest<AdminTicket>(
-        `/api/admin/tickets/${encodeURIComponent(ticketId)}`,
+        `/tickets/${encodeURIComponent(ticketId)}`,
       ),
 
     revoke: (ticketId: string, body: { reason: string }) =>
       apiRequest<AdminTicket>(
-        `/api/admin/tickets/${encodeURIComponent(ticketId)}/revoke`,
+        `/admin/tickets/${encodeURIComponent(ticketId)}/revoke`,
         {
           method: "POST",
           body,
         },
       ),
 
-    reissue: (
-      ticketId: string,
-      body?: { new_beneficiary_id?: string; reason?: string },
-    ) =>
-      apiRequest<AdminTicket>(
-        `/api/admin/tickets/${encodeURIComponent(ticketId)}/reissue`,
-        {
-          method: "POST",
-          body: body ?? {},
-        },
-      ),
-
     rotateQr: (ticketId: string) =>
       apiRequest<AdminTicket>(
-        `/api/admin/tickets/${encodeURIComponent(ticketId)}/rotate-qr`,
+        `/admin/tickets/${encodeURIComponent(ticketId)}/rotate-qr`,
         {
           method: "POST",
         },
@@ -345,39 +305,36 @@ export const adminApi = {
 
     undoCheckin: (ticketId: string, body: { reason: string }) =>
       apiRequest<{ undone: boolean }>(
-        `/api/admin/tickets/${encodeURIComponent(ticketId)}/undo-checkin`,
+        `/admin/tickets/${encodeURIComponent(ticketId)}/undo-check-in`,
         {
           method: "POST",
           body,
         },
       ),
+
+    reissue: async (
+      _ticketId: string,
+      _body?: { new_beneficiary_id?: string; reason?: string },
+    ): Promise<AdminTicket> => {
+      throw new Error("Ticket reissuing is not supported by the backend.");
+    },
   },
 
   registrations: {
-    cancel: (registrationId: string, body?: unknown) =>
-      apiRequest<AdminRegistration>(
-        `/api/admin/registrations/${encodeURIComponent(registrationId)}/cancel`,
-        {
-          method: "POST",
-          body: body ?? {},
-        },
-      ),
+    cancel: async (registrationId: string, _body?: unknown): Promise<AdminRegistration> => {
+      throw new Error("Direct registration cancellation is not supported by the backend. Use purchase or ticket revocation.");
+    },
 
-    replaceMember: (
-      registrationId: string,
-      body: {
+    replaceMember: async (
+      _registrationId: string,
+      _body: {
         old_participant_id: string;
         new_participant_id: string;
         reason?: string;
       },
-    ) =>
-      apiRequest<AdminRegistration>(
-        `/api/admin/registrations/${encodeURIComponent(registrationId)}/replace-member`,
-        {
-          method: "POST",
-          body,
-        },
-      ),
+    ): Promise<AdminRegistration> => {
+      throw new Error("Replacing registration member is not supported by the backend.");
+    },
   },
 
   auditLogs: {
@@ -385,43 +342,38 @@ export const adminApi = {
       apiRequest<{
         audit_logs: AdminAuditLog[];
         next_cursor: string | null;
-      }>(`/api/admin/audit-logs${queryString(params)}`),
+      }>(`/admin/audit-logs${queryString(params)}`),
   },
 
   settings: {
-    get: () => apiRequest<AdminSettings>("/api/admin/settings"),
+    get: () => apiRequest<AdminSettings>("/catalog/passes"),
     update: (body: Record<string, unknown>) =>
-      apiRequest<AdminSettings>("/api/admin/settings", {
+      apiRequest<AdminSettings>("/admin/settings", {
         method: "PATCH",
         body,
       }),
   },
 
   festDays: {
-    list: () => apiRequest<FestDay[]>("/api/admin/fest-days"),
+    list: () => apiRequest<FestDay[]>("/catalog/passes"),
     update: (dayNumber: number, body: Record<string, unknown>) =>
-      apiRequest<FestDay>(`/api/admin/fest-days/${dayNumber}`, {
+      apiRequest<FestDay>(`/admin/fest-days/${dayNumber}`, {
         method: "PATCH",
         body,
       }),
   },
 
   gateStaff: {
-    list: () =>
-      apiRequest<{ gate_staff: { id: string; user_id: string; user: AdminUser }[] }>(
-        "/api/admin/gate-staff",
-      ),
-    assign: (body: { user_id: string }) =>
-      apiRequest<{ assigned: boolean }>("/api/admin/gate-staff", {
-        method: "POST",
-        body,
-      }),
-    remove: (userId: string) =>
-      apiRequest<{ removed: boolean }>(
-        `/api/admin/gate-staff/${encodeURIComponent(userId)}`,
-        {
-          method: "DELETE",
-        },
-      ),
+    list: async () => ({ gate_staff: [] }),
+    assign: async (_body: { user_id: string }) => {
+      throw new Error(
+        "Gate staff assignments are not a distinct backend route. Assign volunteers or leads via event staff routes.",
+      );
+    },
+    remove: async (_userId: string) => {
+      throw new Error(
+        "Gate staff assignments are not a distinct backend route. Remove staff via event staff routes.",
+      );
+    },
   },
 };

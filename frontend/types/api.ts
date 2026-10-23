@@ -6,16 +6,32 @@ export interface UserProfile {
   id: string;
   email: string;
   name: string;
-  avatar_url: string | null;
+  displayName?: string;
+  avatar_url?: string | null;
+  avatarUrl?: string | null;
   phone: string | null;
-  is_student: boolean;
-  institution_name: string | null;
-  institution_id: string | null;
-  student_fields_locked: boolean;
+  is_student?: boolean;
+  isStudent?: boolean;
+  institution_name?: string | null;
+  institutionName?: string | null;
+  institution_id?: string | null;
+  institutionId?: string | null;
+  student_fields_locked?: boolean;
+  studentFieldsLocked?: boolean;
   role: UserRole;
-  can_review_payments: boolean;
-  profile_complete: boolean;
-  missing_fields: string[];
+  can_review_payments?: boolean;
+  canReviewPayments?: boolean;
+  profile_complete?: boolean;
+  profileComplete?: boolean;
+  missing_fields?: string[];
+  missingFields?: string[];
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface SessionResponse {
+  authenticated: boolean;
+  user: UserProfile | null;
 }
 
 export interface RegisterRequest {
@@ -34,23 +50,19 @@ export interface GoogleLoginRequest {
 }
 
 export interface FestDay {
-  day_number: 1 | 2 | 3;
-  date: string; // YYYY-MM-DD
-  starts_at: number; // UTC ms
-  ends_at: number; // UTC ms
+  dayNumber: number;
+  date: string;
+  validFrom: string | null;
+  validTo: string | null;
   description: string | null;
 }
 
 export interface FestCatalog {
-  gate_pass: {
-    price_paise: number;
-    student_price_paise: number;
-    validity: string;
-  };
-  fest_days: FestDay[];
-  purchases_enabled: boolean;
-  student_id_warning_text: string;
-  support_contact: string;
+  purchasesEnabled: boolean;
+  supportEmail: string;
+  gatePassPricePaise: number;
+  gatePassStudentPricePaise: number;
+  festDays: FestDay[];
 }
 
 export type EventCategory =
@@ -103,25 +115,42 @@ export interface EventItem {
   description: string | null;
   venue: string | null;
   day_of_event: number;
+  festDay?: number;
   starts_at: number;
+  startsAt?: number;
   ends_at: number;
+  endsAt?: number;
   registration_closes_at: number | null;
+  registrationClosesAt?: number | null;
   status: EventStatus;
   is_team_event: boolean;
+  isTeamEvent?: boolean;
   min_team_size: number;
+  minTeamSize?: number;
   max_team_size: number;
+  maxTeamSize?: number;
   price_model: PriceModel;
+  priceModel?: PriceModel;
   price_paise: number;
+  pricePaise?: number;
   student_price_paise: number | null;
+  studentPricePaise?: number | null;
   capacity: number | null;
   seats_taken: number;
+  seatsTaken?: number;
   seats_remaining: number | null;
+  seatsRemaining?: number | null;
   capacity_unit: CapacityUnit;
+  capacityUnit?: CapacityUnit;
   registration_open: boolean;
+  registrationOpen?: boolean;
   scoring_enabled: boolean;
+  scoringEnabled?: boolean;
   leaderboard_public: boolean;
+  leaderboardPublic?: boolean;
   metadata?: string | null;
   form_schema?: string | null;
+  formSchema?: string | null;
 }
 
 export type TeamStatus = "DRAFT" | "LOCKED" | "CONFIRMED" | "CANCELLED";
@@ -238,13 +267,28 @@ export interface PurchaseDetail {
 }
 
 export interface PaymentInstructions {
-  purchase_id: string;
-  amount_paise: number;
-  amount_rupees: string;
-  payee_vpa: string;
-  payee_name: string;
-  upi_uri: string;
-  reservation_expires_at: number | null;
+  purchase_id?: string;
+  purchaseId?: string;
+  amount_paise?: number;
+  amountPaise?: number;
+  amount_rupees?: string;
+  amountRupees?: string;
+  payee_vpa?: string;
+  payeeVpa?: string;
+  payee_name?: string;
+  payeeName?: string;
+  upi_uri?: string;
+  upiUri?: string;
+  reservation_expires_at?: number | null;
+  reservationExpiresAt?: number | null;
+}
+
+export interface PaymentDecisionBody {
+  decision: "APPROVE" | "APPROVED" | "REJECT" | "REJECTED" | "HOLD" | "ON_HOLD";
+  rejectionReason?: string;
+  reasonCode?: string;
+  internalNote?: string;
+  privateNote?: string;
 }
 
 export type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED" | "ON_HOLD" | "WITHDRAWN";
@@ -276,11 +320,14 @@ export interface DigitalTicket {
   purchase_item_id: string;
   purchase_id: string;
   ticket_type: ItemType;
+  ticketType?: ItemType;
   tier: PriceTier;
   status: "ACTIVE" | "REVOKED" | "REPLACED";
   validity: DerivedTicketValidity;
   qr_token: string; // Format: tx1.<ticket_id>.<qr_version>.<hmac_signature>
+  qrToken?: string;
   qr_version: number;
+  qrVersion?: number;
   event_checked_in_at: number | null;
   purchase: {
     id: string;

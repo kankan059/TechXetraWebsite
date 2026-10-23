@@ -13,10 +13,9 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { EventItem } from "@/types/api";
 import EventCard from "@/components/sections/events/EventCard";
 
-gsap.registerPlugin(ScrollTrigger);
+import { participantApi } from "@/services/participant-api";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+gsap.registerPlugin(ScrollTrigger);
 
 type EventMetadata = {
   image?: string;
@@ -98,26 +97,8 @@ export default function EsportsEvents() {
       setLoading(true);
       setError(null);
 
-      // Fetch all public events and filter Esports on the client.
-      const params = new URLSearchParams({ limit: "50" });
-
-      const response = await fetch(
-        `${API_BASE}/api/events?${params.toString()}`,
-        {
-          credentials: "include",
-          signal,
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.error?.message || "Failed to load events."
-        );
-      }
-
-      const fetchedEvents: EventItem[] = data.data?.events ?? [];
+      const data = await participantApi.events.list({ limit: 50 });
+      const fetchedEvents: EventItem[] = data?.events ?? [];
 
       const normalizeCategory = (category: unknown) =>
         String(category ?? "")

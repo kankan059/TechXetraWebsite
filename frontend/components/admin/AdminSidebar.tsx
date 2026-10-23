@@ -9,7 +9,7 @@ const navigation = [
   { label: "Registrations", href: "/admin/registrations" },
   { label: "Passes", href: "/admin/passes" },
   { label: "Tickets & QR", href: "/admin/tickets" },
-  { label: "Competitions", href: "/admin/compititions" },
+  { label: "Competitions", href: "/admin/events" },
   { label: "Attendance", href: "/admin/attendance" },
   { label: "Users & Staff", href: "/admin/users" },
   { label: "Gate Staff", href: "/admin/gate-staff" },

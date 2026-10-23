@@ -8,14 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import { navigation, mainlogo } from "@/constants/navigation";
 import GooeyNav from "@/components/layouts/navbar/GooeyNav";
 import type { UserProfile } from "@/types/api";
-
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
-
-type AuthResponse = {
-  success?: boolean;
-  data?: UserProfile;
-};
+import { participantApi } from "@/services/participant-api";
 
 export default function NavBar() {
   const pathname = usePathname();
@@ -61,22 +54,9 @@ export default function NavBar() {
 
   const checkAuth = useCallback(async () => {
     try {
-      // Backend auth endpoint is GET /api/me with session cookie
-      const response = await fetch(`${API_URL}/api/me`, {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          Accept: "application/json",
-        },
-        cache: "no-store",
-      });
-
-      if (!response.ok) return null;
-
-      const result = (await response.json()) as AuthResponse;
-
-      if (result.success && result.data && result.data.id) {
-        return result.data;
+      const session = await participantApi.auth.session();
+      if (session.authenticated && session.user) {
+        return session.user;
       }
       return null;
     } catch {
@@ -101,13 +81,7 @@ export default function NavBar() {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${API_URL}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      await participantApi.auth.logout();
     } catch (err) {
       console.error("Logout request failed:", err);
     } finally {

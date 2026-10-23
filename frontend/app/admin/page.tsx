@@ -101,8 +101,8 @@ export default function AdminDashboardPage() {
 
   const loadDashboard = useCallback(async () => {
     try {
-      const [sales, pending, registrations, attendance] =
-        await Promise.all([
+      const [salesRes, pendingRes, registrationsRes, attendanceRes] =
+        await Promise.allSettled([
           adminApi.reports.sales(),
           adminApi.reports.pendingVerification(),
           adminApi.reports.registrations(),
@@ -110,10 +110,10 @@ export default function AdminDashboardPage() {
         ]);
 
       setData({
-        sales: sales as SalesReport,
-        pending: pending as PendingVerificationReport,
-        registrations: registrations as EventRegistrationsReport,
-        attendance: attendance as AttendanceReport,
+        sales: (salesRes.status === "fulfilled" ? salesRes.value : {}) as SalesReport,
+        pending: (pendingRes.status === "fulfilled" ? pendingRes.value : {}) as PendingVerificationReport,
+        registrations: (registrationsRes.status === "fulfilled" && Array.isArray(registrationsRes.value) ? registrationsRes.value : []) as EventRegistrationsReport,
+        attendance: (attendanceRes.status === "fulfilled" ? attendanceRes.value : {}) as AttendanceReport,
       });
     } catch (err) {
       console.error("Failed to load admin dashboard:", err);
@@ -188,18 +188,19 @@ export default function AdminDashboardPage() {
   }
 
   const { sales, pending, registrations, attendance } = data;
+  const regList = Array.isArray(registrations) ? registrations : [];
 
-  const confirmedSeats = registrations.reduce(
+  const confirmedSeats = regList.reduce(
     (total, event) => total + Number(event.confirmed_seats_count || 0),
     0,
   );
 
-  const reservedSeats = registrations.reduce(
+  const reservedSeats = regList.reduce(
     (total, event) => total + Number(event.reserved_seats_count || 0),
     0,
   );
 
-  const eventsWithRegistrations = [...registrations].sort(
+  const eventsWithRegistrations = [...regList].sort(
     (a, b) =>
       Number(b.confirmed_seats_count || 0) -
       Number(a.confirmed_seats_count || 0),

@@ -1,52 +1,41 @@
-# TechXetra backend — coding-agent task pack
+# TechXetra Backend — Node.js + Express + PostgreSQL Migration Task Pack
 
-This pack breaks the approved **TechXetra Backend — Architecture & Implementation Spec** into small, ordered implementation tasks for Hono on Cloudflare Workers + D1.
+This task pack provides a complete, step-by-step implementation guide for an AI agent or engineer to migrate the TechXetra backend from **Hono + Cloudflare Workers + D1 (SQLite)** to **Node.js + Express + PostgreSQL (using Drizzle ORM)**.
 
-## How to use this pack
+---
 
-1. Put this directory and the full architecture spec in the repository (recommended: `docs/backend-tasks/` and `docs/backend-architecture.md`).
-2. Prompt your coding agent with **one task file at a time**, in numeric order. Do not ask it to implement the entire pack in one turn.
-3. Require it to complete the task's verification checklist and report changed files, commands run, results, and any blockers before proceeding.
-4. Commit after each task passes. Never deploy a partially tested payment, ticket, or scanning flow to production.
-5. Keep the original architecture spec authoritative. If a task conflicts with it, stop and report the conflict instead of improvising.
+## 🧭 Navigation & Task Index
 
-## Task order
-
-| File | Scope | Gate before proceeding |
+| Task File | Scope & Focus | Key Deliverables |
 |---|---|---|
-| `TASK-00-repository-audit.md` | Inspect repo and plan safely | Existing structure and risks documented; no behavior changes |
-| `TASK-01-foundation-and-database.md` | Hono foundation, schema, seed, D1 batch toolkit | Migrations + guard + constraint mapping tests pass |
-| `TASK-02-auth-and-profile.md` | Google auth, sessions, profile, roles | Auth/profile/authorization tests pass |
-| `TASK-03-catalog-and-event-admin.md` | Events, settings, fest days, pricing/catalog reads | Event validation and permission tests pass |
-| `TASK-04-teams.md` | Team lifecycle and invitations | Team membership/race/lock tests pass |
-| `TASK-05-purchases-and-capacity.md` | Pricing snapshots, reservations, cancellation/expiry | Required capacity concurrency tests pass |
-| `TASK-06-manual-upi-payments.md` | UPI submission and reviewer state machine | Duplicate UTR, double approval, self-review tests pass |
-| `TASK-07-ticket-fulfillment-and-qr.md` | Retryable ticket issuance and signed QR token | Approval survives fulfillment failure; no duplicate tickets |
-| `TASK-08-scanning-and-check-in.md` | Gate/event scan lookup/admit/deny | Event double-scan race and gate-repeat tests pass |
-| `TASK-09-esports-scores-and-leaderboards.md` | E_SPORTS-only scoring | Version conflict, audit history, permissions, ranking tests pass |
-| `TASK-10-admin-audit-and-reports.md` | Admin operations, reporting, audit | Sensitive mutations audited and permission-tested |
-| `TASK-11-cron-security-and-release-gate.md` | Scheduled jobs, hardening, final regression | Full suite and production-readiness checklist pass |
+| **[`TASK-01-PROJECT-SETUP-AND-ENV.md`](./TASK-01-PROJECT-SETUP-AND-ENV.md)** | Foundation & Infrastructure | Node.js, Express, TypeScript, Docker Compose (Postgres 16), connection pooling, `.env` schema validation. |
+| **[`TASK-02-POSTGRES-SCHEMA-AND-MIGRATIONS.md`](./TASK-02-POSTGRES-SCHEMA-AND-MIGRATIONS.md)** | Database Schema (Drizzle ORM) | 14 tables, PostgreSQL enums, foreign keys, partial unique indexes, check constraints, initial seed data. |
+| **[`TASK-03-MIDDLEWARE-AND-FOUNDATION.md`](./TASK-03-MIDDLEWARE-AND-FOUNDATION.md)** | Core Middleware & Response Layer | Request ID tracing, structured logger, standard JSON envelopes, centralized error mapping, CORS, Helmet, CSRF, health routes. |
+| **[`TASK-04-AUTH-SESSIONS-AND-PROFILE.md`](./TASK-04-AUTH-SESSIONS-AND-PROFILE.md)** | Identity, Auth & User Profile | Sequential `TX26XXXX` User ID, PBKDF2 email/password auth, Google OAuth (JWKS), sliding sessions, profile completeness, student lock. |
+| **[`TASK-05-CATALOG-EVENTS-AND-LEADERBOARDS.md`](./TASK-05-CATALOG-EVENTS-AND-LEADERBOARDS.md)** | Public Events & Tournaments | Festival pass pricing, public event browsing with search/filters/pagination, seat calculation, public tournament leaderboards. |
+| **[`TASK-06-TEAMS-AND-INVITATIONS.md`](./TASK-06-TEAMS-AND-INVITATIONS.md)** | Teams & In-App Invitations | Team state machine (DRAFT -> LOCKED -> CONFIRMED), in-app invites on website dashboard, accept/decline, roster rules. |
+| **[`TASK-07-PURCHASES-AND-INVENTORY-RESERVATION.md`](./TASK-07-PURCHASES-AND-INVENTORY-RESERVATION.md)** | Checkout & 15-Minute Seat Hold | Native Postgres transactions with row-level locking (`FOR UPDATE`), 15-minute countdown, pricing matrix, dynamic form validation, free passes. |
+| **[`TASK-08-PAYMENTS-AND-UPI-VERIFICATION.md`](./TASK-08-PAYMENTS-AND-UPI-VERIFICATION.md)** | Manual UPI Payments & Review | UPI intent links, UTR submission with deduplication, timer pause, payment review desk, anti-self-dealing, durable payment truth. |
+| **[`TASK-09-DIGITAL-TICKETS-AND-QR-SCANNING.md`](./TASK-09-DIGITAL-TICKETS-AND-QR-SCANNING.md)** | Tickets, HMAC QR Codes & Check-In | Signed QR tokens (`tx1.<id>.<ver>.<hmac>`), participant ticket view, volunteer pre-scan lookup, single-use event check-in, pass-back warning. |
+| **[`TASK-10-ESPORTS-TOURNAMENT-SCORING.md`](./TASK-10-ESPORTS-TOURNAMENT-SCORING.md)** | E-Sports Scoring Engine | Round score management, optimistic concurrency versioning (`expected_version`), finalize/reopen scoring, immutable score history. |
+| **[`TASK-11-STAFF-AND-COMMITTEE-PORTAL.md`](./TASK-11-STAFF-AND-COMMITTEE-PORTAL.md)** | Event Committee Hub | Staff dashboard with live metrics, attendee rosters with custom question answers, event-scoped payment review, operational event edits. |
+| **[`TASK-12-ADMIN-MANAGEMENT-REPORTS-AND-AUDIT.md`](./TASK-12-ADMIN-MANAGEMENT-REPORTS-AND-AUDIT.md)** | Super Admin Control Suite | User directory & role promotion, safe event deletion, staff assignment, ticket lifecycle overrides, settings, financial/attendance reports, audit logs. |
+| **[`TASK-13-TESTING-DOCKER-AND-DEPLOYMENT.md`](./TASK-13-TESTING-DOCKER-AND-DEPLOYMENT.md)** | Verification & Production Setup | End-to-end integration test suite, multi-stage `Dockerfile`, PM2 cluster configuration for multi-core performance. |
 
-## Non-negotiable engineering rules
+---
 
-- **Do not guess.** If repository state, a requirement, Cloudflare binding capability, or schema behavior is unclear, inspect it and ask/record a blocker. Never silently invent a new workflow.
-- Do not overwrite or delete existing code/configuration before understanding it. Prefer small, reversible changes.
-- Read the entire architecture spec before coding. Especially preserve §§3–4 (D1 atomicity and invariants), §18 (tests), and §20 (assumptions/out-of-scope).
-- D1 writes must use prepared statements and the documented atomic `DB.batch()` / guard / conditional-update patterns. No interactive transactions. Never rely on a zero-row `UPDATE` to abort a batch.
-- All user input is Zod-validated, unknown fields rejected, SQL parameterized, authorization derived from current DB state, and errors returned in the stable envelope.
-- Use integer paise and Unix-millisecond UTC timestamps. Never use floating-point money or local-time DB timestamps.
-- Never create tickets before the purchase is `PAID`. Never change a paid purchase back to unpaid because fulfillment failed.
-- A submitted UTR is a claim, not proof of payment. Only an authorized reviewer can approve it, and never their own purchase.
-- No passwords, file uploads, student-ID image uploads, Razorpay, refunds, offline scanning, WebSockets, or individual team-member payments in v1. Student institution ID is text and must be checked physically at entry for student-tier passes.
-- Only `E_SPORTS` events may score or expose leaderboards. Ranks are computed server-side.
-- Do not log credentials, raw Google tokens, session tokens, HMAC secrets, phone numbers, or bulk UTR data.
-- Do not run production migrations or modify production data unless the user explicitly authorizes it. Never put real secrets into tracked files.
-- Never claim a test passed unless it was run and its result observed. If a test cannot run, state exactly why.
+## ⚡ Instructions for the AI Coding Agent
 
-## Definition of done for every task
-
-- The implementation matches the architecture spec and does not add out-of-scope features.
-- Tests cover happy paths, invalid input, permission boundaries, race/retry behavior where applicable, and database constraints.
-- `typecheck`, lint (if configured), and relevant tests pass. Existing tests remain passing.
-- No unrelated refactors, dependency upgrades, or destructive changes.
-- The agent reports: summary; files changed; commands/results; migrations added; security/invariant checks; known limitations; exact next task to run.
+1. **Reference Authoritative Docs:** Always consult `backend/structure/` for the complete API contracts, field names, and business rules.
+2. **Execute In Numeric Order:** Execute Task 01 through Task 13 sequentially. Do not skip tasks.
+3. **Preserve All Non-Negotiable Invariants:**
+   * **Monetary Precision:** All money stored and computed in integer **paise** (`₹100` = `10000`). Never use floating-point numbers.
+   * **Time Safety:** All timestamps are 64-bit Unix epoch milliseconds (`Date.now()`).
+   * **Native Transactions:** Use PostgreSQL interactive transactions (`db.transaction(async (tx) => ...)`) with row-level locks (`SELECT ... FOR UPDATE`) to prevent overselling. Do not re-create the D1 `_guard` table.
+   * **Sequential User IDs:** All users must be assigned IDs formatted as `TX26XXXX` (e.g., `TX260001`).
+   * **Durable Payment Truth:** Once a payment is approved, the purchase is permanently `PAID`. If ticket generation fails, leave it `PAID` with `fulfillment_status = 'FAILED'` so it can be retried without double charging.
+   * **Anti-Self-Dealing:** Organizers and reviewers can never review or approve their own payment submissions.
+   * **In-App Team Invitations:** Team invitations must be in-app records visible on the user's dashboard (not external emails).
+   * **Append-Only Auditing:** Maintain immutable audit logs for all administrative actions, payment transitions, and score modifications.
+   * **Strict Validation:** Use Zod schemas with `.strict()` on all request bodies, query parameters, and URL route parameters.
+   * **Data Redaction:** Never log passwords, tokens, bank UTRs, or phone numbers.

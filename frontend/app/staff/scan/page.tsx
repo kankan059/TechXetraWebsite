@@ -16,8 +16,9 @@ import {
   User,
 } from "lucide-react";
 import type { ScanLookupResult, UserProfile } from "@/types/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+import { staffApi } from "@/services/staff-api";
+import { participantApi } from "@/services/participant-api";
+import { ApiError } from "@/lib/api-client";
 
 export default function StaffScannerPage() {
   const router = useRouter();
@@ -51,23 +52,20 @@ export default function StaffScannerPage() {
     async function checkStaffAuth() {
       try {
         setLoadingAuth(true);
-        const res = await fetch(`${API_BASE}/api/me`, { credentials: "include" });
-        if (res.status === 401) {
+        const currentUser = await participantApi.auth.me();
+        setUser(currentUser);
+        if (
+          currentUser.role !== "VOLUNTEER" &&
+          currentUser.role !== "LEAD" &&
+          currentUser.role !== "SUPER_ADMIN"
+        ) {
+          router.push("/dashboard");
+        }
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
           router.push("/login?redirect=/staff/scan");
           return;
         }
-        const data = await res.json();
-        if (data.success) {
-          setUser(data.data);
-          if (
-            data.data.role !== "VOLUNTEER" &&
-            data.data.role !== "LEAD" &&
-            data.data.role !== "SUPER_ADMIN"
-          ) {
-            router.push("/dashboard");
-          }
-        }
-      } catch (err) {
         console.error(err);
       } finally {
         setLoadingAuth(false);
@@ -89,23 +87,13 @@ export default function StaffScannerPage() {
     setStudentIdChecked(false);
 
     try {
-      const res = await fetch(`${API_BASE}/api/staff/scan/lookup`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: rawToken,
-          context,
-          event_id: context === "EVENT" ? eventId.trim() || undefined : undefined,
-        }),
+      const data = await staffApi.scan.lookup({
+        qrToken: rawToken,
+        context,
+        eventId: context === "EVENT" ? eventId.trim() || undefined : undefined,
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Invalid QR token or signature failed");
-      }
-
-      setLookupResult(data.data);
+      setLookupResult(data);
     } catch (err: unknown) {
       setLookupError(err instanceof Error ? err.message : "Lookup failed");
     } finally {
@@ -123,22 +111,12 @@ export default function StaffScannerPage() {
 
     setAdmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/api/staff/scan/admit`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: tokenInput.trim(),
-          context,
-          event_id: context === "EVENT" ? eventId.trim() || undefined : undefined,
-          student_id_checked: studentIdChecked,
-        }),
+      await staffApi.scan.admit({
+        qrToken: tokenInput.trim(),
+        context,
+        eventId: context === "EVENT" ? eventId.trim() || undefined : undefined,
+        studentIdChecked,
       });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Admission rejected");
-      }
 
       setActionVerdict("ADMITTED");
       setActionMessage("Attendee admitted successfully!");
@@ -156,29 +134,19 @@ export default function StaffScannerPage() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/staff/scan/deny`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: tokenInput.trim(),
-          context,
-          reason: denyReason.trim(),
-          event_id: context === "EVENT" ? eventId.trim() || undefined : undefined,
-        }),
+      await staffApi.scan.deny({
+        qrToken: tokenInput.trim(),
+        context,
+        reason: denyReason.trim(),
+        event_id: context === "EVENT" ? eventId.trim() || undefined : undefined,
       });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Denial log failed");
-      }
 
       setActionVerdict("DENIED");
       setActionMessage(`Entry denied: ${denyReason.trim()}`);
       setShowDenyModal(false);
       setDenyReason("");
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Denial failed");
+      alert(err instanceof Error ? err.message : "Denial action failed");
     }
   };
 

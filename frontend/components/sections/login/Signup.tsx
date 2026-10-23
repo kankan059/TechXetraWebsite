@@ -8,17 +8,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import gsap from "gsap";
 
 import LogoTech from "@/components/animations/LogoTech";
-
-type SignupResponse = {
-    success: boolean;
-    data?: {
-        profile_complete?: boolean;
-        requires_email_verification?: boolean;
-    };
-    error?: {
-        message?: string;
-    };
-};
+import { participantApi } from "@/services/participant-api";
 
 export default function Signup() {
     const router = useRouter();
@@ -83,30 +73,11 @@ export default function Signup() {
         setNotice("");
 
         try {
-            const apiUrl =
-                process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
+            const result = await participantApi.auth.google(idToken);
+            const user = result.user;
+            const isComplete = Boolean(user?.profileComplete ?? user?.profile_complete);
 
-            // Google authentication uses the existing backend endpoint.
-            const response = await fetch(`${apiUrl}/api/auth/google`, {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ id_token: idToken }),
-            });
-
-            const result = (await response.json()) as SignupResponse;
-
-            if (!response.ok || !result.success) {
-                throw new Error(
-                    result.error?.message ?? "Unable to create your account."
-                );
-            }
-
-            router.replace(
-                result.data?.profile_complete ? "/dashboard" : "/profile-completion"
-            );
+            router.replace(isComplete ? "/dashboard" : "/profile-completion");
         } catch (err) {
             setError(
                 err instanceof Error
@@ -148,27 +119,15 @@ export default function Signup() {
 
         setLoading(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
-            const response = await fetch(`${apiUrl}/api/auth/register`, {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: trimmedName, email: normalizedEmail, password }),
+            const result = await participantApi.auth.register({
+                name: trimmedName,
+                email: normalizedEmail,
+                password,
             });
+            const user = result.user;
+            const isComplete = Boolean(user?.profileComplete ?? user?.profile_complete);
 
-            const result = (await response.json()) as SignupResponse;
-            if (!response.ok || !result.success) {
-                throw new Error(result.error?.message ?? "Unable to create your account.");
-            }
-
-            if (result.data?.requires_email_verification) {
-                setNotice("Account created. Check your email for the verification link before signing in.");
-                setPassword("");
-                setConfirmPassword("");
-                return;
-            }
-
-            router.replace(result.data?.profile_complete ? "/dashboard" : "/profile-completion");
+            router.replace(isComplete ? "/dashboard" : "/profile-completion");
         } catch (err) {
             setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
         } finally {

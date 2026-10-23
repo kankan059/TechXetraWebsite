@@ -16,8 +16,8 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import type { TeamDetail, EventItem, UserProfile } from "@/types/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+import { participantApi } from "@/services/participant-api";
+import { ApiError } from "@/lib/api-client";
 
 export default function TeamsDirectoryPage() {
   const router = useRouter();
@@ -41,27 +41,27 @@ export default function TeamsDirectoryPage() {
       setError(null);
 
       // 1. Get user profile
-      const userRes = await fetch(`${API_BASE}/api/me`, { credentials: "include" });
-      if (userRes.status === 401) {
-        router.push("/login?redirect=/teams");
-        return;
+      try {
+        const userData = await participantApi.auth.me();
+        setUser(userData);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          router.push("/login?redirect=/teams");
+          return;
+        }
       }
-      const userData = await userRes.json();
-      if (userData.success) setUser(userData.data);
 
       // 2. Fetch my teams and team-enabled events in parallel
-      const [teamsRes, eventsRes] = await Promise.all([
-        fetch(`${API_BASE}/api/me/teams`, { credentials: "include" }).then((r) => r.json()),
-        fetch(`${API_BASE}/api/events?is_team=true&limit=50`, { credentials: "include" }).then((r) =>
-          r.json()
-        ),
+      const [teamsRes, eventsRes] = await Promise.allSettled([
+        participantApi.teams.myTeams(),
+        participantApi.events.list({ is_team: true, limit: 50 }),
       ]);
 
-      if (teamsRes.success) {
-        setTeams(teamsRes.data || []);
+      if (teamsRes.status === "fulfilled" && teamsRes.value) {
+        setTeams(teamsRes.value || []);
       }
-      if (eventsRes.success) {
-        setEvents(eventsRes.data?.events || []);
+      if (eventsRes.status === "fulfilled" && eventsRes.value) {
+        setEvents(eventsRes.value?.events || []);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load teams");
@@ -78,7 +78,8 @@ export default function TeamsDirectoryPage() {
     e.preventDefault();
     if (!selectedEventId || !teamName.trim()) return;
 
-    if (user && !user.profile_complete) {
+    const isComplete = Boolean(user?.profileComplete ?? user?.profile_complete);
+    if (user && !isComplete) {
       router.push("/profile-completion");
       return;
     }
@@ -88,25 +89,15 @@ export default function TeamsDirectoryPage() {
     setSuccess(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/teams`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event_id: selectedEventId,
-          name: teamName.trim(),
-        }),
+      const data = await participantApi.teams.create({
+        eventId: selectedEventId,
+        name: teamName.trim(),
       });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to create team");
-      }
 
       setSuccess(`Team "${teamName}" created! Redirecting to workspace...`);
       setShowCreateModal(false);
       setTeamName("");
-      router.push(`/teams/${data.data.id}`);
+      router.push(`/teams/${data.id}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error creating team");
     } finally {

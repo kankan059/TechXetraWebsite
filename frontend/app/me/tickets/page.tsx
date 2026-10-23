@@ -18,8 +18,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import type { DigitalTicket, PreparingTicket } from "@/types/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+import { participantApi } from "@/services/participant-api";
+import { ApiError } from "@/lib/api-client";
 
 export default function MyTicketsPage() {
   const router = useRouter();
@@ -36,26 +36,14 @@ export default function MyTicketsPage() {
       setLoading(true);
       setError(null);
 
-      // Verify user session
-      const authRes = await fetch(`${API_BASE}/api/me`, { credentials: "include" });
-      if (authRes.status === 401) {
+      const data = await participantApi.tickets.myTickets();
+      setTickets(data?.tickets || []);
+      setPreparingTickets(data?.preparing_tickets || []);
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 401) {
         router.push("/login?redirect=/me/tickets");
         return;
       }
-
-      const res = await fetch(`${API_BASE}/api/tickets/me`, {
-        credentials: "include",
-        headers: { Accept: "application/json" },
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to load digital tickets");
-      }
-
-      setTickets(data.data?.tickets || []);
-      setPreparingTickets(data.data?.preparing_tickets || []);
-    } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error loading passes");
     } finally {
       setLoading(false);
@@ -72,21 +60,15 @@ export default function MyTicketsPage() {
     setSuccess(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/purchases/${purchaseId}/retry-fulfillment`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Fulfillment retry request failed");
-      }
-
+      await participantApi.purchases.retryFulfillment(purchaseId);
       setSuccess("Pass generation initiated! Refreshing tickets...");
       void fetchTickets();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Retry failed");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Fulfillment retry requires administrator approval. Please contact support."
+      );
     } finally {
       setRetryingId(null);
     }
@@ -216,11 +198,12 @@ export default function MyTicketsPage() {
         ) : (
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
             {tickets.map((tkt) => {
+              const tokenValue = tkt.qrToken || tkt.qr_token || "";
               const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(
-                tkt.qr_token,
+                tokenValue,
               )}`;
 
-              const isGatePass = tkt.ticket_type === "GATE_PASS";
+              const isGatePass = (tkt.ticketType || tkt.ticket_type) === "GATE_PASS";
 
               return (
                 <div
@@ -233,7 +216,7 @@ export default function MyTicketsPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="rounded-full bg-cyan-400/10 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-cyan-300">
-                            {tkt.ticket_type}
+                            {tkt.ticketType || tkt.ticket_type}
                           </span>
                           <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-0.5 text-[10px] font-medium text-white/70">
                             {tkt.tier} TIER
@@ -248,14 +231,14 @@ export default function MyTicketsPage() {
 
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          tkt.validity.state === "VALID"
+                          tkt.validity?.state === "VALID"
                             ? "bg-emerald-400/15 text-emerald-300"
-                            : tkt.validity.state === "UPCOMING"
+                            : tkt.validity?.state === "UPCOMING"
                             ? "bg-blue-400/15 text-blue-300"
                             : "bg-red-400/15 text-red-300"
                         }`}
                       >
-                        {tkt.validity.state}
+                        {tkt.validity?.state || "VALID"}
                       </span>
                     </div>
 
@@ -281,19 +264,21 @@ export default function MyTicketsPage() {
                           <span>Venue: {tkt.event.venue}</span>
                         </div>
                       )}
-                      {tkt.event?.day_of_event && (
+                      {(tkt.event?.day_of_event || (tkt.event as any)?.festDay) && (
                         <div className="flex items-center gap-2">
                           <Calendar className="h-3.5 w-3.5 text-white/40" />
-                          <span>Day {tkt.event.day_of_event} of TechXetra 2026</span>
+                          <span>Day {tkt.event?.day_of_event || (tkt.event as any)?.festDay} of TechXetra 2026</span>
                         </div>
                       )}
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3.5 w-3.5 text-white/40" />
-                        <span>
-                          Valid: {new Date(tkt.validity.valid_from).toLocaleDateString()} –{" "}
-                          {new Date(tkt.validity.valid_to).toLocaleDateString()}
-                        </span>
-                      </div>
+                      {tkt.validity?.valid_from && (
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-3.5 w-3.5 text-white/40" />
+                          <span>
+                            Valid: {new Date(tkt.validity.valid_from).toLocaleDateString()} –{" "}
+                            {new Date(tkt.validity.valid_to).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -321,7 +306,7 @@ export default function MyTicketsPage() {
                     <div className="mt-4 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-left">
                       <p className="text-[10px] font-mono uppercase text-white/40">HMAC QR Signature</p>
                       <p className="mt-0.5 break-all font-mono text-[11px] text-cyan-200/90">
-                        {tkt.qr_token}
+                        {tokenValue}
                       </p>
                     </div>
                   </div>

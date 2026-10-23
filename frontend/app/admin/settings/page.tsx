@@ -117,12 +117,12 @@ export default function AdminSettingsPage() {
     setSuccess(null);
 
     try {
-      await adminApi.festDays.update(editingDay.day_number, {
+      await adminApi.festDays.update(editingDay.dayNumber, {
         date: dayDate.trim(),
         description: dayDescription.trim(),
       });
 
-      setSuccess(`Fest Day ${editingDay.day_number} schedule updated!`);
+      setSuccess(`Fest Day ${editingDay.dayNumber} schedule updated!`);
       setEditingDay(null);
       void loadData();
     } catch (err: unknown) {
@@ -275,13 +275,13 @@ export default function AdminSettingsPage() {
             <div className="space-y-4">
               {festDays.map((day) => (
                 <div
-                  key={day.day_number}
+                  key={day.dayNumber}
                   className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 transition hover:border-[#55DFFF]/30"
                 >
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="rounded-full bg-[#55DFFF]/10 px-2 py-0.5 text-[10px] font-bold text-[#55DFFF]">
-                        DAY {day.day_number}
+                        DAY {day.dayNumber}
                       </span>
                       <h3 className="mt-2 text-base font-semibold text-white">
                         {day.date || "Date Unset"}
@@ -289,10 +289,10 @@ export default function AdminSettingsPage() {
                       <p className="mt-1 text-xs text-slate-400">
                         {day.description || "No description provided."}
                       </p>
-                      {day.starts_at && (
+                      {day.validFrom && (
                         <p className="mt-1 font-mono text-[11px] text-slate-500">
-                          {new Date(day.starts_at).toLocaleTimeString()} –{" "}
-                          {new Date(day.ends_at).toLocaleTimeString()}
+                          {new Date(day.validFrom).toLocaleTimeString()} –{" "}
+                          {new Date(day.validTo ?? "-").toLocaleTimeString()}
                         </p>
                       )}
                     </div>
@@ -317,7 +317,7 @@ export default function AdminSettingsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0C1017] p-6 shadow-2xl">
             <h2 className="text-lg font-bold text-white">
-              Edit Fest Day {editingDay.day_number}
+              Edit Fest Day {editingDay.dayNumber}
             </h2>
             <p className="mt-1 text-xs text-slate-400">
               Update date and programmatic agenda description.

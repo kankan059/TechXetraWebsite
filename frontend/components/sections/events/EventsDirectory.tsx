@@ -8,15 +8,13 @@ import { motion, useReducedMotion } from "framer-motion";
 import gsap from "gsap";
 import type { EventItem, FestCatalog } from "@/types/api";
 import EventCard from "@/components/sections/events/EventCard";
+import { participantApi } from "@/services/participant-api";
 import {
   CATEGORIES,
   DAY_FILTERS,
   TEAM_FILTERS,
   DIRECTORY_COPY,
 } from "@/data/event-directory";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
 
 function shuffleEvents<T>(items: T[]): T[] {
   const shuffled = [...items];
@@ -156,56 +154,38 @@ export default function EventsDirectory() {
       setLoading(true);
       setError(null);
 
-      const catalogRequest = fetch(`${API_BASE}/api/catalog/passes`, {
-        credentials: "include",
-      })
-        .then(async (response) => {
-          if (!response.ok) return null;
-          return response.json();
-        })
+      const catalogRequest = participantApi.catalog.passes()
         .then((data) => {
-          if (data?.success) {
-            setCatalog(data.data);
-          }
+          if (data) setCatalog(data);
         })
         .catch(() => null);
 
-      const params = new URLSearchParams();
+      const queryParams: Record<string, string | number | boolean | undefined> = {};
 
       if (selectedCategory !== "ALL") {
-        params.set("category", selectedCategory);
+        queryParams.category = selectedCategory;
       }
 
       if (selectedDay !== "ALL") {
-        params.set("day", selectedDay);
+        queryParams.day = Number(selectedDay);
       }
 
       if (teamFilter === "SOLO") {
-        params.set("is_team", "false");
+        queryParams.is_team = false;
       }
 
       if (teamFilter === "TEAM") {
-        params.set("is_team", "true");
+        queryParams.is_team = true;
       }
 
       if (search.trim()) {
-        params.set("search", search.trim());
+        queryParams.search = search.trim();
       }
 
-      params.set("limit", "50");
+      queryParams.limit = 50;
 
-      const response = await fetch(
-        `${API_BASE}/api/events?${params.toString()}`,
-        { credentials: "include" }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to load events.");
-      }
-
-      const fetchedEvents: EventItem[] = data.data?.events || [];
+      const data = await participantApi.events.list(queryParams);
+      const fetchedEvents: EventItem[] = data?.events || [];
       setEvents(shuffleEvents(fetchedEvents));
 
       await catalogRequest;
@@ -282,15 +262,15 @@ export default function EventsDirectory() {
                   {DIRECTORY_COPY.passDescription}
                 </p>
 
-                {catalog.fest_days?.length > 0 && (
+                {catalog.festDays?.length > 0 && (
                   <div className="mt-5 flex flex-wrap gap-2">
-                    {catalog.fest_days.map((day) => (
+                    {catalog.festDays.map((day) => (
                       <span
-                        key={day.day_number}
+                        key={day.dayNumber}
                         className="border border-white/10 px-3 py-2 text-xs text-white/60"
                       >
                         <span className="text-sky-300">
-                          DAY 0{day.day_number}
+                          DAY 0{day.dayNumber}
                         </span>
                         <span className="mx-2 text-white/20">/</span>
                         {day.date}
@@ -310,7 +290,7 @@ export default function EventsDirectory() {
                     <span className="text-3xl text-sky-300 [font-family:var(--font-gotham-bold)]">
                       ₹
                       {(
-                        (catalog.gate_pass.student_price_paise ?? 0) / 100
+                        (catalog.gatePassStudentPricePaise ?? 0) / 100
                       ).toFixed(0)}
                     </span>
                     <span className="text-xs text-white/45">Student</span>
@@ -318,7 +298,7 @@ export default function EventsDirectory() {
 
                   <p className="mt-1 text-xs text-white/50">
                     General: ₹
-                    {(catalog.gate_pass.price_paise / 100).toFixed(0)}
+                    {(catalog.gatePassPricePaise / 100).toFixed(0)}
                   </p>
                 </div>
 
@@ -448,11 +428,10 @@ export default function EventsDirectory() {
                       type="button"
                       onClick={() => setSelectedDay(day.value)}
                       aria-pressed={active}
-                      className={`cursor-pointer relative min-h-[54px] min-w-[58px] shrink-0 border px-4 text-[10px] uppercase tracking-wider transition-all duration-200 [font-family:var(--font-gotham-bold)] ${
-                        active
+                      className={`cursor-pointer relative min-h-[54px] min-w-[58px] shrink-0 border px-4 text-[10px] uppercase tracking-wider transition-all duration-200 [font-family:var(--font-gotham-bold)] ${active
                           ? "border-[#55DFFF] bg-[#55DFFF] text-[#09151B]"
                           : "border-white/10 bg-white/[0.02] text-white/55 hover:border-[#55DFFF]/50 hover:text-[#55DFFF]"
-                      }`}
+                        }`}
                       style={{
                         clipPath:
                           "polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%)",
@@ -487,11 +466,10 @@ export default function EventsDirectory() {
                         setTeamFilter(item.value as "ALL" | "SOLO" | "TEAM")
                       }
                       aria-pressed={active}
-                      className={`cursor-pointer min-h-[54px] min-w-0 flex-1 border px-2 text-[9px] uppercase tracking-wider transition-all duration-200 [font-family:var(--font-gotham-bold)] ${
-                        active
+                      className={`cursor-pointer min-h-[54px] min-w-0 flex-1 border px-2 text-[9px] uppercase tracking-wider transition-all duration-200 [font-family:var(--font-gotham-bold)] ${active
                           ? "border-[#8FE388] bg-[#8FE388] text-[#09151B]"
                           : "border-white/10 bg-white/[0.02] text-white/55 hover:border-[#8FE388]/50 hover:text-[#8FE388]"
-                      }`}
+                        }`}
                     >
                       {item.label}
                     </button>
@@ -523,22 +501,20 @@ export default function EventsDirectory() {
                     type="button"
                     onClick={() => setSelectedCategory(category.value)}
                     aria-pressed={active}
-                    className={`cursor-pointer group inline-flex min-h-10 items-center gap-2 border px-3.5 py-2 text-[10px] transition-all duration-200 [font-family:var(--font-gotham-bold)] ${
-                      active
+                    className={`cursor-pointer group inline-flex min-h-10 items-center gap-2 border px-3.5 py-2 text-[10px] transition-all duration-200 [font-family:var(--font-gotham-bold)] ${active
                         ? "border-[#55DFFF]/60 bg-[#55DFFF]/10 text-[#55DFFF]"
                         : "border-white/10 bg-transparent text-white/55 hover:border-white/25 hover:text-[#F5F0DE]"
-                    }`}
+                      }`}
                     style={{
                       clipPath:
                         "polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 0 100%)",
                     }}
                   >
                     <span
-                      className={`h-1.5 w-1.5 transition-colors ${
-                        active
+                      className={`h-1.5 w-1.5 transition-colors ${active
                           ? "bg-[#55DFFF]"
                           : "bg-white/20 group-hover:bg-white/60"
-                      }`}
+                        }`}
                     />
                     {category.label}
                   </button>
@@ -549,17 +525,17 @@ export default function EventsDirectory() {
                 selectedCategory !== "ALL" ||
                 selectedDay !== "ALL" ||
                 teamFilter !== "ALL") && (
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="cursor-pointer ml-auto inline-flex min-h-10 items-center gap-2 px-3 text-[9px] uppercase tracking-wider text-[#FF806E] transition-colors hover:text-[#FFAA9E] [font-family:var(--font-gotham-bold)]"
-                >
-                  Reset filters
-                  <span aria-hidden="true" className="text-sm">
-                    ×
-                  </span>
-                </button>
-              )}
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="cursor-pointer ml-auto inline-flex min-h-10 items-center gap-2 px-3 text-[9px] uppercase tracking-wider text-[#FF806E] transition-colors hover:text-[#FFAA9E] [font-family:var(--font-gotham-bold)]"
+                  >
+                    Reset filters
+                    <span aria-hidden="true" className="text-sm">
+                      ×
+                    </span>
+                  </button>
+                )}
             </div>
           </div>
         </section>

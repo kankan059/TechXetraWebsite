@@ -17,8 +17,8 @@ import {
 } from "lucide-react";
 import type { TeamDetail, UserProfile, EventItem, FormFieldDefinition } from "@/types/api";
 import DynamicQuestionnaireModal from "@/components/forms/DynamicQuestionnaireModal";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+import { participantApi } from "@/services/participant-api";
+import { ApiError } from "@/lib/api-client";
 
 export default function TeamWorkspacePage({
   params,
@@ -59,35 +59,27 @@ export default function TeamWorkspacePage({
       setError(null);
 
       // 1. Get user profile
-      const userRes = await fetch(`${API_BASE}/api/me`, { credentials: "include" });
-      if (userRes.status === 401) {
-        router.push("/login");
-        return;
+      try {
+        const userData = await participantApi.auth.me();
+        setUser(userData);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          router.push("/login");
+          return;
+        }
       }
-      const userData = await userRes.json();
-      if (userData.success) setUser(userData.data);
 
       // 2. Get team details
-      const teamRes = await fetch(`${API_BASE}/api/teams/${id}`, { credentials: "include" });
-      const teamData = await teamRes.json();
-
-      if (!teamRes.ok || !teamData.success) {
-        throw new Error(teamData.error?.message || "Team not found or access denied");
-      }
-
-      setTeam(teamData.data);
+      const teamData = await participantApi.teams.get(id);
+      setTeam(teamData);
 
       // 3. Get event details to inspect form_schema
-      if (teamData.data.event_id) {
+      const eventId = teamData.event_id || (teamData as any).eventId;
+      if (eventId) {
         try {
-          const eventRes = await fetch(`${API_BASE}/api/events/${teamData.data.event_id}`, {
-            credentials: "include",
-          });
-          if (eventRes.ok) {
-            const eventJson = await eventRes.json();
-            if (eventJson.success && eventJson.data) {
-              setEvent(eventJson.data);
-            }
+          const eventData = await participantApi.events.get(eventId);
+          if (eventData) {
+            setEvent(eventData);
           }
         } catch {
           // Non-critical if event fails to load immediately
@@ -113,18 +105,7 @@ export default function TeamWorkspacePage({
     setSuccess(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/teams/${team.id}/invites`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail.trim().toLowerCase() }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to send invitation");
-      }
-
+      await participantApi.teams.invite(team.id, inviteEmail.trim().toLowerCase());
       setInviteEmail("");
       setSuccess(`Invitation sent to ${inviteEmail}!`);
       void loadTeamData();
@@ -143,16 +124,7 @@ export default function TeamWorkspacePage({
     setSuccess(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/teams/${id}/members/${memberId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to remove member");
-      }
-
+      await participantApi.teams.removeMember(id, memberId);
       setSuccess("Member removed.");
       void loadTeamData();
     } catch (err: unknown) {
@@ -167,15 +139,7 @@ export default function TeamWorkspacePage({
     setError(null);
     setSuccess(null);
     try {
-      const res = await fetch(`${API_BASE}/api/team-invites/${memberId}/accept`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to accept invite");
-      }
+      await participantApi.teams.acceptInvite(memberId);
       setSuccess("You have joined the team!");
       void loadTeamData();
     } catch (err: unknown) {
@@ -190,15 +154,7 @@ export default function TeamWorkspacePage({
     setProcessingAction(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/api/team-invites/${memberId}/decline`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to decline invite");
-      }
+      await participantApi.teams.declineInvite(memberId);
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Could not decline invite");
@@ -213,16 +169,7 @@ export default function TeamWorkspacePage({
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/teams/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to disband team");
-      }
-
+      await participantApi.teams.disband(id);
       router.push("/dashboard");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error disbanding team");
@@ -248,34 +195,24 @@ export default function TeamWorkspacePage({
     setQuestionnaireError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/purchases`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: [
-            {
-              item_type: "EVENT_PASS",
-              event_id: team.event_id,
-              team_id: team.id,
-              form_responses: Object.keys(responses).length > 0 ? responses : undefined,
-            },
-          ],
-          acknowledge_student_id_policy: user?.is_student || false,
-        }),
+      const data = await participantApi.purchases.create({
+        items: [
+          {
+            item_type: "EVENT_PASS",
+            event_id: team.event_id,
+            team_id: team.id,
+            form_responses: Object.keys(responses).length > 0 ? responses : undefined,
+          } as any,
+        ],
+        acknowledge_student_id_policy: Boolean(user?.isStudent ?? user?.is_student),
       });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Could not start checkout");
-      }
 
       setShowQuestionnaireModal(false);
 
-      if (data.data.status === "PAID") {
+      if (data.status === "PAID") {
         router.push("/dashboard");
       } else {
-        router.push(`/checkout/${data.data.id}/pay`);
+        router.push(`/checkout/${data.id}/pay`);
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Checkout error";

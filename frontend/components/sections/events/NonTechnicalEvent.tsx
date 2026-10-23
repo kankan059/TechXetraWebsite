@@ -13,11 +13,9 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { EventItem } from "@/types/api";
 import EventCard from "@/components/sections/events/EventCard";
+import { participantApi } from "@/services/participant-api";
 
 gsap.registerPlugin(ScrollTrigger);
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
 
 type EventMetadata = {
   image?: string;
@@ -66,9 +64,8 @@ function formatFee(event: EventItem) {
     return "Free";
   }
 
-  return `₹${(event.price_paise / 100).toLocaleString("en-IN")}${
-    event.price_model === "PER_TEAM" ? " / team" : " / person"
-  }`;
+  return `₹${(event.price_paise / 100).toLocaleString("en-IN")}${event.price_model === "PER_TEAM" ? " / team" : " / person"
+    }`;
 }
 
 function getTeamSize(event: EventItem) {
@@ -100,25 +97,8 @@ export default function NonTechnicalEvents() {
       setLoading(true);
       setError(null);
 
-      // Fetch the full public event list, then exclude Technical and Esports below.
-      const params = new URLSearchParams({ limit: "50" });
-      const response = await fetch(
-        `${API_BASE}/api/events?${params.toString()}`,
-        {
-          credentials: "include",
-          signal,
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.error?.message || "Failed to load events."
-        );
-      }
-
-      const fetchedEvents: EventItem[] = data.data?.events ?? [];
+      const data = await participantApi.events.list({ limit: 50 });
+      const fetchedEvents: EventItem[] = data?.events ?? [];
       const normalizeCategory = (category: unknown) =>
         String(category ?? "")
           .trim()
@@ -336,7 +316,7 @@ export default function NonTechnicalEvents() {
       ref={rootRef}
       className="min-h-svh overflow-x-clip  px-5 pb-[calc(110px+env(safe-area-inset-bottom))] pt-9 text-[#F5F0DE] [font-family:var(--font-gotham-book)] min-[640px]:px-8 min-[900px]:px-12 min-[900px]:pb-24 min-[900px]:pt-32"
     >
-      <div className="mx-auto max-w-[1280px]">
+      <div className="mx-auto max-w-7xl">
         <header className="mb-9 border-b border-white/15 pb-8 min-[900px]:mb-12 min-[900px]:pb-10">
           <Link
             data-heading-part
@@ -351,7 +331,7 @@ export default function NonTechnicalEvents() {
             data-heading-part
             className="mb-4 text-[9px] uppercase tracking-[0.18em] text-[#FF806E] [font-family:var(--font-pixel)]"
           >
-             NON-TECHNICAL
+            NON-TECHNICAL
           </p>
 
           <h1
@@ -584,7 +564,7 @@ export default function NonTechnicalEvents() {
 
               <div className="sticky bottom-0 z-20 mt-auto shrink-0 border-t border-white/15 bg-[#101F26] px-5 pb-[calc(16px+env(safe-area-inset-bottom))] pt-4 min-[640px]:px-7">
                 {selectedMetadata.registration_url ||
-                selectedMetadata.registrationUrl ? (
+                  selectedMetadata.registrationUrl ? (
                   <a
                     href={
                       selectedMetadata.registration_url ||

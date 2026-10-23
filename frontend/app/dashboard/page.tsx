@@ -11,8 +11,8 @@ import type {
   TeamMember,
   PurchaseDetail,
 } from "@/types/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+import { participantApi } from "@/services/participant-api";
+import { ApiError } from "@/lib/api-client";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -30,47 +30,41 @@ export default function DashboardPage() {
   const fetchDashboardData = useCallback(async () => {
     try {
       // 1. Fetch current user
-      const userRes = await fetch(`${API_BASE}/api/me`, {
-        credentials: "include",
-        headers: { Accept: "application/json" },
-        cache: "no-store",
-      });
-
-      if (userRes.status === 401) {
-        router.replace("/login");
-        return;
+      let currentUser: UserProfile | null = null;
+      try {
+        currentUser = await participantApi.auth.me();
+        setUser(currentUser);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          router.replace("/login");
+          return;
+        }
+        throw err;
       }
 
-      const userJson = await userRes.json();
-      if (!userRes.ok || !userJson.success) {
-        throw new Error(userJson.error?.message || "Failed to load user profile");
-      }
-
-      setUser(userJson.data);
-
-      // 2. Fetch tickets in parallel
+      // 2. Fetch data in parallel
       const [ticketsRes, teamsRes, invitesRes, purchasesRes] = await Promise.allSettled([
-        fetch(`${API_BASE}/api/tickets/me`, { credentials: "include" }).then((r) => r.json()),
-        fetch(`${API_BASE}/api/me/teams`, { credentials: "include" }).then((r) => r.json()),
-        fetch(`${API_BASE}/api/me/team-invites`, { credentials: "include" }).then((r) => r.json()),
-        fetch(`${API_BASE}/api/purchases`, { credentials: "include" }).then((r) => r.json()),
+        participantApi.tickets.myTickets(),
+        participantApi.teams.myTeams(),
+        participantApi.teams.myInvites(),
+        participantApi.purchases.list(),
       ]);
 
-      if (ticketsRes.status === "fulfilled" && ticketsRes.value.success) {
-        setTickets(ticketsRes.value.data?.tickets || []);
-        setPreparingTickets(ticketsRes.value.data?.preparing_tickets || []);
+      if (ticketsRes.status === "fulfilled" && ticketsRes.value) {
+        setTickets(ticketsRes.value.tickets || []);
+        setPreparingTickets(ticketsRes.value.preparing_tickets || []);
       }
 
-      if (teamsRes.status === "fulfilled" && teamsRes.value.success) {
-        setTeams(teamsRes.value.data || []);
+      if (teamsRes.status === "fulfilled" && teamsRes.value) {
+        setTeams(teamsRes.value || []);
       }
 
-      if (invitesRes.status === "fulfilled" && invitesRes.value.success) {
-        setInvites(invitesRes.value.data || []);
+      if (invitesRes.status === "fulfilled" && invitesRes.value) {
+        setInvites(invitesRes.value || []);
       }
 
-      if (purchasesRes.status === "fulfilled" && purchasesRes.value.success) {
-        setPurchases(purchasesRes.value.data || []);
+      if (purchasesRes.status === "fulfilled" && purchasesRes.value) {
+        setPurchases(purchasesRes.value || []);
       }
     } catch (err) {
       console.error("Dashboard data load error:", err);
@@ -86,15 +80,7 @@ export default function DashboardPage() {
   const handleAcceptInvite = async (memberId: string) => {
     try {
       setActionMessage(null);
-      const res = await fetch(`${API_BASE}/api/team-invites/${memberId}/accept`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to accept invite");
-      }
+      await participantApi.teams.acceptInvite(memberId);
       setActionMessage("Team invitation accepted!");
       void fetchDashboardData();
     } catch (err: unknown) {
@@ -105,15 +91,7 @@ export default function DashboardPage() {
   const handleDeclineInvite = async (memberId: string) => {
     try {
       setActionMessage(null);
-      const res = await fetch(`${API_BASE}/api/team-invites/${memberId}/decline`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to decline invite");
-      }
+      await participantApi.teams.declineInvite(memberId);
       setActionMessage("Team invitation declined.");
       void fetchDashboardData();
     } catch (err: unknown) {
@@ -124,19 +102,15 @@ export default function DashboardPage() {
   const handleRetryFulfillment = async (purchaseId: string) => {
     try {
       setRetryingId(purchaseId);
-      const res = await fetch(`${API_BASE}/api/purchases/${purchaseId}/retry-fulfillment`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Retry failed. Please try again in 5s.");
-      }
+      await participantApi.purchases.retryFulfillment(purchaseId);
       setActionMessage("Tickets generated successfully!");
       void fetchDashboardData();
     } catch (err: unknown) {
-      setActionMessage(err instanceof Error ? err.message : "Retry failed");
+      setActionMessage(
+        err instanceof Error
+          ? err.message
+          : "Fulfillment retry requires administrator approval. Please contact support."
+      );
     } finally {
       setRetryingId(null);
     }
@@ -144,10 +118,7 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${API_BASE}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
+      await participantApi.auth.logout();
     } finally {
       router.push("/login");
       router.refresh();
@@ -217,7 +188,7 @@ export default function DashboardPage() {
         )}
 
         {/* Profile Incomplete Banner */}
-        {!user.profile_complete && (
+        {!(user.profileComplete ?? user.profile_complete) && (
           <div className="flex flex-col items-start justify-between gap-4 rounded-none border border-amber-400/30 bg-amber-400/10 p-5 sm:flex-row sm:items-center">
             <div className="flex items-start gap-3">
               
@@ -225,7 +196,8 @@ export default function DashboardPage() {
                 <p className="font-medium text-[#FFCA8A]">Profile incomplete</p>
                 <p className="mt-0.5 text-xs text-[#FFCA8A]/80">
                   Please complete your profile to register for events or purchase passes.
-                  Missing: {user.missing_fields.join(", ")}
+                  {(user.missingFields ?? user.missing_fields ?? []).length > 0 &&
+                    ` Missing: ${(user.missingFields ?? user.missing_fields ?? []).join(", ")}`}
                 </p>
               </div>
             </div>
@@ -258,23 +230,23 @@ export default function DashboardPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-white/40">Student Status</span>
-                <span className="text-white/80">{user.is_student ? "Yes" : "General Attendee"}</span>
+                <span className="text-white/80">{(user.isStudent ?? user.is_student) ? "Yes" : "General Attendee"}</span>
               </div>
-              {user.is_student && (
+              {(user.isStudent ?? user.is_student) && (
                 <>
                   <div className="flex justify-between">
                     <span className="text-white/40">Institution</span>
                     <span className="max-w-[150px] truncate text-right text-white/80">
-                      {user.institution_name || "—"}
+                      {user.institutionName ?? user.institution_name ?? "—"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-white/40">Student ID</span>
-                    <span className="text-white/80">{user.institution_id || "—"}</span>
+                    <span className="text-white/80">{user.institutionId ?? user.institution_id ?? "—"}</span>
                   </div>
                 </>
               )}
-              {user.student_fields_locked && (
+              {(user.studentFieldsLocked ?? user.student_fields_locked) && (
                 <div className="mt-2 flex items-center gap-2 rounded-none bg-[#8FE388]/10 p-2 text-[11px] text-[#8FE388]">
                   
                   <span>Student ID verified & locked</span>

@@ -1,6 +1,9 @@
 import { apiRequest } from "@/lib/api-client";
 import type {
   UserProfile,
+  SessionResponse,
+  LoginRequest,
+  RegisterRequest,
   FestCatalog,
   EventItem,
   LeaderboardResponse,
@@ -30,68 +33,108 @@ function queryString(params: Record<string, QueryValue> = {}) {
 export const participantApi = {
   // Module 01: Auth & Profile
   auth: {
-    me: () => apiRequest<UserProfile>("/api/me"),
-    updateProfile: (body: {
-      name?: string;
-      phone?: string;
-      is_student?: boolean;
-      institution_name?: string | null;
-      institution_id?: string | null;
-    }) =>
-      apiRequest<UserProfile>("/api/me/profile", {
-        method: "PATCH",
+    session: () => apiRequest<SessionResponse>("/auth/session"),
+    me: () => apiRequest<UserProfile>("/me"),
+    login: (body: LoginRequest) =>
+      apiRequest<{ user: UserProfile }>("/auth/login", {
+        method: "POST",
         body,
       }),
+    register: (body: RegisterRequest) =>
+      apiRequest<{ user: UserProfile }>("/auth/register", {
+        method: "POST",
+        body,
+      }),
+    google: (idToken: string) =>
+      apiRequest<{ user: UserProfile }>("/auth/google", {
+        method: "POST",
+        body: { idToken },
+      }),
+    updateProfile: (body: {
+      name?: string;
+      displayName?: string;
+      phone?: string;
+      isStudent?: boolean;
+      is_student?: boolean;
+      institutionName?: string | null;
+      institution_name?: string | null;
+      institutionId?: string | null;
+      institution_id?: string | null;
+      avatarUrl?: string | null;
+    }) => {
+      const payload: Record<string, unknown> = {};
+      if (body.name !== undefined) payload.name = body.name;
+      if (body.displayName !== undefined) payload.displayName = body.displayName;
+      if (body.phone !== undefined) payload.phone = body.phone;
+      if (body.isStudent !== undefined) payload.isStudent = body.isStudent;
+      else if (body.is_student !== undefined) payload.isStudent = body.is_student;
+      if (body.institutionName !== undefined) payload.institutionName = body.institutionName;
+      else if (body.institution_name !== undefined) payload.institutionName = body.institution_name;
+      if (body.institutionId !== undefined) payload.institutionId = body.institutionId;
+      else if (body.institution_id !== undefined) payload.institutionId = body.institution_id;
+      if (body.avatarUrl !== undefined) payload.avatarUrl = body.avatarUrl;
+
+      return apiRequest<UserProfile>("/me", {
+        method: "PATCH",
+        body: payload,
+      });
+    },
     logout: () =>
-      apiRequest<{ logged_out: boolean }>("/api/auth/logout", {
+      apiRequest<{ message?: string; logged_out?: boolean }>("/auth/logout", {
         method: "POST",
       }),
   },
 
   // Module 02: Catalog & Events & Leaderboards
   catalog: {
-    passes: () => apiRequest<FestCatalog>("/api/catalog/passes"),
+    passes: () => apiRequest<FestCatalog>("/catalog/passes"),
   },
 
   events: {
     list: (params?: Record<string, QueryValue>) => {
       const sanitized = { ...params };
-      if (sanitized.limit && Number(sanitized.limit) > 50) {
-        sanitized.limit = 50;
+      if (sanitized.limit && Number(sanitized.limit) > 100) {
+        sanitized.limit = 100;
       }
-      return apiRequest<{ events: EventItem[]; next_cursor: string | null }>(
-        `/api/events${queryString(sanitized)}`,
+      return apiRequest<{ events: EventItem[]; next_cursor: string | null; total?: number }>(
+        `/events${queryString(sanitized)}`,
       );
     },
     get: (idOrSlug: string) =>
-      apiRequest<EventItem>(`/api/events/${encodeURIComponent(idOrSlug)}`),
-    leaderboards: () =>
-      apiRequest<{ events: EventItem[] }>("/api/leaderboards"),
+      apiRequest<EventItem>(`/events/${encodeURIComponent(idOrSlug)}`),
+    leaderboards: async () => {
+      // Backend does not have a global /leaderboards collection route.
+      // Fetch public events with scoring enabled
+      return apiRequest<{ events: EventItem[] }>("/events?limit=50");
+    },
     eventLeaderboard: (idOrSlug: string) =>
       apiRequest<LeaderboardResponse>(
-        `/api/events/${encodeURIComponent(idOrSlug)}/leaderboard`,
+        `/events/${encodeURIComponent(idOrSlug)}/leaderboard`,
       ),
   },
 
   // Module 03: Teams & Invitations
   teams: {
-    create: (body: { event_id: string; name: string }) =>
-      apiRequest<TeamDetail>("/api/teams", {
+    create: (body: { event_id?: string; eventId?: string; name: string }) =>
+      apiRequest<TeamDetail>("/teams", {
         method: "POST",
-        body,
+        body: {
+          eventId: body.eventId || body.event_id,
+          name: body.name,
+        },
       }),
     get: (teamId: string) =>
-      apiRequest<TeamDetail>(`/api/teams/${encodeURIComponent(teamId)}`),
+      apiRequest<TeamDetail>(`/teams/${encodeURIComponent(teamId)}`),
     disband: (teamId: string) =>
       apiRequest<{ cancelled: boolean }>(
-        `/api/teams/${encodeURIComponent(teamId)}`,
+        `/teams/${encodeURIComponent(teamId)}`,
         {
           method: "DELETE",
         },
       ),
     invite: (teamId: string, email: string) =>
       apiRequest<TeamMember>(
-        `/api/teams/${encodeURIComponent(teamId)}/invites`,
+        `/teams/${encodeURIComponent(teamId)}/invitations`,
         {
           method: "POST",
           body: { email },
@@ -99,23 +142,23 @@ export const participantApi = {
       ),
     removeMember: (teamId: string, memberId: string) =>
       apiRequest<{ removed: boolean }>(
-        `/api/teams/${encodeURIComponent(teamId)}/members/${encodeURIComponent(memberId)}`,
+        `/teams/${encodeURIComponent(teamId)}/members/${encodeURIComponent(memberId)}`,
         {
           method: "DELETE",
         },
       ),
-    myTeams: () => apiRequest<TeamDetail[]>("/api/me/teams"),
-    myInvites: () => apiRequest<TeamMember[]>("/api/me/team-invites"),
-    acceptInvite: (memberId: string) =>
+    myTeams: () => apiRequest<TeamDetail[]>("/teams/mine"),
+    myInvites: () => apiRequest<TeamMember[]>("/team-invites/mine"),
+    acceptInvite: (invitationId: string) =>
       apiRequest<{ accepted: boolean }>(
-        `/api/team-invites/${encodeURIComponent(memberId)}/accept`,
+        `/team-invites/${encodeURIComponent(invitationId)}/accept`,
         {
           method: "POST",
         },
       ),
-    declineInvite: (memberId: string) =>
+    declineInvite: (invitationId: string) =>
       apiRequest<{ declined: boolean }>(
-        `/api/team-invites/${encodeURIComponent(memberId)}/decline`,
+        `/team-invites/${encodeURIComponent(invitationId)}/decline`,
         {
           method: "POST",
         },
@@ -127,34 +170,38 @@ export const participantApi = {
     create: (
       body: {
         items: {
-          item_type: "GATE_PASS" | "EVENT_PASS";
+          item_type?: "GATE_PASS" | "EVENT_PASS";
+          itemType?: "GATE_PASS" | "EVENT_PASS";
           event_id?: string;
+          eventId?: string;
           team_id?: string;
+          teamId?: string;
         }[];
         acknowledge_student_id_policy?: boolean;
+        acknowledgeStudentIdPolicy?: boolean;
       },
       idempotencyKey?: string,
     ) =>
-      apiRequest<PurchaseDetail>("/api/purchases", {
+      apiRequest<PurchaseDetail>("/purchases", {
         method: "POST",
         body,
         headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {},
       }),
-    list: () => apiRequest<PurchaseDetail[]>("/api/purchases"),
+    list: () => apiRequest<PurchaseDetail[]>("/purchases/mine"),
     get: (purchaseId: string) =>
       apiRequest<PurchaseDetail>(
-        `/api/purchases/${encodeURIComponent(purchaseId)}`,
+        `/purchases/${encodeURIComponent(purchaseId)}`,
       ),
     cancel: (purchaseId: string) =>
       apiRequest<{ cancelled: boolean }>(
-        `/api/purchases/${encodeURIComponent(purchaseId)}/cancel`,
+        `/purchases/${encodeURIComponent(purchaseId)}/cancel`,
         {
           method: "POST",
         },
       ),
     paymentInstructions: (purchaseId: string) =>
       apiRequest<PaymentInstructions>(
-        `/api/purchases/${encodeURIComponent(purchaseId)}/payment-instructions`,
+        `/purchases/${encodeURIComponent(purchaseId)}/payment`,
       ),
     submitPayment: (
       purchaseId: string,
@@ -162,23 +209,23 @@ export const participantApi = {
       idempotencyKey?: string,
     ) =>
       apiRequest<PaymentRecord>(
-        `/api/purchases/${encodeURIComponent(purchaseId)}/payment`,
+        `/purchases/${encodeURIComponent(purchaseId)}/payment`,
         {
           method: "POST",
-          body: { transaction_id: transactionId },
+          body: { transactionId },
           headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {},
         },
       ),
-    withdrawPayment: (paymentId: string) =>
+    withdrawPayment: (purchaseId: string) =>
       apiRequest<{ withdrawn: boolean }>(
-        `/api/payments/${encodeURIComponent(paymentId)}/withdraw`,
+        `/purchases/${encodeURIComponent(purchaseId)}/payment/withdraw`,
         {
           method: "POST",
         },
       ),
     retryFulfillment: (purchaseId: string) =>
       apiRequest<{ fulfilled: boolean }>(
-        `/api/purchases/${encodeURIComponent(purchaseId)}/retry-fulfillment`,
+        `/admin/purchases/${encodeURIComponent(purchaseId)}/retry-fulfillment`,
         {
           method: "POST",
         },
@@ -186,14 +233,14 @@ export const participantApi = {
   },
 
   tickets: {
-    myTickets: () => apiRequest<UserTicketsResponse>("/api/tickets/me"),
+    myTickets: () => apiRequest<UserTicketsResponse>("/tickets/mine"),
     get: (ticketId: string) =>
       apiRequest<DigitalTicket>(
-        `/api/tickets/${encodeURIComponent(ticketId)}`,
+        `/tickets/${encodeURIComponent(ticketId)}`,
       ),
   },
 
   registrations: {
-    list: () => apiRequest<Registration[]>("/api/registrations"),
+    list: () => apiRequest<Registration[]>("/me/registrations"),
   },
 };

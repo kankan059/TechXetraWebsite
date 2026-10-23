@@ -19,8 +19,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { UserProfile } from "@/types/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+import { participantApi } from "@/services/participant-api";
 
 const TEST_SECTIONS = [
   {
@@ -183,14 +182,8 @@ export default function TestingDashboardPage() {
   const checkSession = async () => {
     try {
       setLoadingUser(true);
-      const res = await fetch(`${API_BASE}/api/me`, { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success) setUser(data.data);
-        else setUser(null);
-      } else {
-        setUser(null);
-      }
+      const data = await participantApi.auth.me();
+      setUser(data);
     } catch {
       setUser(null);
     } finally {
@@ -204,10 +197,7 @@ export default function TestingDashboardPage() {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${API_BASE}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-      });
+      await participantApi.auth.logout();
       setUser(null);
     } catch (e) {
       console.error(e);

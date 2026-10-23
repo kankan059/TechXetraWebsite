@@ -14,6 +14,7 @@ import {
   Clock,
 } from "lucide-react";
 import { adminApi } from "@/services/admin-api";
+import { apiRequest } from "@/lib/api-client";
 
 export default function AdminReportsHubPage() {
   const [activeTab, setActiveTab] = useState<
@@ -75,19 +76,10 @@ export default function AdminReportsHubPage() {
     setSuccess(null);
 
     try {
-      // POST /api/admin/reports/reconciliation/:id/fix
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787"}/api/admin/reports/reconciliation/${encodeURIComponent(eventId)}/fix`,
-        {
-          method: "POST",
-          credentials: "include",
-        },
+      await apiRequest(
+        `/admin/reports/reconciliation/${encodeURIComponent(eventId)}/fix`,
+        { method: "POST" },
       );
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to fix seat discrepancy");
-      }
-
       setSuccess("Event capacity reconciled and seats_taken reset to actual registration truth!");
       void loadReport();
     } catch (err: unknown) {

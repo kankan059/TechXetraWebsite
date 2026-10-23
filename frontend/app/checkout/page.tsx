@@ -7,8 +7,10 @@ import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import gsap from "gsap";
 import type { FestCatalog, UserProfile } from "@/types/api";
+import { participantApi } from "@/services/participant-api";
+import { ApiError } from "@/lib/api-client";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+const STUDENT_ID_WARNING = "Physical college ID required at check-in.";
 
 export default function CheckoutPassPage() {
   const router = useRouter();
@@ -31,43 +33,26 @@ export default function CheckoutPassPage() {
         setLoading(true);
         setError(null);
 
-        const userRes = await fetch(`${API_BASE}/api/me`, {
-          credentials: "include",
-        });
-
-        if (userRes.status === 401) {
-          router.push("/login?redirect=/checkout");
-          return;
+        let userData: UserProfile | null = null;
+        try {
+          userData = await participantApi.auth.me();
+          setUser(userData);
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 401) {
+            router.push("/login?redirect=/checkout");
+            return;
+          }
+          throw err;
         }
 
-        const userData = await userRes.json();
-
-        if (!userRes.ok || !userData.success) {
-          throw new Error(
-            userData.error?.message || "Unable to load your profile."
-          );
-        }
-
-        setUser(userData.data);
-
-        if (!userData.data.profile_complete) {
+        const isComplete = Boolean(userData.profileComplete ?? userData.profile_complete);
+        if (!isComplete) {
           router.push("/profile-completion");
           return;
         }
 
-        const catRes = await fetch(`${API_BASE}/api/catalog/passes`, {
-          credentials: "include",
-        });
-
-        const catData = await catRes.json();
-
-        if (!catRes.ok || !catData.success) {
-          throw new Error(
-            catData.error?.message || "Unable to load available passes."
-          );
-        }
-
-        setCatalog(catData.data);
+        const catData = await participantApi.catalog.passes();
+        setCatalog(catData);
       } catch (err: unknown) {
         setError(
           err instanceof Error ? err.message : "Failed to load checkout."
@@ -120,7 +105,8 @@ export default function CheckoutPassPage() {
   const handlePurchaseGatePass = async () => {
     if (!user || !catalog || submitting) return;
 
-    if (user.is_student && !acknowledgeStudentPolicy) {
+    const isStudentUser = Boolean(user.isStudent ?? user.is_student);
+    if (isStudentUser && !acknowledgeStudentPolicy) {
       setError(
         "You must acknowledge the student physical ID verification policy."
       );
@@ -131,30 +117,15 @@ export default function CheckoutPassPage() {
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/purchases`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: [{ item_type: "GATE_PASS" }],
-          acknowledge_student_id_policy: user.is_student
-            ? acknowledgeStudentPolicy
-            : false,
-        }),
+      const data = await participantApi.purchases.create({
+        items: [{ item_type: "GATE_PASS" }],
+        acknowledge_student_id_policy: isStudentUser ? acknowledgeStudentPolicy : false,
       });
 
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(
-          data.error?.message || "Could not create pass reservation."
-        );
-      }
-
-      if (data.data.status === "PAID") {
+      if (data.status === "PAID") {
         router.push("/dashboard");
       } else {
-        router.push(`/checkout/${data.data.id}/pay`);
+        router.push(`/checkout/${data.id}/pay`);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Checkout error.");
@@ -178,9 +149,14 @@ export default function CheckoutPassPage() {
 
   const isStudent = user.is_student;
   const pricePaise = isStudent
-    ? catalog.gate_pass.student_price_paise
-    : catalog.gate_pass.price_paise;
+    ? catalog.gatePassStudentPricePaise
+    : catalog.gatePassPricePaise;
   const priceRupees = (pricePaise / 100).toFixed(0);
+
+  const firstDay = catalog.festDays[0];
+  const lastDay = catalog.festDays[catalog.festDays.length - 1];
+  const validity =
+    firstDay && lastDay ? `Valid ${firstDay.date} – ${lastDay.date}` : "";
 
   return (
     <main
@@ -232,7 +208,7 @@ export default function CheckoutPassPage() {
           </p>
 
           <p className="mt-4 font-cta text-sm text-white/35">
-            {catalog.gate_pass.validity}
+            {validity}
           </p>
         </div>
 
@@ -303,7 +279,7 @@ export default function CheckoutPassPage() {
               </p>
 
               <p className="mt-2 text-sm leading-6 text-white/55">
-                {catalog.student_id_warning_text}
+                {STUDENT_ID_WARNING}
               </p>
 
               <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm leading-6 text-white/75">
@@ -323,7 +299,7 @@ export default function CheckoutPassPage() {
           )}
 
           <div className="checkout-reveal pt-6">
-            {!catalog.purchases_enabled ? (
+            {!catalog.purchasesEnabled ? (
               <p className="rounded-xl border border-amber-300/15 bg-amber-300/[0.04] px-4 py-4 text-center text-sm text-amber-200">
                 Ticket sales are currently paused by festival administration.
               </p>
@@ -355,7 +331,7 @@ export default function CheckoutPassPage() {
                 </span>
                 {!submitting && (
                   <span aria-hidden="true" className="relative transition-transform duration-300 group-hover:translate-x-1">
-                    
+
                   </span>
                 )}
               </motion.button>
@@ -367,7 +343,7 @@ export default function CheckoutPassPage() {
             </p>
           </div>
 
-      
+
         </motion.div>
 
         <motion.p

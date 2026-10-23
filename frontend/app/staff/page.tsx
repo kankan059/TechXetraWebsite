@@ -15,8 +15,8 @@ import {
   CalendarDays,
 } from "lucide-react";
 import type { UserProfile, EventItem } from "@/types/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+import { participantApi } from "@/services/participant-api";
+import { ApiError } from "@/lib/api-client";
 
 export default function StaffPortalHubPage() {
   const router = useRouter();
@@ -33,32 +33,28 @@ export default function StaffPortalHubPage() {
         setError(null);
 
         // 1. Check user profile & role
-        const meRes = await fetch(`${API_BASE}/api/me`, { credentials: "include" });
-        if (meRes.status === 401) {
-          router.push("/login?redirect=/staff");
-          return;
-        }
-        const meData = await meRes.json();
-        if (!meData.success) {
-          throw new Error("Unable to authenticate staff session");
+        let meData: UserProfile | null = null;
+        try {
+          meData = await participantApi.auth.me();
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 401) {
+            router.push("/login?redirect=/staff");
+            return;
+          }
+          throw err;
         }
 
-        const role = meData.data.role;
+        const role = meData.role;
         if (role !== "VOLUNTEER" && role !== "LEAD" && role !== "SUPER_ADMIN") {
           router.push("/dashboard");
           return;
         }
 
-        setUser(meData.data);
+        setUser(meData);
 
         // 2. Fetch esports tournament events that staff can score
-        const evtRes = await fetch(`${API_BASE}/api/events?category=E_SPORTS&limit=20`, {
-          credentials: "include",
-        });
-        const evtData = await evtRes.json();
-        if (evtData.success) {
-          setEsportsEvents(evtData.data?.events || []);
-        }
+        const evtData = await participantApi.events.list({ category: "E_SPORTS", limit: 20 });
+        setEsportsEvents(evtData?.events || []);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Error loading staff portal");
       } finally {

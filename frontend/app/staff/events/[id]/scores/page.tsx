@@ -19,8 +19,9 @@ import {
   X,
 } from "lucide-react";
 import type { EsportsScore, UserProfile } from "@/types/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+import { staffApi } from "@/services/staff-api";
+import { participantApi } from "@/services/participant-api";
+import { ApiError } from "@/lib/api-client";
 
 interface StaffScoreEvent {
   id: string;
@@ -96,24 +97,18 @@ export default function StaffEventScoringPage({
       setError(null);
 
       // Verify staff session
-      const meRes = await fetch(`${API_BASE}/api/me`, { credentials: "include" });
-      if (meRes.status === 401) {
-        router.push(`/login?redirect=/staff/events/${id}/scores`);
-        return;
-      }
-      const meData = await meRes.json();
-      if (meData.success) setUser(meData.data);
-
-      const res = await fetch(`${API_BASE}/api/staff/events/${id}/scores`, {
-        credentials: "include",
-      });
-      const resJson = await res.json();
-
-      if (!res.ok || !resJson.success) {
-        throw new Error(resJson.error?.message || "Failed to load tournament scores");
+      try {
+        const meData = await participantApi.auth.me();
+        setUser(meData);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) {
+          router.push(`/login?redirect=/staff/events/${id}/scores`);
+          return;
+        }
       }
 
-      setData(resJson.data);
+      const resData = await staffApi.scores.get(id);
+      setData(resData as unknown as StaffScoresResponse);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error loading scoring matrix");
     } finally {
@@ -185,26 +180,17 @@ export default function StaffEventScoringPage({
         payload.reason = inputReason.trim();
       }
 
-      const res = await fetch(`${API_BASE}/api/staff/events/${id}/scores`, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const resData = await res.json();
-      if (!res.ok || !resData.success) {
-        if (resData.error?.code === "SCORE_VERSION_CONFLICT") {
-          throw new Error("Score was modified concurrently by another referee. Reloading live data.");
-        }
-        throw new Error(resData.error?.message || "Failed to update score");
-      }
+      await staffApi.scores.upsert(id, payload);
 
       setSuccess(`Score for Round ${inputRoundNo} saved successfully!`);
       setModalOpen(false);
       void loadScores();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Error saving score");
+      if (err instanceof ApiError && err.code === "SCORE_VERSION_CONFLICT") {
+        setError("Score was modified concurrently by another referee. Reloading live data.");
+      } else {
+        setError(err instanceof Error ? err.message : "Error saving score");
+      }
     } finally {
       setSubmittingScore(false);
     }
@@ -222,20 +208,7 @@ export default function StaffEventScoringPage({
     setSuccess(null);
 
     try {
-      const res = await fetch(
-        `${API_BASE}/api/staff/events/${id}/scores/${deleteModalScore.id}`,
-        {
-          method: "DELETE",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reason: deleteReason.trim() }),
-        }
-      );
-
-      const resData = await res.json();
-      if (!res.ok || !resData.success) {
-        throw new Error(resData.error?.message || "Failed to delete score entry");
-      }
+      await staffApi.scores.delete(id, deleteModalScore.id, deleteReason.trim());
 
       setSuccess(`Score deleted and audit log recorded.`);
       setDeleteModalScore(null);
@@ -261,16 +234,7 @@ export default function StaffEventScoringPage({
     setSuccess(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/staff/events/${id}/scores/finalize`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      const resData = await res.json();
-      if (!res.ok || !resData.success) {
-        throw new Error(resData.error?.message || "Failed to finalize tournament");
-      }
+      await staffApi.scores.finalize(id);
 
       setSuccess("Tournament scoring finalized and locked!");
       void loadScores();

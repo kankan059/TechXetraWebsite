@@ -15,35 +15,72 @@ import type {
 
 export const staffApi = {
   scan: {
-    lookup: (body: { token: string; context: "GATE" | "EVENT"; event_id?: string }) =>
-      apiRequest<ScanLookupResult>("/api/staff/scan/lookup", {
-        method: "POST",
-        body,
-      }),
-
-    admit: (body: {
-      token: string;
+    lookup: (body: {
+      token?: string;
+      qrToken?: string;
+      qr_token?: string;
       context: "GATE" | "EVENT";
       event_id?: string;
-      student_id_checked?: boolean;
-      client_scan_id?: string;
-    }) =>
-      apiRequest<ScanAdmitResult>("/api/staff/scan/admit", {
+      eventId?: string;
+    }) => {
+      const qrToken = body.qrToken || body.qr_token || body.token || "";
+      const eventId = body.eventId || body.event_id;
+      return apiRequest<ScanLookupResult>("/staff/scan/lookup", {
         method: "POST",
-        body,
-      }),
+        body: {
+          qrToken,
+          context: body.context,
+          ...(eventId ? { eventId } : {}),
+        },
+      });
+    },
 
-    deny: (body: {
-      token: string;
+    admit: (body: {
+      token?: string;
+      qrToken?: string;
+      qr_token?: string;
+      context: "GATE" | "EVENT";
+      event_id?: string;
+      eventId?: string;
+      student_id_checked?: boolean;
+      studentIdChecked?: boolean;
+      client_scan_id?: string;
+    }) => {
+      const qrToken = body.qrToken || body.qr_token || body.token || "";
+      const eventId = body.eventId || body.event_id;
+      const studentIdChecked = body.studentIdChecked ?? body.student_id_checked;
+      return apiRequest<ScanAdmitResult>("/staff/scan/check-in", {
+        method: "POST",
+        body: {
+          qrToken,
+          context: body.context,
+          ...(eventId ? { eventId } : {}),
+          ...(studentIdChecked !== undefined ? { studentIdChecked } : {}),
+          ...(body.client_scan_id ? { client_scan_id: body.client_scan_id } : {}),
+        },
+      });
+    },
+
+    deny: async (body: {
+      token?: string;
+      qrToken?: string;
       context: "GATE" | "EVENT";
       reason: string;
       event_id?: string;
       client_scan_id?: string;
-    }) =>
-      apiRequest<ScanDenyResult>("/api/staff/scan/deny", {
-        method: "POST",
-        body,
-      }),
+    }): Promise<ScanDenyResult> => {
+      // Backend scanner is verdict-based (lookup returns validity; admission is mutation).
+      // Backend has no /staff/scan/deny mutation route.
+      return {
+        success: true,
+        verdict: "DENIED",
+        ticket_id: "",
+        log_id: `local-deny-${Date.now()}`,
+        context: body.context,
+        reason: body.reason,
+        denied_at: Date.now(),
+      };
+    },
   },
 
   scores: {
@@ -60,7 +97,7 @@ export const staffApi = {
         };
         scores: EsportsScore[];
         history: unknown[];
-      }>(`/api/staff/events/${encodeURIComponent(eventId)}/scores`),
+      }>(`/staff/events/${encodeURIComponent(eventId)}/matches`),
 
     upsert: (
       eventId: string,
@@ -73,16 +110,16 @@ export const staffApi = {
       },
     ) =>
       apiRequest<EsportsScore>(
-        `/api/staff/events/${encodeURIComponent(eventId)}/scores`,
+        `/staff/events/${encodeURIComponent(eventId)}/scores`,
         {
-          method: "PUT",
+          method: "POST",
           body,
         },
       ),
 
     delete: (eventId: string, entryId: string, reason: string) =>
       apiRequest<{ deleted: boolean }>(
-        `/api/staff/events/${encodeURIComponent(eventId)}/scores/${encodeURIComponent(entryId)}`,
+        `/staff/events/${encodeURIComponent(eventId)}/scores/${encodeURIComponent(entryId)}`,
         {
           method: "DELETE",
           body: { reason },
@@ -91,7 +128,15 @@ export const staffApi = {
 
     finalize: (eventId: string) =>
       apiRequest<{ finalized: boolean }>(
-        `/api/staff/events/${encodeURIComponent(eventId)}/scores/finalize`,
+        `/staff/events/${encodeURIComponent(eventId)}/finalize`,
+        {
+          method: "POST",
+        },
+      ),
+
+    reopen: (eventId: string) =>
+      apiRequest<{ reopened: boolean }>(
+        `/staff/events/${encodeURIComponent(eventId)}/reopen`,
         {
           method: "POST",
         },
@@ -99,72 +144,46 @@ export const staffApi = {
   },
 
   events: {
-    /**
-     * GET /api/staff/events/mine
-     * Returns list of events assigned to current staff user (or all events for SUPER_ADMIN)
-     */
     listMine: () =>
-      apiRequest<StaffEventSummary[]>("/api/staff/events/mine"),
+      apiRequest<StaffEventSummary[]>("/staff/events/mine"),
 
-    /**
-     * GET /api/staff/events/:id/dashboard
-     * Returns live metrics, capacity stats, and assigned staff roster
-     */
     getDashboard: (eventId: string) =>
       apiRequest<StaffEventDashboard>(
-        `/api/staff/events/${encodeURIComponent(eventId)}/dashboard`
+        `/staff/events/${encodeURIComponent(eventId)}/dashboard`,
       ),
 
-    /**
-     * GET /api/staff/events/:id/registrations
-     * Returns attendee roster with contact details, check-in state, and custom questionnaire answers
-     */
     getRegistrations: (eventId: string, search?: string) => {
       const query = search ? `?search=${encodeURIComponent(search)}` : "";
       return apiRequest<EventRegistrationDetail[]>(
-        `/api/staff/events/${encodeURIComponent(eventId)}/registrations${query}`
+        `/staff/events/${encodeURIComponent(eventId)}/participants${query}`,
       );
     },
 
-    /**
-     * GET /api/staff/events/:id/payments
-     * Returns payment verification queue for orders containing this event
-     */
-    getPayments: (eventId: string, status?: string) => {
-      const query = status ? `?status=${encodeURIComponent(status)}` : "";
-      return apiRequest<StaffEventPayment[]>(
-        `/api/staff/events/${encodeURIComponent(eventId)}/payments${query}`
-      );
-    },
-
-    /**
-     * POST /api/staff/events/:id/payments/:paymentId/review
-     * Lead reviews attendee payment (APPROVE, REJECT, or HOLD)
-     */
-    reviewPayment: (
-      eventId: string,
-      paymentId: string,
-      body: ReviewStaffPaymentBody
-    ) =>
-      apiRequest<{ success: boolean; message: string }>(
-        `/api/staff/events/${encodeURIComponent(eventId)}/payments/${encodeURIComponent(paymentId)}/review`,
-        {
-          method: "POST",
-          body,
-        }
+    getCheckIns: (eventId: string) =>
+      apiRequest<unknown[]>(
+        `/staff/events/${encodeURIComponent(eventId)}/check-ins`,
       ),
 
-    /**
-     * PATCH /api/staff/events/:id
-     * Lead updates venue, description, rules, form_schema, or registration deadline
-     */
+    getPayments: async (_eventId: string, _status?: string): Promise<StaffEventPayment[]> => {
+      // Backend payment verification is restricted to Super Admin under /admin/payments.
+      return [];
+    },
+
+    reviewPayment: async (
+      _eventId: string,
+      _paymentId: string,
+      _body: ReviewStaffPaymentBody,
+    ) => {
+      throw new Error("Payment review is restricted to Super Admin.");
+    },
+
     update: (eventId: string, body: LeadUpdateEventBody) =>
       apiRequest<EventItem>(
-        `/api/staff/events/${encodeURIComponent(eventId)}`,
+        `/staff/events/${encodeURIComponent(eventId)}`,
         {
           method: "PATCH",
           body,
-        }
+        },
       ),
   },
 };

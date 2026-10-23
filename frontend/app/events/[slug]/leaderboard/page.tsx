@@ -4,8 +4,7 @@ import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { Trophy, ArrowLeft, RefreshCw, AlertCircle, Medal } from "lucide-react";
 import type { LeaderboardResponse, LeaderboardEntry } from "@/types/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+import { participantApi } from "@/services/participant-api";
 
 export default function EventLeaderboardPage({
   params,
@@ -22,16 +21,8 @@ export default function EventLeaderboardPage({
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`${API_BASE}/api/events/${encodeURIComponent(slug)}/leaderboard`, {
-        credentials: "include",
-      });
-      const json = await res.json();
-
-      if (!res.ok || !json.success) {
-        throw new Error(json.error?.message || "Scoreboard unavailable for this event");
-      }
-
-      setData(json.data);
+      const json = await participantApi.events.eventLeaderboard(slug);
+      setData(json);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error loading leaderboard");
     } finally {

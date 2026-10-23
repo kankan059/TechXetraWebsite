@@ -8,16 +8,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import gsap from "gsap";
 
 import LogoTech from "@/components/animations/LogoTech";
-
-type LoginResponse = {
-    success: boolean;
-    data?: {
-        profile_complete: boolean;
-    };
-    error?: {
-        message?: string;
-    };
-};
+import { participantApi } from "@/services/participant-api";
 
 export default function Login() {
     const router = useRouter();
@@ -80,29 +71,11 @@ export default function Login() {
         setError("");
 
         try {
-            const apiUrl =
-                process.env.NEXT_PUBLIC_API_URL ?? "https://techxetra-backend.ppriyankuu.workers.dev";
+            const result = await participantApi.auth.google(idToken);
+            const user = result.user;
+            const isComplete = Boolean(user?.profileComplete ?? user?.profile_complete);
 
-            const response = await fetch(`${apiUrl}/api/auth/google`, {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ id_token: idToken }),
-            });
-
-            const result = (await response.json()) as LoginResponse;
-
-            if (!response.ok || !result.success) {
-                throw new Error(
-                    result.error?.message ?? "Unable to sign in. Please try again."
-                );
-            }
-
-            router.replace(
-                result.data?.profile_complete ? "/dashboard" : "/profile-completion"
-            );
+            router.replace(isComplete ? "/dashboard" : "/profile-completion");
         } catch (err) {
             setError(
                 err instanceof Error
@@ -126,20 +99,14 @@ export default function Login() {
 
         setLoading(true);
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8787";
-            const response = await fetch(`${apiUrl}/api/auth/login`, {
-                method: "POST",
-                credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: normalizedEmail, password }),
+            const result = await participantApi.auth.login({
+                email: normalizedEmail,
+                password,
             });
+            const user = result.user;
+            const isComplete = Boolean(user?.profileComplete ?? user?.profile_complete);
 
-            const result = (await response.json()) as LoginResponse;
-            if (!response.ok || !result.success) {
-                throw new Error(result.error?.message ?? "Unable to sign in. Please check your details.");
-            }
-
-            router.replace(result.data?.profile_complete ? "/dashboard" : "/profile-completion");
+            router.replace(isComplete ? "/dashboard" : "/profile-completion");
         } catch (err) {
             setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
         } finally {

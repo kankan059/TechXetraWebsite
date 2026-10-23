@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Trophy, ArrowRight, ArrowLeft, RefreshCw, AlertCircle } from "lucide-react";
 import type { EventItem } from "@/types/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+import { participantApi } from "@/services/participant-api";
 
 export default function LeaderboardsIndexPage() {
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -16,14 +15,11 @@ export default function LeaderboardsIndexPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`${API_BASE}/api/leaderboards`, { credentials: "include" });
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to load tournament scoreboards");
-      }
-
-      setEvents(data.data?.events || []);
+      const data = await participantApi.events.list({ category: "E_SPORTS", limit: 50 });
+      const scoringEvents = (data?.events || []).filter(
+        (e) => Boolean(e.scoring_enabled ?? e.scoringEnabled)
+      );
+      setEvents(scoringEvents.length > 0 ? scoringEvents : data?.events || []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Error loading leaderboards");
     } finally {

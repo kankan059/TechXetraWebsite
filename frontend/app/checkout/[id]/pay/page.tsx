@@ -17,8 +17,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import type { PaymentInstructions, PurchaseDetail, PaymentRecord } from "@/types/api";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
+import { participantApi } from "@/services/participant-api";
 
 export default function CheckoutPaymentPage({
   params,
@@ -49,30 +48,24 @@ export default function CheckoutPaymentPage({
       setError(null);
 
       // 1. Fetch purchase details
-      const purRes = await fetch(`${API_BASE}/api/purchases/${id}`, { credentials: "include" });
-      const purData = await purRes.json();
+      const purData = await participantApi.purchases.get(id);
+      setPurchase(purData);
 
-      if (!purRes.ok || !purData.success) {
-        throw new Error(purData.error?.message || "Purchase order not found");
-      }
-
-      setPurchase(purData.data);
-
-      if (purData.data.status === "PAID") {
+      if (purData.status === "PAID") {
         router.push("/dashboard");
         return;
       }
 
-      if (purData.data.status === "EXPIRED" || purData.data.status === "CANCELLED") {
+      if (purData.status === "EXPIRED" || purData.status === "CANCELLED") {
         setIsExpired(true);
-        setError(`This reservation has ${purData.data.status.toLowerCase()}. Please create a new purchase.`);
+        setError(`This reservation has ${purData.status.toLowerCase()}. Please create a new purchase.`);
         return;
       }
 
       if (
-        purData.data.status === "AWAITING_PAYMENT" &&
-        purData.data.reservation_expires_at &&
-        purData.data.reservation_expires_at <= Date.now()
+        purData.status === "AWAITING_PAYMENT" &&
+        purData.reservation_expires_at &&
+        purData.reservation_expires_at <= Date.now()
       ) {
         setIsExpired(true);
         setError("The reservation window for this purchase has expired. Please create a new purchase.");
@@ -80,22 +73,8 @@ export default function CheckoutPaymentPage({
       }
 
       // 2. Fetch payment instructions
-      const instRes = await fetch(`${API_BASE}/api/purchases/${id}/payment-instructions`, {
-        credentials: "include",
-      });
-      const instData = await instRes.json();
-
-      if (!instRes.ok || !instData.success) {
-        if (
-          instData.error?.code === "BAD_REQUEST" &&
-          instData.error?.message?.toLowerCase().includes("expired")
-        ) {
-          setIsExpired(true);
-        }
-        throw new Error(instData.error?.message || "Failed to load payment instructions");
-      }
-
-      setInstructions(instData.data);
+      const instData = await participantApi.purchases.paymentInstructions(id);
+      setInstructions(instData);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load payment instructions");
     } finally {
@@ -109,10 +88,11 @@ export default function CheckoutPaymentPage({
 
   // Interval timer for countdown
   useEffect(() => {
-    if (!instructions?.reservation_expires_at) return;
+    const expiresAt = instructions?.reservationExpiresAt ?? instructions?.reservation_expires_at;
+    if (!expiresAt) return;
 
     const interval = setInterval(() => {
-      const remaining = Math.max(0, instructions.reservation_expires_at! - Date.now());
+      const remaining = Math.max(0, expiresAt - Date.now());
       setTimeLeftMs(remaining);
 
       if (remaining === 0) {
@@ -144,19 +124,8 @@ export default function CheckoutPaymentPage({
     setSuccess(null);
 
     try {
-      const res = await fetch(`${API_BASE}/api/purchases/${id}/payment`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transaction_id: cleanUtr }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to submit UTR");
-      }
-
-      setPendingPayment(data.data);
+      const paymentRecord = await participantApi.purchases.submitPayment(id, cleanUtr);
+      setPendingPayment(paymentRecord);
       setSuccess("Transaction ID submitted! It is now under review by festival reviewers.");
       void loadData();
     } catch (err: unknown) {
@@ -166,19 +135,12 @@ export default function CheckoutPaymentPage({
     }
   };
 
-  const handleWithdraw = async (paymentId: string) => {
+  const handleWithdraw = async (_paymentId: string) => {
     if (!confirm("Do you want to withdraw this UTR submission to enter a corrected one?")) return;
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/payments/${paymentId}/withdraw`, {
-        method: "POST",
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || "Failed to withdraw payment");
-      }
+      await participantApi.purchases.withdrawPayment(id);
       setSuccess("Submission withdrawn. You can re-enter your UTR.");
       void loadData();
     } catch (err: unknown) {
@@ -191,10 +153,7 @@ export default function CheckoutPaymentPage({
     if (!confirm("Are you sure you want to cancel this reservation and release the slots?")) return;
 
     try {
-      await fetch(`${API_BASE}/api/purchases/${id}/cancel`, {
-        method: "POST",
-        credentials: "include",
-      });
+      await participantApi.purchases.cancel(id);
       router.push("/dashboard");
     } catch (err) {
       console.error(err);
@@ -241,10 +200,14 @@ export default function CheckoutPaymentPage({
   if (!instructions || !purchase) return null;
 
   const isPendingVerification = purchase.status === "PENDING_VERIFICATION";
+  const upiUri = instructions.upiUri || instructions.upi_uri || "";
+  const amountRupees = instructions.amountRupees || instructions.amount_rupees || (instructions.amountPaise ? (instructions.amountPaise / 100).toFixed(2) : "0");
+  const payeeName = instructions.payeeName || instructions.payee_name || "TechXetra";
+  const payeeVpa = instructions.payeeVpa || instructions.payee_vpa || "";
 
   // Build QR code image URL from upi_uri
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data=${encodeURIComponent(
-    instructions.upi_uri
+    upiUri
   )}`;
 
   return (
@@ -338,9 +301,9 @@ export default function CheckoutPaymentPage({
           <div className="rounded-3xl border border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.02] p-6 sm:p-8">
             <div className="text-center">
               <p className="text-xs uppercase tracking-wider text-cyan-300">UPI PAYMENT</p>
-              <p className="mt-2 text-4xl font-extrabold text-white">₹{instructions.amount_rupees}</p>
-              <p className="mt-1 text-xs text-white/50">Pay to: {instructions.payee_name}</p>
-              <p className="font-mono text-xs text-cyan-200/80">{instructions.payee_vpa}</p>
+              <p className="mt-2 text-4xl font-extrabold text-white">₹{amountRupees}</p>
+              <p className="mt-1 text-xs text-white/50">Pay to: {payeeName}</p>
+              <p className="font-mono text-xs text-cyan-200/80">{payeeVpa}</p>
             </div>
 
             {/* QR Code Container */}
@@ -358,7 +321,7 @@ export default function CheckoutPaymentPage({
 
               {/* Mobile intent button */}
               <a
-                href={instructions.upi_uri}
+                href={upiUri}
                 className="mt-4 inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/[0.05] px-4 py-2 text-xs font-medium text-white hover:bg-white/10 sm:hidden"
               >
                 <ExternalLink className="h-3.5 w-3.5" />

@@ -87,11 +87,12 @@ export default function TicketDetailPage({
     );
   }
 
+  const tokenValue = ticket.qrToken || ticket.qr_token || "";
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=${encodeURIComponent(
-    ticket.qr_token,
+    tokenValue,
   )}`;
 
-  const isGatePass = ticket.ticket_type === "GATE_PASS";
+  const isGatePass = (ticket.ticketType || ticket.ticket_type) === "GATE_PASS";
   const isValid = ticket.validity?.state === "VALID" || ticket.validity?.is_currently_valid;
 
   return (
@@ -123,7 +124,7 @@ export default function TicketDetailPage({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="rounded-full bg-cyan-400/10 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-cyan-300">
-                    {ticket.ticket_type}
+                    {ticket.ticketType || ticket.ticket_type}
                   </span>
                   <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-0.5 text-[10px] font-medium text-white/70">
                     {ticket.tier} TIER

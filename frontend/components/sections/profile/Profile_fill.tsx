@@ -7,21 +7,9 @@ import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Star from "@/components/ui/Star";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
-
-type UserProfile = {
-  id: string;
-  email: string;
-  name: string;
-  phone: string | null;
-  is_student: boolean;
-  institution_name: string | null;
-  institution_id: string | null;
-  student_fields_locked: boolean;
-  profile_complete: boolean;
-};
+import { participantApi } from "@/services/participant-api";
+import { ApiError } from "@/lib/api-client";
+import type { UserProfile } from "@/types/api";
 
 export default function Profile_fill() {
   const router = useRouter();
@@ -44,38 +32,20 @@ export default function Profile_fill() {
 
   const loadProfile = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/me`, {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          Accept: "application/json",
-        },
-        cache: "no-store",
-      });
-
-      const result = await response.json().catch(() => null);
-
-      if (response.status === 401) {
-        router.replace("/login");
-        return;
-      }
-
-      if (!response.ok || !result?.success) {
-        throw new Error(
-          result?.error?.message || "Unable to load your profile."
-        );
-      }
-
-      const profile: UserProfile = result.data;
+      const profile = await participantApi.auth.me();
 
       setName(profile.name || "");
       setEmail(profile.email || "");
       setPhone(profile.phone || "");
-      setIsStudent(Boolean(profile.is_student));
-      setInstitutionName(profile.institution_name || "");
-      setInstitutionId(profile.institution_id || "");
-      setStudentFieldsLocked(Boolean(profile.student_fields_locked));
+      setIsStudent(Boolean(profile.isStudent ?? profile.is_student ?? true));
+      setInstitutionName(profile.institutionName ?? profile.institution_name ?? "");
+      setInstitutionId(profile.institutionId ?? profile.institution_id ?? "");
+      setStudentFieldsLocked(Boolean(profile.studentFieldsLocked ?? profile.student_fields_locked));
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.replace("/login");
+        return;
+      }
       setError(
         err instanceof Error
           ? err.message
@@ -216,49 +186,26 @@ export default function Profile_fill() {
       }
     }
 
-    const payload = {
-      name: trimmedName,
-      phone: trimmedPhone,
-      is_student: studentFieldsLocked ? isStudent : isStudent,
-      institution_name: isStudent
-        ? trimmedInstitutionName
-        : null,
-      institution_id: isStudent
-        ? trimmedInstitutionId
-        : null,
-    };
-
     try {
       setSaving(true);
 
-      const response = await fetch(`${API_BASE}/api/me/profile`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(payload),
+      await participantApi.auth.updateProfile({
+        name: trimmedName,
+        phone: trimmedPhone,
+        isStudent,
+        institutionName: isStudent ? trimmedInstitutionName : null,
+        institutionId: isStudent ? trimmedInstitutionId : null,
       });
-
-      const result = await response.json().catch(() => null);
-
-      if (response.status === 401) {
-        router.replace("/login");
-        return;
-      }
-
-      if (!response.ok || !result?.success) {
-        throw new Error(
-          result?.error?.message || "Could not save your profile."
-        );
-      }
 
       setSuccess("Profile saved successfully.");
 
       router.replace("/dashboard");
       router.refresh();
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        router.replace("/login");
+        return;
+      }
       setError(
         err instanceof Error
           ? err.message
