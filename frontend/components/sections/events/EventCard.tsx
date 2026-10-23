@@ -26,7 +26,7 @@ function getMetadata(event: EventItem): EventMetadata {
 }
 
 function getCategoryTone(category: string) {
-  const normalized = category
+  const normalized = (category || "")
     .toUpperCase()
     .replaceAll("-", "_")
     .replaceAll(" ", "_");
@@ -50,14 +50,35 @@ function getCategoryTone(category: string) {
     };
   }
 
-  if (
-    normalized.includes("NON_TECHNICAL") ||
-    normalized.includes("NONTECHNICAL")
-  ) {
+  if (normalized === "INTERACTIVE") {
     return {
-      accent: "#FF806E",
-      poster: "#382321",
-      border: "hover:border-[#FF806E]/40",
+      accent: "#FBBF24",
+      poster: "#282315",
+      border: "hover:border-amber-400/40",
+    };
+  }
+
+  if (normalized === "RECREATIONAL") {
+    return {
+      accent: "#2DD4BF",
+      poster: "#132824",
+      border: "hover:border-teal-400/40",
+    };
+  }
+
+  if (normalized === "SHOWCASE") {
+    return {
+      accent: "#C084FC",
+      poster: "#24182E",
+      border: "hover:border-purple-400/40",
+    };
+  }
+
+  if (normalized === "CULTURAL") {
+    return {
+      accent: "#FB7185",
+      poster: "#301B22",
+      border: "hover:border-rose-400/40",
     };
   }
 
@@ -69,10 +90,11 @@ function getCategoryTone(category: string) {
 }
 
 function getParticipation(event: EventItem) {
-  if (!event.is_team_event) return "Individual";
+  const isTeam = event.is_team_event ?? event.isTeamEvent ?? event.isTeam;
+  if (!isTeam) return "Individual";
 
-  const min = event.min_team_size;
-  const max = event.max_team_size;
+  const min = event.min_team_size ?? event.minTeamSize;
+  const max = event.max_team_size ?? event.maxTeamSize;
 
   if (min != null && max != null && min === max) {
     return `Team · ${min} members`;
@@ -89,11 +111,12 @@ function getParticipation(event: EventItem) {
 }
 
 function getEntryFee(event: EventItem) {
-  if (event.price_model === "FREE" || event.price_paise === 0) {
+  const priceModel = event.price_model ?? event.priceModel ?? "FREE";
+  const price = event.price_paise ?? event.pricePaise ?? 0;
+
+  if (priceModel === "FREE" || price === 0) {
     return { amount: "FREE", unit: "" };
   }
-
-  const price = event.price_paise;
 
   if (typeof price !== "number" || !Number.isFinite(price)) {
     return { amount: "To be announced", unit: "" };
@@ -101,7 +124,7 @@ function getEntryFee(event: EventItem) {
 
   const amount = `₹${(price / 100).toLocaleString("en-IN")}`;
 
-  if (event.price_model === "PER_TEAM") {
+  if (priceModel === "PER_TEAM") {
     return { amount, unit: "/ team" };
   }
 
@@ -206,6 +229,7 @@ export default function EventCard({
         <p className="mt-3 line-clamp-3 text-[13px] leading-[1.8] text-[#F5F0DE]/70">
           {metadata.summary ||
             event.description ||
+            event.shortDescription ||
             "Event details will be announced soon."}
         </p>
 

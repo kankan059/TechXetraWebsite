@@ -60,23 +60,30 @@ function formatTime(timestamp: number) {
 }
 
 function formatFee(event: EventItem) {
-  if (event.price_model === "FREE" || event.price_paise === 0) {
+  const priceModel = event.price_model ?? event.priceModel ?? "FREE";
+  const pricePaise = event.price_paise ?? event.pricePaise ?? 0;
+
+  if (priceModel === "FREE" || pricePaise === 0) {
     return "Free";
   }
 
-  return `₹${(event.price_paise / 100).toLocaleString("en-IN")}${
-    event.price_model === "PER_TEAM" ? " / team" : " / person"
+  return `₹${(pricePaise / 100).toLocaleString("en-IN")}${
+    priceModel === "PER_TEAM" ? " / team" : " / person"
   }`;
 }
 
 function getTeamSize(event: EventItem) {
-  if (!event.is_team_event) return "Individual";
+  const isTeam = event.is_team_event ?? event.isTeamEvent ?? event.isTeam;
+  if (!isTeam) return "Individual";
 
-  if (event.min_team_size === event.max_team_size) {
-    return `${event.min_team_size} members`;
+  const min = event.min_team_size ?? event.minTeamSize ?? 1;
+  const max = event.max_team_size ?? event.maxTeamSize ?? 1;
+
+  if (min === max) {
+    return `${min} members`;
   }
 
-  return `${event.min_team_size}–${event.max_team_size} members`;
+  return `${min}–${max} members`;
 }
 
 export default function TechnicalEvents() {
@@ -100,7 +107,7 @@ export default function TechnicalEvents() {
         limit: 50,
       });
 
-      const fetchedEvents: EventItem[] = data?.events ?? [];
+      const fetchedEvents: EventItem[] = data.events;
 
       setEvents(
         fetchedEvents.filter(
@@ -505,14 +512,27 @@ export default function TechnicalEvents() {
 
                 <dl className="mt-8 grid grid-cols-2 gap-x-5 gap-y-6 border-y border-white/10 py-6 min-[640px]:grid-cols-3">
                   {[
-                    ["Date", formatDate(selectedEvent.starts_at)],
-                    ["Time", formatTime(selectedEvent.starts_at)],
+                    [
+                      "Date",
+                      selectedEvent.starts_at
+                        ? formatDate(selectedEvent.starts_at)
+                        : `Day 0${selectedEvent.festDay || selectedEvent.day_of_event || 1}`,
+                    ],
+                    [
+                      "Time",
+                      selectedEvent.starts_at
+                        ? formatTime(selectedEvent.starts_at)
+                        : "Event Day Schedule",
+                    ],
                     ["Venue", selectedEvent.venue || "To be announced"],
                     ["Team size", getTeamSize(selectedEvent)],
                     ["Entry fee", formatFee(selectedEvent)],
                     [
                       "Prize",
-                      selectedMetadata.prize || "To be announced",
+                      selectedMetadata.prize ||
+                        (Array.isArray(selectedEvent.prizes) && (selectedEvent.prizes[0] as any)?.total_prize_pool_inr
+                          ? `₹${(selectedEvent.prizes[0] as any).total_prize_pool_inr.toLocaleString("en-IN")}`
+                          : "Trophies & Medals"),
                     ],
                   ].map(([label, value]) => (
                     <div key={label}>
@@ -534,18 +554,27 @@ export default function TechnicalEvents() {
                     Before you register
                   </h3>
 
-                  {selectedMetadata.rules?.length ? (
-                    <ul className="mt-4 list-disc space-y-3 pl-5 text-[13px] leading-[1.8] text-[#F5F0DE]/75">
-                      {selectedMetadata.rules.map((rule, index) => (
-                        <li key={index}>{rule}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="mt-3 text-[13px] leading-[1.8] text-[#F5F0DE]/65">
-                      Participation rules and eligibility details will be
-                      announced by the organizers.
-                    </p>
-                  )}
+                  {(() => {
+                    const rules = selectedMetadata.rules?.length
+                      ? selectedMetadata.rules
+                      : typeof selectedEvent.rules === "string" && selectedEvent.rules.trim()
+                      ? selectedEvent.rules.split("\n").map((r) => r.trim()).filter(Boolean)
+                      : Array.isArray(selectedEvent.rules) && selectedEvent.rules.length
+                      ? (selectedEvent.rules as string[])
+                      : null;
+
+                    return rules && rules.length > 0 ? (
+                      <ul className="mt-4 list-disc space-y-3 pl-5 text-[13px] leading-[1.8] text-[#F5F0DE]/75">
+                        {rules.map((rule, index) => (
+                          <li key={index}>{rule}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-3 text-[13px] leading-[1.8] text-[#F5F0DE]/65">
+                        Participation rules and eligibility details will be announced by the organizers at {selectedEvent.venue || "the event desk"}.
+                      </p>
+                    );
+                  })()}
                 </div>
               </div>
 

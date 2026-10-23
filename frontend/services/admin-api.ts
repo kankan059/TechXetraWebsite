@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/api-client";
+import { normalizeEventItem } from "@/services/participant-api";
 
 import type {
   DashboardSalesReport,
@@ -119,14 +120,41 @@ export const adminApi = {
   },
 
   events: {
-    list: async (params?: Record<string, QueryValue>) => {
+    list: async (
+      params?: Record<string, QueryValue>,
+    ): Promise<{ events: AdminEvent[]; next_cursor: string | null; total?: number }> => {
       const sanitized: Record<string, QueryValue> = { ...params };
       if (sanitized.limit && Number(sanitized.limit) > 100) {
         sanitized.limit = 100;
       }
-      return apiRequest<{ events: AdminEvent[]; next_cursor: string | null; total?: number }>(
-        `/events${queryString(sanitized)}`,
-      );
+      const raw = await apiRequest<
+        | AdminEvent[]
+        | { events?: AdminEvent[]; items?: AdminEvent[]; next_cursor?: string | null; total?: number }
+      >(`/events${queryString(sanitized)}`);
+
+      let items: AdminEvent[] = [];
+      let nextCursor: string | null = null;
+      let total: number | undefined = undefined;
+
+      if (Array.isArray(raw)) {
+        items = raw;
+        total = raw.length;
+      } else if (raw && Array.isArray(raw.events)) {
+        items = raw.events;
+        nextCursor = raw.next_cursor ?? null;
+        total = raw.total ?? items.length;
+      } else if (raw && Array.isArray(raw.items)) {
+        items = raw.items;
+        total = raw.total ?? items.length;
+      }
+
+      const normalized = items.map((item) => normalizeEventItem(item) as AdminEvent);
+
+      return {
+        events: normalized,
+        next_cursor: nextCursor,
+        total: total ?? normalized.length,
+      };
     },
 
     create: (body: unknown) =>

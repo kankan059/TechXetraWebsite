@@ -185,7 +185,7 @@ export default function EventsDirectory() {
       queryParams.limit = 50;
 
       const data = await participantApi.events.list(queryParams);
-      const fetchedEvents: EventItem[] = data?.events || [];
+      const fetchedEvents: EventItem[] = data.events;
       setEvents(shuffleEvents(fetchedEvents));
 
       await catalogRequest;

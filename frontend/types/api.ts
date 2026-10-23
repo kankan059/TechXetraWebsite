@@ -112,19 +112,25 @@ export interface EventItem {
   slug: string;
   title: string;
   category: EventCategory;
+  shortDescription?: string | null;
   description: string | null;
   venue: string | null;
+  organizer?: string | null;
+  eligibility?: string | null;
+  format?: string;
   day_of_event: number;
   festDay?: number;
   starts_at: number;
-  startsAt?: number;
+  startsAt?: number | null;
   ends_at: number;
-  endsAt?: number;
+  endsAt?: number | null;
   registration_closes_at: number | null;
   registrationClosesAt?: number | null;
+  registrationOpensAt?: number | null;
   status: EventStatus;
   is_team_event: boolean;
   isTeamEvent?: boolean;
+  isTeam?: boolean;
   min_team_size: number;
   minTeamSize?: number;
   max_team_size: number;
@@ -136,6 +142,7 @@ export interface EventItem {
   student_price_paise: number | null;
   studentPricePaise?: number | null;
   capacity: number | null;
+  availableCapacity?: number | null;
   seats_taken: number;
   seatsTaken?: number;
   seats_remaining: number | null;
@@ -146,11 +153,15 @@ export interface EventItem {
   registrationOpen?: boolean;
   scoring_enabled: boolean;
   scoringEnabled?: boolean;
+  scoringStatus?: ScoringStatus;
   leaderboard_public: boolean;
   leaderboardPublic?: boolean;
   metadata?: string | null;
   form_schema?: string | null;
   formSchema?: string | null;
+  rules?: string | string[] | null;
+  timeline?: unknown[];
+  prizes?: unknown[];
 }
 
 export type TeamStatus = "DRAFT" | "LOCKED" | "CONFIRMED" | "CANCELLED";

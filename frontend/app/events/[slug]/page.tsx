@@ -143,8 +143,9 @@ export default function EventDetailPage({
         const normalizedCategory = slug.toUpperCase().replace("-", "_");
         try {
           const catData = await participantApi.events.list({ category: normalizedCategory });
-          if (Array.isArray(catData?.events) && catData.events.length > 0) {
-            setCategoryEvents(catData.events);
+          const catItems = catData.events;
+          if (Array.isArray(catItems) && catItems.length > 0) {
+            setCategoryEvents(catItems);
             setIsCategoryView(true);
             return;
           }
@@ -155,7 +156,8 @@ export default function EventDetailPage({
         // 3. Fallback: list all events and see if slug matches title or slug
         try {
           const listData = await participantApi.events.list({ limit: 100 });
-          const matched = listData?.events?.find(
+          const listItems = listData.events;
+          const matched = listItems?.find(
             (e: EventItem) => e.slug === slug || e.id === slug,
           );
           if (matched) {
@@ -376,7 +378,11 @@ export default function EventDetailPage({
   if (Array.isArray(meta.rules)) {
     rulesList.push(...meta.rules);
   } else if (typeof meta.rules === "string" && meta.rules.trim()) {
-    rulesList.push(meta.rules);
+    rulesList.push(...meta.rules.split("\n").map((r) => r.trim()).filter(Boolean));
+  } else if (typeof event.rules === "string" && event.rules.trim()) {
+    rulesList.push(...event.rules.split("\n").map((r) => r.trim()).filter(Boolean));
+  } else if (Array.isArray(event.rules)) {
+    rulesList.push(...(event.rules as string[]));
   }
   if (typeof meta.structure_and_rules === "string") {
     rulesList.push(meta.structure_and_rules);
@@ -405,27 +411,48 @@ export default function EventDetailPage({
   let prizeBreakdown: { position?: string; prize_inr?: number; reward?: string }[] = [];
   let prizeNotes: string | null = null;
 
-  if (Array.isArray(meta.prizes)) {
-    prizeBreakdown = meta.prizes;
-  } else if (meta.prizes && typeof meta.prizes === "object") {
-    if (meta.prizes.total_prize_pool_inr) {
-      prizePoolDisplay = `₹${meta.prizes.total_prize_pool_inr.toLocaleString("en-IN")}`;
+  const rawPrizes = Array.isArray(event.prizes) && event.prizes.length > 0
+    ? event.prizes
+    : Array.isArray(meta.prizes) && meta.prizes.length > 0
+    ? meta.prizes
+    : meta.prizes && typeof meta.prizes === "object"
+    ? [meta.prizes]
+    : [];
+
+  if (rawPrizes.length > 0) {
+    const firstItem = rawPrizes[0] as any;
+    if (firstItem && typeof firstItem === "object" && Array.isArray(firstItem.breakdown)) {
+      if (firstItem.total_prize_pool_inr) {
+        prizePoolDisplay = `₹${firstItem.total_prize_pool_inr.toLocaleString("en-IN")}`;
+      }
+      prizeBreakdown = firstItem.breakdown;
+      if (firstItem.notes) {
+        prizeNotes = firstItem.notes;
+      }
+    } else {
+      prizeBreakdown = rawPrizes as { position?: string; prize_inr?: number; reward?: string }[];
     }
-    if (Array.isArray(meta.prizes.breakdown)) {
-      prizeBreakdown = meta.prizes.breakdown;
-    }
-    if (meta.prizes.notes) {
-      prizeNotes = meta.prizes.notes;
-    }
-  } else if (meta.prize_pool_inr) {
-    prizePoolDisplay = `₹${meta.prize_pool_inr.toLocaleString("en-IN")}`;
   }
+
+  if (!prizePoolDisplay) {
+    if (meta.prize_pool_inr) {
+      prizePoolDisplay = `₹${meta.prize_pool_inr.toLocaleString("en-IN")}`;
+    } else if (prizeBreakdown.length > 0) {
+      const sum = prizeBreakdown.reduce((acc, p) => acc + (p.prize_inr || 0), 0);
+      if (sum > 0) {
+        prizePoolDisplay = `₹${sum.toLocaleString("en-IN")}`;
+      }
+    }
+  }
+
   const scheduleStages: {
     stage?: string | number;
     name?: string;
     activities?: string;
     details?: string;
-  }[] = meta.timeline
+  }[] = (Array.isArray(event.timeline) && event.timeline.length > 0)
+      ? (event.timeline as any)
+      : meta.timeline
       ? meta.timeline
       : meta.rounds
         ? meta.rounds
@@ -481,9 +508,9 @@ export default function EventDetailPage({
             >
               {event.status}
             </span>
-            {meta.organizer && (
+            {(meta.organizer || event.organizer) && (
               <span className="text-xs text-white/50 ml-auto">
-                Organized by <strong className="text-white/80">{meta.organizer}</strong>
+                Organized by <strong className="text-white/80">{meta.organizer || event.organizer}</strong>
               </span>
             )}
           </div>
@@ -683,18 +710,18 @@ export default function EventDetailPage({
         )}
 
         {/* 4. Rules & Guidelines Section */}
-        {rulesList.length > 0 && (
-          <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-400/10 text-blue-300">
-                <ListChecks className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Rules & Guidelines</h2>
-                <p className="text-xs text-white/50">Official criteria and participation constraints</p>
-              </div>
+        <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-400/10 text-blue-300">
+              <ListChecks className="h-5 w-5" />
             </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Rules & Guidelines</h2>
+              <p className="text-xs text-white/50">Official criteria and participation constraints</p>
+            </div>
+          </div>
 
+          {rulesList.length > 0 ? (
             <ul className="space-y-3">
               {rulesList.map((rule, idx) => (
                 <li key={idx} className="flex items-start gap-3 text-xs leading-relaxed text-white/80">
@@ -705,22 +732,26 @@ export default function EventDetailPage({
                 </li>
               ))}
             </ul>
-          </div>
-        )}
-
-        {/* 5. Schedule / Rounds Timeline (if present) */}
-        {scheduleStages.length > 0 && (
-          <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-400/10 text-purple-300">
-                <Clock className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Event Timeline & Rounds</h2>
-                <p className="text-xs text-white/50">Stages of evaluation and schedule progression</p>
-              </div>
+          ) : (
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-xs leading-relaxed text-white/60">
+              Standard festival and fair-play regulations apply. Specific tournament rulebooks, match round draws, and evaluation criteria will be briefed by event coordinators at the venue ({event.venue || "Campus Arena"}).
             </div>
+          )}
+        </div>
 
+        {/* 5. Schedule / Rounds Timeline */}
+        <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-400/10 text-purple-300">
+              <Clock className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Event Timeline & Schedule</h2>
+              <p className="text-xs text-white/50">Scheduled festival day and timeline</p>
+            </div>
+          </div>
+
+          {scheduleStages.length > 0 ? (
             <div className="space-y-4">
               {scheduleStages.map((stage, idx) => (
                 <div
@@ -739,8 +770,20 @@ export default function EventDetailPage({
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-white">Festival Day {event.day_of_event}</p>
+                <p className="mt-0.5 text-xs text-white/60">
+                  {event.venue ? `Venue: ${event.venue}` : "Venue to be announced"} · Event desk check-in starts in the morning
+                </p>
+              </div>
+              <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-300 self-start sm:self-auto">
+                Day {event.day_of_event}
+              </span>
+            </div>
+          )}
+        </div>
 
         {/* 6. Evaluation / Judging Criteria (if present) */}
         {Array.isArray(meta.evaluation_criteria) && meta.evaluation_criteria.length > 0 && (
@@ -777,74 +820,78 @@ export default function EventDetailPage({
         )}
 
         {/* 7. Eligibility & Tools / Equipment Requirements */}
-        {(meta.eligibility ||
-          meta.software_required ||
-          meta.tools_allowed ||
-          meta.device_requirement ||
-          meta.materials_provided) && (
-            <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/10 text-sky-300">
-                  <Cpu className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold text-white">Requirements & Eligibility</h2>
-                  <p className="text-xs text-white/50">Prerequisites and required equipment</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-xs">
-                {meta.eligibility && (
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Eligibility</span>
-                    <p className="mt-1 text-white font-medium">{meta.eligibility}</p>
-                  </div>
-                )}
-
-                {meta.software_required && (
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Required Software</span>
-                    <p className="mt-1 text-white font-medium">{meta.software_required}</p>
-                  </div>
-                )}
-
-                {meta.tools_allowed && (
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Allowed Tools</span>
-                    <p className="mt-1 text-white font-medium">{meta.tools_allowed}</p>
-                  </div>
-                )}
-
-                {meta.device_requirement && (
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Device Requirement</span>
-                    <p className="mt-1 text-white font-medium">{meta.device_requirement}</p>
-                  </div>
-                )}
-
-                {meta.materials_provided && (
-                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:col-span-2">
-                    <span className="text-[10px] font-bold uppercase text-slate-400">Materials Provided by Fest</span>
-                    <p className="mt-1 text-white font-medium">{meta.materials_provided}</p>
-                  </div>
-                )}
-              </div>
+        <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/10 text-sky-300">
+              <Cpu className="h-5 w-5" />
             </div>
-          )}
+            <div>
+              <h2 className="text-xl font-bold text-white">Requirements & Eligibility</h2>
+              <p className="text-xs text-white/50">Prerequisites and participation mode</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-xs">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+              <span className="text-[10px] font-bold uppercase text-slate-400">Eligibility</span>
+              <p className="mt-1 text-white font-medium">
+                {event.eligibility || meta.eligibility || "Open to all registered festival delegates and students with valid ID."}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+              <span className="text-[10px] font-bold uppercase text-slate-400">Format & Capacity</span>
+              <p className="mt-1 text-white font-medium">
+                {event.is_team_event
+                  ? `Team event (${event.min_team_size}–${event.max_team_size} members)`
+                  : "Individual (Solo) competition"}
+                {event.capacity ? ` · Max ${event.capacity} ${event.capacity_unit || "seats"}` : ""}
+              </p>
+            </div>
+
+            {meta.software_required && (
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                <span className="text-[10px] font-bold uppercase text-slate-400">Required Software</span>
+                <p className="mt-1 text-white font-medium">{meta.software_required}</p>
+              </div>
+            )}
+
+            {meta.tools_allowed && (
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                <span className="text-[10px] font-bold uppercase text-slate-400">Allowed Tools</span>
+                <p className="mt-1 text-white font-medium">{meta.tools_allowed}</p>
+              </div>
+            )}
+
+            {meta.device_requirement && (
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+                <span className="text-[10px] font-bold uppercase text-slate-400">Device Requirement</span>
+                <p className="mt-1 text-white font-medium">{meta.device_requirement}</p>
+              </div>
+            )}
+
+            {meta.materials_provided && (
+              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:col-span-2">
+                <span className="text-[10px] font-bold uppercase text-slate-400">Materials Provided by Fest</span>
+                <p className="mt-1 text-white font-medium">{meta.materials_provided}</p>
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* 8. Event Coordinators & Contacts */}
-        {(coordinatorsList.length > 0 || meta.submitted_by) && (
-          <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
-                <Phone className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Student Coordinators & Support</h2>
-                <p className="text-xs text-white/50">Contact lead organizers for queries and assistance</p>
-              </div>
+        <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
+              <Phone className="h-5 w-5" />
             </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Student Coordinators & Support</h2>
+              <p className="text-xs text-white/50">Contact organizers for queries and assistance</p>
+            </div>
+          </div>
 
+          {coordinatorsList.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {coordinatorsList.map((coord, idx) => (
                 <div
@@ -872,14 +919,27 @@ export default function EventDetailPage({
                 </div>
               ))}
             </div>
-
-            {meta.submitted_by && (
-              <p className="mt-4 font-mono text-[11px] text-white/40">
-                Submitted by: {meta.submitted_by}
+          ) : (
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 text-xs text-white/70">
+              <p className="font-semibold text-white">
+                {event.organizer || meta.organizer || "TechXetra 2026 Core Organizing Committee"}
               </p>
-            )}
-          </div>
-        )}
+              <p className="mt-1 text-white/50">
+                For queries or assistance, contact the festival desk at {event.venue || "the festival grounds"} or reach out to our team at{" "}
+                <a href="mailto:support@techxetra.in" className="text-cyan-300 underline">
+                  support@techxetra.in
+                </a>
+                .
+              </p>
+            </div>
+          )}
+
+          {meta.submitted_by && (
+            <p className="mt-4 font-mono text-[11px] text-white/40">
+              Submitted by: {meta.submitted_by}
+            </p>
+          )}
+        </div>
 
         {/* Create Team Modal */}
         {showTeamModal && (

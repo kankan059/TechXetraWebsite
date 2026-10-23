@@ -30,6 +30,133 @@ function queryString(params: Record<string, QueryValue> = {}) {
   return q ? `?${q}` : "";
 }
 
+export function normalizeEventItem(raw: any): EventItem {
+  if (!raw || typeof raw !== "object") return raw;
+
+  const isTeam = Boolean(
+    raw.isTeam ?? raw.is_team_event ?? raw.isTeamEvent ?? false,
+  );
+  const minTeamSize = raw.minTeamSize ?? raw.min_team_size ?? 1;
+  const maxTeamSize = raw.maxTeamSize ?? raw.max_team_size ?? (isTeam ? 4 : 1);
+  const priceModel = raw.priceModel ?? raw.price_model ?? "FREE";
+  const pricePaise = raw.pricePaise ?? raw.price_paise ?? 0;
+  const studentPricePaise =
+    raw.studentPricePaise ?? raw.student_price_paise ?? pricePaise;
+  const festDay = raw.festDay ?? raw.day_of_event ?? 1;
+
+  // Synthesize metadata if not provided or empty
+  let metadataString = raw.metadata;
+  if (!metadataString || typeof metadataString !== "string") {
+    const syntheticMeta: Record<string, any> = {
+      summary: raw.shortDescription || raw.description || "",
+      organizer: raw.organizer || undefined,
+      eligibility: raw.eligibility || undefined,
+      rules:
+        typeof raw.rules === "string"
+          ? raw.rules
+              .split("\n")
+              .map((r: string) => r.trim())
+              .filter(Boolean)
+          : Array.isArray(raw.rules)
+          ? raw.rules
+          : [],
+      prizes: raw.prizes || [],
+      timeline: raw.timeline || [],
+    };
+
+    if (Array.isArray(raw.prizes) && raw.prizes.length > 0) {
+      const firstPrize = raw.prizes[0];
+      if (firstPrize?.total_prize_pool_inr) {
+        syntheticMeta.prize = `₹${firstPrize.total_prize_pool_inr.toLocaleString("en-IN")}`;
+        syntheticMeta.prize_pool_inr = firstPrize.total_prize_pool_inr;
+      }
+    }
+
+    metadataString = JSON.stringify(syntheticMeta);
+  }
+
+  return {
+    ...raw,
+    // Day
+    day_of_event: festDay,
+    festDay: festDay,
+
+    // Team
+    is_team_event: isTeam,
+    isTeam: isTeam,
+    isTeamEvent: isTeam,
+    min_team_size: minTeamSize,
+    minTeamSize: minTeamSize,
+    max_team_size: maxTeamSize,
+    maxTeamSize: maxTeamSize,
+
+    // Pricing
+    price_model: priceModel,
+    priceModel: priceModel,
+    price_paise: pricePaise,
+    pricePaise: pricePaise,
+    student_price_paise: studentPricePaise,
+    studentPricePaise: studentPricePaise,
+
+    // Capacity & seats
+    seats_taken: raw.seatsTaken ?? raw.seats_taken ?? 0,
+    seatsTaken: raw.seatsTaken ?? raw.seats_taken ?? 0,
+    seats_remaining:
+      raw.seatsRemaining ?? raw.seats_remaining ?? raw.availableCapacity ?? null,
+    seatsRemaining:
+      raw.seatsRemaining ?? raw.seats_remaining ?? raw.availableCapacity ?? null,
+    availableCapacity:
+      raw.availableCapacity ?? raw.seatsRemaining ?? raw.seats_remaining ?? null,
+
+    // Status & dates
+    registration_open: Boolean(
+      raw.registrationOpen ?? raw.registration_open ?? true,
+    ),
+    registrationOpen: Boolean(
+      raw.registrationOpen ?? raw.registration_open ?? true,
+    ),
+    scoring_enabled: Boolean(
+      raw.scoringEnabled ?? raw.scoring_enabled ?? false,
+    ),
+    scoringEnabled: Boolean(
+      raw.scoringEnabled ?? raw.scoring_enabled ?? false,
+    ),
+    leaderboard_public: Boolean(
+      raw.leaderboardPublic ?? raw.leaderboard_public ?? false,
+    ),
+    leaderboardPublic: Boolean(
+      raw.leaderboardPublic ?? raw.leaderboard_public ?? false,
+    ),
+
+    starts_at: raw.startsAt ?? raw.starts_at ?? 0,
+    startsAt: raw.startsAt ?? raw.starts_at ?? 0,
+    ends_at: raw.endsAt ?? raw.ends_at ?? 0,
+    endsAt: raw.endsAt ?? raw.ends_at ?? 0,
+    registration_closes_at:
+      raw.registrationClosesAt ?? raw.registration_closes_at ?? null,
+    registrationClosesAt:
+      raw.registrationClosesAt ?? raw.registration_closes_at ?? null,
+
+    // Descriptions & metadata
+    shortDescription: raw.shortDescription ?? raw.short_description ?? null,
+    rules: raw.rules ?? null,
+    prizes: raw.prizes ?? [],
+    timeline: raw.timeline ?? [],
+    organizer: raw.organizer ?? null,
+    eligibility: raw.eligibility ?? null,
+    metadata: metadataString,
+
+    form_schema:
+      raw.form_schema ??
+      (raw.formSchema
+        ? typeof raw.formSchema === "string"
+          ? raw.formSchema
+          : JSON.stringify(raw.formSchema)
+        : null),
+    formSchema: raw.formSchema ?? raw.form_schema ?? null,
+  };
+}
+
 export const participantApi = {
   // Module 01: Auth & Profile
   auth: {
@@ -91,21 +218,48 @@ export const participantApi = {
   },
 
   events: {
-    list: (params?: Record<string, QueryValue>) => {
+    list: async (
+      params?: Record<string, QueryValue>,
+    ): Promise<{ events: EventItem[]; next_cursor: string | null; total?: number }> => {
       const sanitized = { ...params };
       if (sanitized.limit && Number(sanitized.limit) > 100) {
         sanitized.limit = 100;
       }
-      return apiRequest<{ events: EventItem[]; next_cursor: string | null; total?: number }>(
-        `/events${queryString(sanitized)}`,
-      );
+      const raw = await apiRequest<
+        | EventItem[]
+        | { events?: EventItem[]; items?: EventItem[]; next_cursor?: string | null; total?: number }
+      >(`/events${queryString(sanitized)}`);
+
+      let items: EventItem[] = [];
+      let nextCursor: string | null = null;
+      let total: number | undefined = undefined;
+
+      if (Array.isArray(raw)) {
+        items = raw;
+        total = raw.length;
+      } else if (raw && Array.isArray(raw.events)) {
+        items = raw.events;
+        nextCursor = raw.next_cursor ?? null;
+        total = raw.total ?? items.length;
+      } else if (raw && Array.isArray(raw.items)) {
+        items = raw.items;
+        total = raw.total ?? items.length;
+      }
+
+      const normalized = items.map(normalizeEventItem);
+
+      return {
+        events: normalized,
+        next_cursor: nextCursor,
+        total: total ?? normalized.length,
+      };
     },
-    get: (idOrSlug: string) =>
-      apiRequest<EventItem>(`/events/${encodeURIComponent(idOrSlug)}`),
+    get: async (idOrSlug: string) => {
+      const raw = await apiRequest<EventItem>(`/events/${encodeURIComponent(idOrSlug)}`);
+      return normalizeEventItem(raw);
+    },
     leaderboards: async () => {
-      // Backend does not have a global /leaderboards collection route.
-      // Fetch public events with scoring enabled
-      return apiRequest<{ events: EventItem[] }>("/events?limit=50");
+      return participantApi.events.list({ limit: 50 });
     },
     eventLeaderboard: (idOrSlug: string) =>
       apiRequest<LeaderboardResponse>(
