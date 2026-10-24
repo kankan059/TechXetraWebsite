@@ -23,6 +23,9 @@ ScrollTrigger.config({ ignoreMobileResize: true });
 const useIsoLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
+/** Phones, tablets and any touch-first device get the lightweight rendering path. */
+const LITE_QUERY = "(max-width: 1023px), (pointer: coarse)";
+
 /**
  * Change these font classes once to update typography across this section.
  * Keep the actual font-family names configured in your global CSS/Tailwind.
@@ -125,11 +128,16 @@ const STORY_START = 1.06; // first page appears exactly when the cover has swung
 const CHAPTER = 0.7;
 const TAIL_HOLD = 0.45;
 
+/** Lite mode: the cover shrinks with a cheap transform scale instead of animating width/height (which forces layout every frame). */
+const LITE_BOOK_SCALE = 0.9;
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 export default function Hero() {
   const [assetsReady, setAssetsReady] = useState(false);
   const [loaderGone, setLoaderGone] = useState(false);
+  // null = not detected yet (SSR / first paint). true = phone / tablet / touch. false = desktop.
+  const [isLite, setIsLite] = useState<boolean | null>(null);
 
   const rootRef = useRef<HTMLElement>(null);
   const coverRef = useRef<HTMLDivElement>(null);
@@ -145,6 +153,15 @@ export default function Hero() {
     "--tx-cream": TECHXETRA_COLORS.cream,
     "--tx-black": "#060606",
   } as CSSProperties;
+
+  // Detect phone / tablet / touch devices once, and keep it in sync if the viewport crosses the breakpoint.
+  useIsoLayoutEffect(() => {
+    const mq = window.matchMedia(LITE_QUERY);
+    setIsLite(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setIsLite(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   // Always start a fresh load at the top, including browser pageshow/BFCache restores.
   useIsoLayoutEffect(() => {
@@ -255,8 +272,9 @@ export default function Hero() {
   }, [assetsReady]);
 
   useIsoLayoutEffect(() => {
-    if (!assetsReady) return;
+    if (!assetsReady || isLite === null) return;
 
+    const lite = isLite;
     const root = rootRef.current;
     const cover = coverRef.current;
     const spread = spreadRef.current;
@@ -341,6 +359,7 @@ export default function Hero() {
         backfaceVisibility: "hidden",
         backgroundColor: "transparent",
         backgroundImage: "none",
+        force3D: true,
       });
 
       const chapterAt = (i: number) => STORY_START + i * CHAPTER;
@@ -349,9 +368,14 @@ export default function Hero() {
       // Cheap HUD updates: runs on timeline update, touches the DOM only when something changed.
       const setFill = railFill ? gsap.quickSetter(railFill, "scaleY") : null;
       let lastIdx = -2;
+      let lastFill = -1;
       const updateHud = (t: number) => {
         const span = CHAPTER * (stories.length - 1);
-        setFill?.(gsap.utils.clamp(0, 1, (t - STORY_START) / span));
+        const fill = gsap.utils.clamp(0, 1, (t - STORY_START) / span);
+        if (Math.abs(fill - lastFill) > 0.002) {
+          lastFill = fill;
+          setFill?.(fill);
+        }
         const idx =
           t < STORY_START - 0.1
             ? -1
@@ -370,7 +394,8 @@ export default function Hero() {
           trigger: root,
           start: "top top",
           end: "bottom bottom",
-          scrub: 0.5,
+          // Touch scrolling already has native momentum; extra smoothing only adds lag + extra frames on phones.
+          scrub: lite ? true : 0.5,
           invalidateOnRefresh: true,
         },
       });
@@ -381,25 +406,39 @@ export default function Hero() {
 
       tl.addLabel("bookZoom", ZOOM);
 
-      // Cover shrinks into a book. Only this single element changes size.
-      tl.to(
-        cover,
-        {
-          left: "50%",
-          top: "50%",
-          xPercent: -50,
-          yPercent: -50,
-          width: () => Math.min(window.innerWidth * 0.86, 1040),
-          height: () => Math.min(window.innerHeight * 0.7, 660),
-          rotateX: 1.5,
-          rotateY: -5,
-          duration: 0.58,
-        },
-        "bookZoom"
-      );
+      // Cover shrinks into a book.
+      if (lite) {
+        // Transform-only (GPU) shrink: no layout, no re-wrapping of the cover text on every frame.
+        tl.to(
+          cover,
+          {
+            scale: LITE_BOOK_SCALE,
+            x: () => (root.clientWidth * (1 - LITE_BOOK_SCALE)) / 2,
+            duration: 0.58,
+          },
+          "bookZoom"
+        );
+      } else {
+        // Desktop: true resize of the cover.
+        tl.to(
+          cover,
+          {
+            left: "50%",
+            top: "50%",
+            xPercent: -50,
+            yPercent: -50,
+            width: () => Math.min(window.innerWidth * 0.86, 1040),
+            height: () => Math.min(window.innerHeight * 0.7, 660),
+            rotateX: 1.5,
+            rotateY: -5,
+            duration: 0.58,
+          },
+          "bookZoom"
+        );
 
-      if (coverContent) {
-        tl.to(coverContent, { scale: 0.98, duration: 0.58 }, "bookZoom");
+        if (coverContent) {
+          tl.to(coverContent, { scale: 0.98, duration: 0.58 }, "bookZoom");
+        }
       }
 
       // Transparent hero at first; the shrinking cover turns black during the transition.
@@ -416,19 +455,21 @@ export default function Hero() {
       // First page artwork.
       tl.to(pages[0], { autoAlpha: 1, duration: 0.18 }, STORY_START);
 
-      // Slow, scroll-linked camera drift per artwork (transform-only, GPU friendly).
-      PAGES.forEach((_, p) => {
-        const idxs = stories.map((s, i) => (s.page === p ? i : -1)).filter((i) => i >= 0);
-        if (!idxs.length || !pageInners[p]) return;
-        const start = chapterAt(idxs[0]);
-        const end = chapterAt(idxs[idxs.length - 1]) + CHAPTER + (p === PAGES.length - 1 ? TAIL_HOLD : 0.3);
-        tl.fromTo(
-          pageInners[p],
-          { scale: 1.04 },
-          { scale: 1.15, duration: end - start, ease: "none" },
-          start
-        );
-      });
+      // Slow, scroll-linked camera drift per artwork (desktop only: scaling full-screen images is costly on phones/tablets).
+      if (!lite) {
+        PAGES.forEach((_, p) => {
+          const idxs = stories.map((s, i) => (s.page === p ? i : -1)).filter((i) => i >= 0);
+          if (!idxs.length || !pageInners[p]) return;
+          const start = chapterAt(idxs[0]);
+          const end = chapterAt(idxs[idxs.length - 1]) + CHAPTER + (p === PAGES.length - 1 ? TAIL_HOLD : 0.3);
+          tl.fromTo(
+            pageInners[p],
+            { scale: 1.04 },
+            { scale: 1.15, duration: end - start, ease: "none" },
+            start
+          );
+        });
+      }
 
       // Chapters.
       stories.forEach((story, i) => {
@@ -493,7 +534,9 @@ export default function Hero() {
     }, root);
 
     return () => ctx.revert();
-  }, [assetsReady]);
+  }, [assetsReady, isLite]);
+
+  const lite = isLite === true;
 
   return (
     <>
@@ -524,9 +567,12 @@ export default function Hero() {
         className="relative h-[420svh] text-[#f3ead4]"
       >
         <div className="sticky top-0 h-[100svh] overflow-hidden bg-transparent">
-          <div className="pointer-events-none absolute inset-0 z-[1]">
-            <SilverFlight />
-          </div>
+          {/* Heavy background animation is desktop-only; phones/tablets skip it entirely. */}
+          {isLite === false && (
+            <div className="pointer-events-none absolute inset-0 z-[1]">
+              <SilverFlight />
+            </div>
+          )}
 
           {/* The original hero becomes the book cover. HeroTitle itself is untouched. */}
           <div
@@ -535,7 +581,9 @@ export default function Hero() {
             style={{
               backgroundColor: "transparent",
               backgroundImage: "none",
-              boxShadow: "0 24px 70px rgba(0,0,0,0.55)",
+              boxShadow: lite
+                ? "0 10px 28px rgba(0,0,0,0.5)"
+                : "0 24px 70px rgba(0,0,0,0.55)",
               willChange: "transform",
             }}
           >
@@ -601,8 +649,9 @@ export default function Hero() {
             ref={spreadRef}
             className="exodus-spread absolute inset-y-0 left-0 right-0 z-10 overflow-hidden rounded-none border-0 bg-[#050505] shadow-none sm:inset-y-[6%] sm:left-[5%] sm:right-[5%] sm:rounded-[3px] sm:border sm:border-[#c9bda5]/60 lg:inset-y-[10%] lg:left-[10%] lg:right-[10%]"
             style={{
-              boxShadow:
-                "0 24px 70px rgba(0,0,0,0.65), inset 0 0 0 5px rgba(255,255,255,0.06), 0 0 0 2px rgba(75,61,42,0.5)",
+              boxShadow: lite
+                ? "0 0 0 2px rgba(75,61,42,0.5)"
+                : "0 24px 70px rgba(0,0,0,0.65), inset 0 0 0 5px rgba(255,255,255,0.06), 0 0 0 2px rgba(75,61,42,0.5)",
               contain: "layout paint",
             }}
           >
@@ -612,13 +661,16 @@ export default function Hero() {
                 className="exodus-page absolute inset-0 overflow-hidden"
                 style={{ willChange: "opacity" }}
               >
-                <div className="exodus-page-inner absolute inset-0" style={{ willChange: "transform" }}>
+                <div
+                  className="exodus-page-inner absolute inset-0"
+                  style={lite ? undefined : { willChange: "transform" }}
+                >
                   <Image
                     src={src}
                     alt=""
                     fill
-                    sizes="(max-width: 768px) 94vw, 82vw"
-                    quality={75}
+                    sizes="(max-width: 768px) 100vw, (max-width: 1024px) 92vw, 82vw"
+                    quality={lite ? 65 : 75}
                     draggable={false}
                     priority={index === 0}
                     loading="eager"
@@ -631,10 +683,13 @@ export default function Hero() {
 
             {/* Static finishing layers: vignette, film grain, centre seam, paper edge. */}
             <div className="pointer-events-none absolute inset-0 z-[5] bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(0,0,0,0.55)_100%)]" />
-            <div
-              className="pointer-events-none absolute inset-0 z-[6] opacity-[0.06]"
-              style={{ backgroundImage: GRAIN, backgroundSize: "160px 160px" }}
-            />
+            {/* Film grain (SVG turbulence) is very expensive to composite on mobile GPUs, so desktop only. */}
+            {isLite === false && (
+              <div
+                className="pointer-events-none absolute inset-0 z-[6] opacity-[0.06]"
+                style={{ backgroundImage: GRAIN, backgroundSize: "160px 160px" }}
+              />
+            )}
             <div className="pointer-events-none absolute inset-y-0 left-1/2 z-10 hidden w-10 -translate-x-1/2 bg-gradient-to-r from-black/0 via-black/35 to-black/0 sm:block" />
             <div className="pointer-events-none absolute inset-y-0 left-1/2 z-10 hidden w-px -translate-x-1/2 bg-[#e8d4a7]/15 sm:block" />
             <div className="pointer-events-none absolute inset-0 z-20 border-0 shadow-none sm:inset-5 sm:border sm:border-white/20 sm:shadow-[inset_0_0_18px_rgba(0,0,0,0.12)]" />
@@ -658,20 +713,21 @@ export default function Hero() {
                     {story.eyebrow}
                   </p>
 
+                  {/* Big blurred text-shadows are costly while animating on phones; the scrim already handles legibility there. */}
                   <h2
-                    className={`${FONT.display} max-w-5xl text-[clamp(2.5rem,7vw,6.8rem)] uppercase leading-[0.96] tracking-[-0.04em] text-[#fffdf5] [text-shadow:0_3px_18px_rgba(0,0,0,0.9)] ${
+                    className={`${FONT.display} max-w-5xl text-[clamp(2.5rem,7vw,6.8rem)] uppercase leading-[0.96] tracking-[-0.04em] text-[#fffdf5] [text-shadow:0_2px_4px_rgba(0,0,0,0.75)] lg:[text-shadow:0_3px_18px_rgba(0,0,0,0.9)] ${
                       story.position === "right" ? "ml-auto" : story.position === "center" ? "mx-auto" : ""
                     }`}
                   >
                     {story.title.split(" ").map((word, i, arr) => (
                       <span key={`${word}-${i}`} className="inline-block overflow-hidden pb-[0.12em] align-bottom -mb-[0.12em]">
-                        <span className="tx-word inline-block will-change-transform">{word}</span>
+                        <span className="tx-word inline-block">{word}</span>
                         {i < arr.length - 1 ? "\u00A0" : null}
                       </span>
                     ))}
                   </h2>
 
-                  <p className={`tx-body ${FONT.body} mt-4 max-w-xl text-sm leading-7 text-white/90 [text-shadow:0_2px_12px_rgba(0,0,0,0.95)] sm:mt-6 sm:text-base md:text-lg ${
+                  <p className={`tx-body ${FONT.body} mt-4 max-w-xl text-sm leading-7 text-white/90 [text-shadow:0_1px_3px_rgba(0,0,0,0.85)] sm:mt-6 sm:text-base md:text-lg lg:[text-shadow:0_2px_12px_rgba(0,0,0,0.95)] ${
                     story.position === "right" ? "ml-auto" : story.position === "center" ? "mx-auto" : ""
                   }`}>
                     {story.body}
