@@ -214,7 +214,7 @@ const Hero = () => {
         <div
           className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-screen"
           style={{
-            backgroundImage: "url('/assets/nebula.png')",
+            backgroundImage: "url('/assets/nebula.webp')",
           }}
         />
 

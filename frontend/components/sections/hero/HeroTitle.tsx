@@ -114,7 +114,7 @@ export default function HeroTitle() {
           "
         >
           <Image
-            src="/assets/x.png"
+            src="/assets/x.webp"
             alt="X"
             fill
             priority
