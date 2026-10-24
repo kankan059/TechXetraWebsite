@@ -1,10 +1,10 @@
-"use client";
+// "use client";
 
-import Link from "next/link";
+// import Link from "next/link";
 import About from "@/components/sections/about/About";
 import EventGlimpse from "@/components/sections/events/EventGlimpse";
 import Hero from "@/components/sections/hero/Hero";
-import Platform from "@/components/sections/hero/Plateform";
+// import Platform from "@/components/sections/hero/Plateform";
 
 export default function HomePage() {
   return (
@@ -13,7 +13,8 @@ export default function HomePage() {
         <Hero />
         <About />
         <EventGlimpse />
-        <Platform/>
+
+        {/* <Platform/> */}
       </main>
     </div>
   );

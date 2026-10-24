@@ -21,8 +21,8 @@ export default function RouteShell({
 
   return (
     <>
-      <GlobalEffect />
       <BackGround />
+      <GlobalEffect />
       <Navbar />
       <SmoothScroll />
       <div className="relative z-10 flex-1">{children}</div>

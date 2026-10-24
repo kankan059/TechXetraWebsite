@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useLayoutEffect, useRef, type CSSProperties } from "react";
@@ -7,7 +8,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { heroData } from "@/data/info/hero";
 import { TECHXETRA_COLORS } from "@/constants/colors";
 import HeroTitle from "./HeroTitle";
-// import EarthScene from "@/components/animations/EarthScene";
+import ConstellationField from "@/components/animations/ConstellationField";
 import SilverFlight from "@/components/animations/SilverFlight";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -18,13 +19,13 @@ const Hero = () => {
   const metaRef = useRef<HTMLDivElement>(null);
   const titleAreaRef = useRef<HTMLDivElement>(null);
   const titleIntroRef = useRef<HTMLDivElement>(null);
+  const taglineRef = useRef<HTMLParagraphElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
     const hero = heroRef.current;
 
-    
     if (!hero) return;
 
     let refreshFrame = 0;
@@ -78,6 +79,19 @@ const Hero = () => {
           "-=0.2"
         )
         .fromTo(
+          taglineRef.current,
+          {
+            opacity: 0,
+            y: 10,
+          },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.7,
+          },
+          "-=0.45"
+        )
+        .fromTo(
           bottomRef.current,
           {
             opacity: 0,
@@ -128,6 +142,15 @@ const Hero = () => {
           {
             y: -15,
             opacity: 0.2,
+            ease: "none",
+          },
+          0
+        )
+        .to(
+          taglineRef.current,
+          {
+            y: -20,
+            opacity: 0.15,
             ease: "none",
           },
           0
@@ -194,12 +217,12 @@ const Hero = () => {
             backgroundImage: "url('/assets/nebula.png')",
           }}
         />
+
+        {/* <ConstellationField /> */}
       </div>
 
-      {/* <EarthScene /> */}
-
+      {/* Space flight animation */}
       <SilverFlight />
-
 
       {/* Side glow */}
       <div className="pointer-events-none absolute inset-0 z-[1] bg-[radial-gradient(ellipse_at_left,rgba(0,170,255,0.32)_0%,rgba(35,90,255,0.12)_35%,transparent_70%)]" />
@@ -228,49 +251,64 @@ const Hero = () => {
         }}
       />
 
+      {/* Hero content */}
       <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-[1920px] flex-col px-5 pb-6 pt-20 sm:px-8 sm:pt-22 md:px-12 lg:px-16 lg:pb-9 xl:px-20">
+        {/* Top line */}
         <div
           ref={topLineRef}
           className="h-px w-full origin-left bg-(--tx-cream)/25"
         />
 
+        {/* Event metadata */}
         <div
           ref={metaRef}
-          className="flex items-start justify-between gap-4"
+          className="flex items-start justify-between gap-3 sm:gap-4"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <div className="flex gap-[3px]">
               <span className="h-[5px] w-4 bg-(--tx-blue)" />
               <span className="h-[5px] w-2 bg-(--tx-red)" />
               <span className="h-[5px] w-2 bg-(--tx-green)" />
             </div>
 
-            <span className="font-pixel text-[9px] uppercase tracking-[0.18em] text-(--tx-cream)/65 sm:text-[10px]">
+            <span className="font-pixel text-[8px] uppercase tracking-[0.12em] text-(--tx-cream)/65 sm:text-[10px] sm:tracking-[0.18em]">
               TECHXTRA / {heroData.year}
             </span>
           </div>
 
-          <span className="max-w-[55%] text-right font-pixel text-[8px] uppercase leading-relaxed tracking-[0.12em] text-(--tx-cream)/55 sm:text-[10px] sm:tracking-[0.16em]">
+          <span className="max-w-[52%] text-right font-pixel text-[7px] uppercase leading-relaxed tracking-[0.08em] text-(--tx-cream)/55 sm:max-w-[55%] sm:text-[10px] sm:tracking-[0.16em]">
             {heroData.uni}
           </span>
         </div>
 
-        {/* Title */}
-        <div className="flex flex-1 items-start justify-center pt-8 sm:pt-10 md:pt-12">
+        {/* Centered title and tagline */}
+        <div className="flex flex-1 flex-col items-center justify-center py-10 sm:py-12 md:py-14">
           <div
             ref={titleAreaRef}
             className="mx-auto w-full min-w-0 max-w-[1200px]"
           >
-            <div ref={titleIntroRef}>
+            <div ref={titleIntroRef} className="text-center">
               <HeroTitle />
 
-              <div className="mt-2 flex justify-end pr-[2%] sm:mt-3">
+              <div className="mt-3 flex justify-center sm:mt-4">
                 <span className="font-pixel text-[clamp(1rem,2.5vw,2rem)] leading-none tracking-[0.12em] text-(--tx-blue)">
-                  {heroData.year}
+                  A NEW DIMENSION
                 </span>
               </div>
             </div>
           </div>
+
+          {/* Hero tagline */}
+          <p
+            ref={taglineRef}
+            className="mx-auto mt-7 max-w-[310px] text-center font-pixel text-[8px] uppercase leading-[1.9] tracking-[0.12em] text-(--tx-cream)/65 sm:mt-8 sm:max-w-[520px] sm:text-[10px] sm:tracking-[0.2em] md:mt-10 md:text-[11px]"
+          >
+            Where technology meets the universe
+            <span className="mx-2 text-(--tx-blue)">—</span>
+            <span className="text-(--tx-blue)">
+              and ideas become reality.
+            </span>
+          </p>
         </div>
 
         {/* Bottom information */}
@@ -278,10 +316,10 @@ const Hero = () => {
           ref={bottomRef}
           className="flex flex-col items-stretch gap-6 border-t border-(--tx-cream)/15 pt-4 sm:pt-5 lg:flex-row lg:items-start lg:justify-between lg:gap-10"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
             <span className="h-2 w-2 shrink-0 rounded-full bg-(--tx-green)" />
 
-            <span className="font-pixel text-[8px] uppercase tracking-[0.12em] text-(--tx-cream)/50 sm:text-[9px] sm:tracking-[0.18em]">
+            <span className="font-pixel text-[7px] uppercase tracking-[0.08em] text-(--tx-cream)/50 sm:text-[9px] sm:tracking-[0.18em]">
               Tezpur University · Assam, India
             </span>
           </div>
