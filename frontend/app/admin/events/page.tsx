@@ -125,6 +125,7 @@ export default function AdminEventsPage() {
   const [editDay, setEditDay] = useState(1);
   const [editVenue, setEditVenue] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [editRules, setEditRules] = useState("");
   const [editStatus, setEditStatus] = useState<EventStatus>("OPEN");
   const [editStartsAt, setEditStartsAt] = useState("");
   const [editEndsAt, setEditEndsAt] = useState("");
@@ -316,6 +317,14 @@ export default function AdminEventsPage() {
     setEditDay(evt.day_of_event || (evt as any).festDay || 1);
     setEditVenue(evt.venue || "");
     setEditDescription(evt.description || "");
+    const eventRules = (evt as any).rules;
+    setEditRules(
+      Array.isArray(eventRules)
+        ? eventRules.join("\n")
+        : typeof eventRules === "string"
+          ? eventRules
+          : ""
+    );
     setEditStatus(evt.status);
     setEditStartsAt(toDatetimeLocal(evt.starts_at));
     setEditEndsAt(toDatetimeLocal(evt.ends_at));
@@ -378,6 +387,7 @@ export default function AdminEventsPage() {
         day_of_event: Number(editDay),
         venue: editVenue.trim() || null,
         description: editDescription.trim() || null,
+        rules: editRules.trim(),
         status: editStatus,
         starts_at: fromDatetimeLocal(editStartsAt),
         ends_at: fromDatetimeLocal(editEndsAt),
@@ -1206,6 +1216,20 @@ export default function AdminEventsPage() {
                       rows={3}
                       className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
                     />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-300">Rules</label>
+                    <textarea
+                      value={editRules}
+                      onChange={(e) => setEditRules(e.target.value)}
+                      rows={6}
+                      placeholder={"Enter each rule on a new line. Markdown is also supported."}
+                      className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
+                    />
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Put each rule on a separate line. Rules are saved as a newline-separated string.
+                    </p>
                   </div>
                 </div>
               )}
