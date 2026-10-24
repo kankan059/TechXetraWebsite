@@ -770,3 +770,46 @@ export interface LeadUpdateEventBody {
   form_schema?: string | null;
   registration_closes_at?: number | null;
 }
+
+export interface AdminUserDetail {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: string;
+  isStudent: boolean;
+  institutionName: string | null;
+  institutionId: string | null;
+  isActive: boolean;
+  events: Array<{
+    registrationId: string;
+    registrationStatus: "CONFIRMED" | "RESERVED";
+    registeredAt: number;
+    event: {
+      id: string;
+      slug: string;
+      title: string;
+      category: string;
+      format: string;
+      venue: string;
+      festDay: number;
+      isTeam: boolean;
+    };
+    team: { id: string; name: string } | null;
+    ticket: { publicId: string; status: string; checkedInAt: number | null } | null;
+  }>;
+  teams: Array<{
+    id: string;
+    name: string;
+    eventId: string;
+    eventTitle: string;
+    isLeader: boolean;
+    role: "LEADER" | "MEMBER";
+    status: "ACCEPTED" | "INVITED";
+  }>;
+  staffAssignments: Array<{
+    eventId: string;
+    eventTitle: string;
+    role: "EVENT_LEAD" | "VOLUNTEER";
+  }>;
+}

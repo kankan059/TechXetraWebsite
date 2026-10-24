@@ -21,6 +21,7 @@ import type {
   AdminSettings,
   PurchaseDetail,
   FestDay,
+  AdminUserDetail,
 } from "@/types/api";
 
 type QueryValue = string | number | boolean | undefined;
@@ -164,6 +165,10 @@ export const adminApi = {
           body,
         },
       ),
+
+    // in adminApi.users
+    getDetails: (userId: string) =>
+      apiRequest<AdminUserDetail>(`/admin/users/${encodeURIComponent(userId)}`),
   },
 
   events: {

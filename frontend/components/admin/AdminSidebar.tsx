@@ -12,6 +12,7 @@ const navigation = [
   { label: "Competitions", href: "/admin/events" },
   { label: "Attendance", href: "/admin/attendance" },
   { label: "Users & Staff", href: "/admin/users" },
+  { label: "User Details", href: "/admin/user-details" },
   { label: "Gate Staff", href: "/admin/gate-staff" },
   { label: "Diagnostics", href: "/admin/reports" },
   { label: "Settings & Days", href: "/admin/settings" },
@@ -41,9 +42,8 @@ export default function AdminSidebar({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/[0.08] bg-[#0C1017] transition-transform duration-200 lg:translate-x-0 ${
-          open ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/[0.08] bg-[#0C1017] transition-transform duration-200 lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"
+          }`}
       >
         <div className="flex h-20 items-center border-b border-white/[0.08] px-6">
           <Link
@@ -75,11 +75,10 @@ export default function AdminSidebar({
                 href={item.href}
                 onClick={onClose}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center rounded-md border px-3 py-3 text-sm transition-colors ${
-                  active
+                className={`flex items-center rounded-md border px-3 py-3 text-sm transition-colors ${active
                     ? "border-[#55DFFF]/20 bg-[#55DFFF]/[0.08] text-[#55DFFF]"
                     : "border-transparent text-slate-400 hover:bg-white/[0.04] hover:text-white"
-                }`}
+                  }`}
               >
                 {active && (
                   <span className="mr-3 h-1.5 w-1.5 rounded-full bg-[#55DFFF]" />

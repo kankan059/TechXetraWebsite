@@ -159,6 +159,7 @@ export default function DashboardPage() {
               </span>
             </div>
             <p className="mt-1 text-sm text-white/50">{user.email}</p>
+            <p className="mt-1 text-sm text-white/50">{user.id}</p>
           </div>
 
           <div className="flex items-center gap-3 ">
@@ -167,7 +168,7 @@ export default function DashboardPage() {
               onClick={handleLogout}
               className="inline-flex items-center gap-2 font-sans rounded-none border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/80 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55DFFF] cursor-pointer hover:border-red-400/40 hover:bg-red-400/10 hover:text-red-300"
             >
-              
+
               Sign out
             </button>
           </div>
@@ -191,7 +192,7 @@ export default function DashboardPage() {
         {!(user.profileComplete ?? user.profile_complete) && (
           <div className="flex flex-col items-start justify-between gap-4 rounded-none border border-amber-400/30 bg-amber-400/10 p-5 sm:flex-row sm:items-center">
             <div className="flex items-start gap-3">
-              
+
               <div>
                 <p className="font-medium text-[#FFCA8A]">Profile incomplete</p>
                 <p className="mt-0.5 text-xs text-[#FFCA8A]/80">
@@ -206,7 +207,7 @@ export default function DashboardPage() {
               className="inline-flex shrink-0 items-center gap-2 rounded-none bg-amber-400 px-4 py-2 text-xs font-semibold text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55DFFF] cursor-pointer hover:bg-amber-300"
             >
               Complete Profile
-              
+
             </Link>
           </div>
         )}
@@ -216,7 +217,7 @@ export default function DashboardPage() {
           {/* User info card */}
           <div className="border border-[#55DFFF]/25 bg-transparent p-5 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
             <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-              
+
               <div>
                 <p className="font-[var(--font-gotham-bold)] font-semibold text-white">Profile Details</p>
                 <p className="text-xs text-white/50">Personal & Academic info</p>
@@ -248,7 +249,7 @@ export default function DashboardPage() {
               )}
               {(user.studentFieldsLocked ?? user.student_fields_locked) && (
                 <div className="mt-2 flex items-center gap-2 rounded-none bg-[#8FE388]/10 p-2 text-[11px] text-[#8FE388]">
-                  
+
                   <span>Student ID verified & locked</span>
                 </div>
               )}
@@ -267,7 +268,7 @@ export default function DashboardPage() {
           {/* Quick pass summary */}
           <div className="border border-[#55DFFF]/25 bg-transparent p-5 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
             <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-              
+
               <div>
                 <p className="font-[var(--font-gotham-bold)] font-semibold text-white">Digital Passes</p>
                 <p className="text-xs text-white/50">{tickets.length} Active Tickets</p>
@@ -308,7 +309,7 @@ export default function DashboardPage() {
           {/* Teams summary */}
           <div className="border border-[#55DFFF]/25 bg-transparent p-5 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
             <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-              
+
               <div>
                 <p className="font-[var(--font-gotham-bold)] font-semibold text-white">Teams & Invites</p>
                 <p className="text-xs text-white/50">
@@ -361,7 +362,7 @@ export default function DashboardPage() {
         {invites.length > 0 && (
           <section className="border border-[#55DFFF]/25 bg-transparent p-6 [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
             <div className="mb-4 flex items-center gap-2">
-              
+
               <h2 className="font-[var(--font-gotham-bold)] text-lg font-semibold text-white">Pending Team Invitations</h2>
             </div>
 
@@ -412,7 +413,7 @@ export default function DashboardPage() {
           <section className="border border-[#55DFFF]/30 bg-transparent p-6 [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                
+
                 <h2 className="font-[var(--font-gotham-bold)] text-lg font-semibold text-white">Preparing Passes</h2>
               </div>
             </div>
@@ -435,7 +436,7 @@ export default function DashboardPage() {
                       onClick={() => handleRetryFulfillment(prep.purchase_id)}
                       className="inline-flex items-center gap-2 rounded-none bg-[#55DFFF] px-4 py-2 text-xs font-semibold text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55DFFF] cursor-pointer hover:bg-[#8BEAFF] disabled:opacity-50"
                     >
-                      
+
                       Generate Passes Now
                     </button>
                   )}
@@ -449,7 +450,7 @@ export default function DashboardPage() {
         <section className="border border-[#55DFFF]/25 bg-transparent p-6 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              
+
               <h2 className="font-[var(--font-gotham-bold)] text-xl font-semibold text-white">My Digital Passes</h2>
             </div>
             <Link
@@ -462,7 +463,7 @@ export default function DashboardPage() {
 
           {tickets.length === 0 ? (
             <div className="rounded-none border border-dashed border-white/10 py-12 text-center">
-              
+
               <p className="mt-3 text-sm text-white/50">You don’t have any active digital passes.</p>
               <Link
                 href="/events"
@@ -490,11 +491,10 @@ export default function DashboardPage() {
                     </div>
 
                     <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        tkt.validity.state === "VALID"
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${tkt.validity.state === "VALID"
                           ? "bg-[#8FE388]/10 text-[#8FE388]"
                           : "bg-amber-400/10 text-[#FFB86B]"
-                      }`}
+                        }`}
                     >
                       {tkt.validity.state}
                     </span>
@@ -503,7 +503,7 @@ export default function DashboardPage() {
                   {/* Student ID alert for student tier passes */}
                   {tkt.tier === "STUDENT" && (
                     <div className="mt-4 flex items-start gap-2 rounded-none border border-amber-400/20 bg-amber-400/[0.07] p-2.5 text-xs text-[#FFCA8A]">
-                      
+
                       <span>{tkt.student_id_warning || "Physical college ID required at check-in."}</span>
                     </div>
                   )}
@@ -531,7 +531,7 @@ export default function DashboardPage() {
         <section className="border border-[#55DFFF]/25 bg-transparent p-6 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              
+
               <h2 className="font-[var(--font-gotham-bold)] text-xl font-semibold text-white">Order & Payment History</h2>
             </div>
           </div>
@@ -546,15 +546,14 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-white">Order {p.id}</p>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                          p.status === "PAID"
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${p.status === "PAID"
                             ? "bg-[#8FE388]/10 text-[#8FE388]"
                             : p.status === "PENDING_VERIFICATION"
-                            ? "bg-amber-400/10 text-[#FFB86B]"
-                            : p.status === "AWAITING_PAYMENT"
-                            ? "bg-[#55DFFF]/10 text-[#55DFFF]"
-                            : "bg-white/10 text-white/50"
-                        }`}
+                              ? "bg-amber-400/10 text-[#FFB86B]"
+                              : p.status === "AWAITING_PAYMENT"
+                                ? "bg-[#55DFFF]/10 text-[#55DFFF]"
+                                : "bg-white/10 text-white/50"
+                          }`}
                       >
                         {p.status}
                       </span>
