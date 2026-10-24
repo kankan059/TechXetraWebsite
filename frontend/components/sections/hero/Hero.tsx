@@ -8,7 +8,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { heroData } from "@/data/info/hero";
 import { TECHXETRA_COLORS } from "@/constants/colors";
 import HeroTitle from "./HeroTitle";
-import ConstellationField from "@/components/animations/ConstellationField";
+// import ConstellationField from "@/components/animations/ConstellationField";
 import SilverFlight from "@/components/animations/SilverFlight";
 
 gsap.registerPlugin(ScrollTrigger);

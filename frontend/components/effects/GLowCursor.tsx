@@ -328,6 +328,7 @@ const GlowCursor = ({
     let lastInputTime = performance.now();
     let lastFrameTime = performance.now();
     let raf = 0;
+    let idleTimer: ReturnType<typeof setTimeout> | undefined;
     let destroyed = false;
 
     const resize = () => {
@@ -358,6 +359,12 @@ const GlowCursor = ({
       fade = 1;
     };
 
+    const scheduleRender = () => {
+      if (!raf && !destroyed) {
+        raf = requestAnimationFrame(render);
+      }
+    };
+
     /*
      * IMPORTANT:
      * Pointer is tracked from window instead of container.
@@ -367,7 +374,9 @@ const GlowCursor = ({
      * pointer coordinates.
      */
     const updatePointer = (event: PointerEvent) => {
-      const rect = container.getBoundingClientRect();
+       if (event.pointerType === "touch") return;
+
+       const rect = container.getBoundingClientRect();
 
       const x = clamp(
         event.clientX - rect.left,
@@ -390,14 +399,27 @@ const GlowCursor = ({
 
       pointerInside = true;
       lastInputTime = performance.now();
+
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        idleTimer = undefined;
+        scheduleRender();
+      }, propsRef.current.idleTimeout);
+      scheduleRender();
     };
 
     const onPointerLeave = () => {
       pointerInside = false;
       lastInputTime = performance.now();
+      if (idleTimer) {
+        clearTimeout(idleTimer);
+        idleTimer = undefined;
+      }
+      scheduleRender();
     };
 
     const render = (now: number) => {
+      raf = 0;
       if (destroyed) return;
 
       const config = propsRef.current;
@@ -569,9 +591,14 @@ const GlowCursor = ({
         scene: mesh
       });
 
-      if (!destroyed) {
-        raf =
-          requestAnimationFrame(render);
+      const followingPointer =
+        Math.abs(head.x - target.x) > 0.1 ||
+        Math.abs(head.y - target.y) > 0.1;
+      const pointerActive = pointerInside && idleFor < config.idleTimeout;
+      const fading = fadeTarget === 0 && fade > 0.005;
+
+      if (pointerActive || followingPointer || fading) {
+        scheduleRender();
       }
     };
 
@@ -612,13 +639,11 @@ const GlowCursor = ({
 
     resize();
 
-    raf =
-      requestAnimationFrame(render);
-
     return () => {
       destroyed = true;
 
       cancelAnimationFrame(raf);
+      if (idleTimer) clearTimeout(idleTimer);
 
       resizeObserver.disconnect();
 

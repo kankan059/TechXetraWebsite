@@ -25,6 +25,10 @@ const LogoTech = ({
     let frameId = 0;
     let resizeFrame = 0;
     let imageTexture: THREE.CanvasTexture | null = null;
+    let isVisible = false;
+    let needsRender = true;
+    let previousProgress = Number.NaN;
+    let previousOpacity = Number.NaN;
 
     const isMobile = window.innerWidth < 768;
 
@@ -156,7 +160,7 @@ const LogoTech = ({
 
       const particleCount = Math.min(
         candidates.length,
-        isMobile ? 1400 : 3200
+        isMobile ? 1000 : 2200
       );
 
       const selected = candidates.slice(0, particleCount);
@@ -237,6 +241,7 @@ const LogoTech = ({
       });
 
       root.add(new THREE.Points(glowGeometry, glowMaterial));
+      needsRender = true;
     };
 
     buildLogo().catch((error) => {
@@ -246,39 +251,50 @@ const LogoTech = ({
     const render = () => {
       if (destroyed) return;
 
+      frameId = 0;
+      if (!isVisible) return;
+
       const progress = THREE.MathUtils.clamp(progressRef.current.value, 0, 1);
       const opacity = THREE.MathUtils.clamp(opacityRef.current.value, 0, 1);
+      const progressChanged = progress !== previousProgress;
 
       if (
-        targetPositions &&
-        scatteredPositions &&
-        logoGeometry &&
-        glowGeometry
+        needsRender ||
+        progressChanged ||
+        opacity !== previousOpacity
       ) {
-        const logoAttribute = logoGeometry.getAttribute(
-          "position"
-        ) as THREE.BufferAttribute;
+        if (
+          targetPositions &&
+          scatteredPositions &&
+          logoGeometry &&
+          glowGeometry &&
+          progressChanged
+        ) {
+          const logoAttribute = logoGeometry.getAttribute(
+            "position"
+          ) as THREE.BufferAttribute;
 
-        const glowAttribute = glowGeometry.getAttribute(
-          "position"
-        ) as THREE.BufferAttribute;
+          const glowAttribute = glowGeometry.getAttribute(
+            "position"
+          ) as THREE.BufferAttribute;
 
-        const logoArray = logoAttribute.array as Float32Array;
-        const glowArray = glowAttribute.array as Float32Array;
+          const logoArray = logoAttribute.array as Float32Array;
+          const glowArray = glowAttribute.array as Float32Array;
 
-        for (let i = 0; i < targetPositions.length; i++) {
-          const position = THREE.MathUtils.lerp(
-            scatteredPositions[i],
-            targetPositions[i],
-            progress
-          );
+          for (let i = 0; i < targetPositions.length; i++) {
+            const position = THREE.MathUtils.lerp(
+              scatteredPositions[i],
+              targetPositions[i],
+              progress
+            );
 
-          logoArray[i] = position;
-          glowArray[i] = position;
+            logoArray[i] = position;
+            glowArray[i] = position;
+          }
+
+          logoAttribute.needsUpdate = true;
+          glowAttribute.needsUpdate = true;
         }
-
-        logoAttribute.needsUpdate = true;
-        glowAttribute.needsUpdate = true;
 
         if (logoMaterial) {
           logoMaterial.opacity = opacity * (0.35 + progress * 0.65);
@@ -287,13 +303,22 @@ const LogoTech = ({
         if (glowMaterial) {
           glowMaterial.opacity = opacity * progress * 0.24;
         }
+
+        renderer.render(scene, camera);
+        needsRender = false;
+        previousProgress = progress;
+        previousOpacity = opacity;
       }
 
-      renderer.render(scene, camera);
       frameId = requestAnimationFrame(render);
     };
 
-    render();
+    const requestRender = () => {
+      needsRender = true;
+      if (isVisible && !frameId) {
+        frameId = requestAnimationFrame(render);
+      }
+    };
 
     const handleResize = () => {
       cancelAnimationFrame(resizeFrame);
@@ -317,8 +342,21 @@ const LogoTech = ({
         );
 
         renderer.setSize(width, height);
+        requestRender();
       });
     };
+
+    const intersectionObserver = new IntersectionObserver(([entry]) => {
+      isVisible = entry.isIntersecting;
+
+      if (isVisible) {
+        requestRender();
+      } else {
+        cancelAnimationFrame(frameId);
+        frameId = 0;
+      }
+    });
+    intersectionObserver.observe(container);
 
     const resizeObserver = new ResizeObserver(handleResize);
     resizeObserver.observe(container);
@@ -331,6 +369,7 @@ const LogoTech = ({
       cancelAnimationFrame(resizeFrame);
 
       resizeObserver.disconnect();
+      intersectionObserver.disconnect();
       window.removeEventListener("resize", handleResize);
 
       logoGeometry?.dispose();

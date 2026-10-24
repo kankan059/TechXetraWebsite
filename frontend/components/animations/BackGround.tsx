@@ -63,9 +63,7 @@ export default function BackGround() {
 
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(
-      isMobile
-        ? Math.min(window.devicePixelRatio, 1.2)
-        : Math.min(window.devicePixelRatio, 2)
+      Math.min(window.devicePixelRatio || 1, isMobile ? 1 : 1.5)
     );
     renderer.setClearColor(0x060606, 1);
 
@@ -86,7 +84,7 @@ export default function BackGround() {
 
     // Main star field.
 
-    const starCount = isMobile ? 1600 : 5200;
+    const starCount = isMobile ? 700 : 2600;
     const starPositions = new Float32Array(starCount * 3);
     const starColors = new Float32Array(starCount * 3);
     const starSpeeds = new Float32Array(starCount);
@@ -147,7 +145,7 @@ export default function BackGround() {
 
     // Bigger glow particles.
 
-    const glowCount = isMobile ? 180 : 420;
+    const glowCount = isMobile ? 80 : 200;
     const glowPositions = new Float32Array(glowCount * 3);
     const glowColors = new Float32Array(glowCount * 3);
     const glowSpeeds = new Float32Array(glowCount);
@@ -235,15 +233,23 @@ export default function BackGround() {
 
     let frameId = 0;
     const clock = new THREE.Timer();
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
+    let pageVisible = !document.hidden;
 
     const animate = () => {
+      if (!pageVisible) return;
+
       const time = clock.getElapsed();
 
-      pointerSmooth.x += (pointer.x - pointerSmooth.x) * (isMobile ? 0.025 : 0.04);
-      pointerSmooth.y += (pointer.y - pointerSmooth.y) * (isMobile ? 0.025 : 0.04);
+      if (!reducedMotion) {
+        pointerSmooth.x += (pointer.x - pointerSmooth.x) * (isMobile ? 0.025 : 0.04);
+        pointerSmooth.y += (pointer.y - pointerSmooth.y) * (isMobile ? 0.025 : 0.04);
 
-      flowCurrent.x += (flowTarget.x - flowCurrent.x) * (isMobile ? 0.02 : 0.035);
-      flowCurrent.y += (flowTarget.y - flowCurrent.y) * (isMobile ? 0.02 : 0.035);
+        flowCurrent.x += (flowTarget.x - flowCurrent.x) * (isMobile ? 0.02 : 0.035);
+        flowCurrent.y += (flowTarget.y - flowCurrent.y) * (isMobile ? 0.02 : 0.035);
+      }
 
       const starsPositionAttr =
         starsGeometry.getAttribute("position") as THREE.BufferAttribute;
@@ -255,7 +261,7 @@ export default function BackGround() {
 
         starsArray[i3] += flowCurrent.x * starSpeeds[i] * 0.12;
         starsArray[i3 + 1] += flowCurrent.y * starSpeeds[i] * 0.12;
-        starsArray[i3 + 2] += starSpeeds[i];
+        if (!reducedMotion) starsArray[i3 + 2] += starSpeeds[i];
 
         if (starsArray[i3 + 2] > 6) {
           starsArray[i3] = (Math.random() - 0.5) * 24;
@@ -281,7 +287,7 @@ export default function BackGround() {
 
         glowArray[i3] += flowCurrent.x * glowSpeeds[i] * 0.18;
         glowArray[i3 + 1] += flowCurrent.y * glowSpeeds[i] * 0.18;
-        glowArray[i3 + 2] += glowSpeeds[i];
+        if (!reducedMotion) glowArray[i3 + 2] += glowSpeeds[i];
 
         if (glowArray[i3 + 2] > 6) {
           glowArray[i3] = (Math.random() - 0.5) * 22;
@@ -297,20 +303,34 @@ export default function BackGround() {
 
       glowPositionAttr.needsUpdate = true;
 
-      starGroup.rotation.y = pointerSmooth.x * 0.06 + time * 0.005;
-      starGroup.rotation.x = pointerSmooth.y * 0.04 + Math.sin(time * 0.15) * 0.01;
+      starGroup.rotation.y = pointerSmooth.x * 0.06 + (reducedMotion ? 0 : time * 0.005);
+      starGroup.rotation.x = pointerSmooth.y * 0.04 + (reducedMotion ? 0 : Math.sin(time * 0.15) * 0.01);
 
-      glowGroup.rotation.y = pointerSmooth.x * 0.1 + time * 0.008;
-      glowGroup.rotation.x = pointerSmooth.y * 0.06 + Math.sin(time * 0.2) * 0.012;
+      glowGroup.rotation.y = pointerSmooth.x * 0.1 + (reducedMotion ? 0 : time * 0.008);
+      glowGroup.rotation.x = pointerSmooth.y * 0.06 + (reducedMotion ? 0 : Math.sin(time * 0.2) * 0.012);
 
       glowGroup.position.x = pointerSmooth.x * 0.18;
       glowGroup.position.y = pointerSmooth.y * 0.12;
 
       renderer.render(scene, camera);
-      frameId = requestAnimationFrame(animate);
+      if (!reducedMotion) {
+        frameId = requestAnimationFrame(animate);
+      }
     };
 
-    animate();
+    const handleVisibilityChange = () => {
+      pageVisible = !document.hidden;
+
+      if (pageVisible) {
+        clock.reset();
+        frameId = requestAnimationFrame(animate);
+      } else {
+        cancelAnimationFrame(frameId);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    frameId = requestAnimationFrame(animate);
 
     const handleResize = () => {
       const mobileNow = window.innerWidth < 768;
@@ -320,9 +340,7 @@ export default function BackGround() {
 
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(
-        mobileNow
-          ? Math.min(window.devicePixelRatio, 1.2)
-          : Math.min(window.devicePixelRatio, 2)
+        Math.min(window.devicePixelRatio || 1, mobileNow ? 1 : 1.5)
       );
     };
 
@@ -334,6 +352,7 @@ export default function BackGround() {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerleave", handlePointerLeave);
       window.removeEventListener("resize", handleResize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
 
       starsGeometry.dispose();
       starsMaterial.dispose();

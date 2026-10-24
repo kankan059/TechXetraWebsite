@@ -6,30 +6,28 @@ import GlowCursor from "./GLowCursor";
 import ClickSpark from "./ClickSpark";
 
 const GlobalEffect = () => {
-    const [isTouchDevice, setIsTouchDevice] = useState(false);
+    const [hasFinePointer, setHasFinePointer] = useState(false);
 
     useEffect(() => {
-        const checkDevice = () => {
-            const hasTouch = navigator.maxTouchPoints > 0;
-            const hasCoarsePointer = window.matchMedia(
-                "(pointer: coarse)"
-            ).matches;
-
-            setIsTouchDevice(hasTouch || hasCoarsePointer);
+        const finePointerQuery = window.matchMedia("(any-pointer: fine)");
+        const updatePointerCapability = () => {
+            setHasFinePointer(finePointerQuery.matches);
         };
 
-        checkDevice();
-
-        window.addEventListener("resize", checkDevice);
+        updatePointerCapability();
+        finePointerQuery.addEventListener("change", updatePointerCapability);
 
         return () => {
-            window.removeEventListener("resize", checkDevice);
+            finePointerQuery.removeEventListener(
+                "change",
+                updatePointerCapability
+            );
         };
     }, []);
 
     return (
         <>
-            {!isTouchDevice && (
+            {hasFinePointer && (
                 <>
                     <ClickSpark
                         sparkColor="#ffffff"
@@ -50,6 +48,7 @@ const GlobalEffect = () => {
                         }}
                     >
                         <GlowCursor
+                            maxDevicePixelRatio={1}
                             color="#67E8F9"
                             secondaryColor="#A78BFA"
                             trailLength={21}
@@ -102,4 +101,3 @@ export default GlobalEffect;
           RAINBOW_MODE={false}
           COLOR="#e8e5ea"
         /> */}
-
