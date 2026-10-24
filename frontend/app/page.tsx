@@ -1,10 +1,8 @@
-// "use client";
-
-// import Link from "next/link";
 import About from "@/components/sections/about/About";
 import EventGlimpse from "@/components/sections/events/EventGlimpse";
 import Hero from "@/components/sections/hero/Hero";
-// import Platform from "@/components/sections/hero/Plateform";
+import HeroQA from "@/components/sections/hero/HeroQA";
+import { heroQuestions } from "@/data/info/hero-qa";
 
 export default function HomePage() {
   return (
@@ -13,8 +11,7 @@ export default function HomePage() {
         <Hero />
         <About />
         <EventGlimpse />
-
-        {/* <Platform/> */}
+        <HeroQA questions={heroQuestions} />
       </main>
     </div>
   );
