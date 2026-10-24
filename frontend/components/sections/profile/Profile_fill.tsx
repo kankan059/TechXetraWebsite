@@ -250,16 +250,16 @@ export default function Profile_fill() {
             ref={motionRootRef}
             onMouseMove={handlePointerMove}
             onMouseLeave={handlePointerLeave}
-            className="grid w-full max-w-5xl min-w-0 grid-cols-1 gap-7 sm:gap-9 lg:grid-cols-[0.8fr_1.2fr] lg:gap-14"
+            className="grid w-full max-w-5xl min-w-0 grid-cols-1 gap-7 sm:gap-9 lg:grid-cols-2 lg:gap-10"
           >
             <div ref={introRef} className="min-w-0 self-center will-change-transform lg:pr-3">
               <p className="font-pixel mb-3 text-[10px] font-medium uppercase tracking-[0.24em] text-cyan-300 sm:mb-4 sm:text-sm sm:tracking-[0.28em]">
                 Profile
               </p>
-              <h1 className="font-autotech max-w-full break-words text-[clamp(2.7rem,13vw,3.5rem)] font-semibold uppercase leading-[0.92] tracking-[-0.055em] sm:max-w-xl sm:text-6xl xl:text-7xl">
-                Complete
-                <span className="mt-2 block text-white/45">your</span>
-                <span className="mt-2 block text-cyan-300">profile.</span>
+              <h1 className="font-autotech max-w-full break-words text-[clamp(2rem,10vw,3.5rem)] font-semibold uppercase leading-[0.92] tracking-[-0.055em] sm:max-w-xl sm:text-5xl lg:text-4xl xl:text-5xl">
+                <span className="block whitespace-nowrap">Complete</span>
+                <span className="mt-2 block whitespace-nowrap text-white/45">your</span>
+                <span className="mt-2 block whitespace-nowrap text-cyan-300">profile.</span>
               </h1>
               <p className="font-heading mt-5 max-w-sm text-sm leading-6 text-white/50 sm:mt-7 sm:text-base sm:leading-7">
                 Add your contact and institution details to continue to the TechXetra dashboard.
