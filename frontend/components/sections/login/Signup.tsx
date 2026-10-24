@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { GoogleLogin } from "@react-oauth/google";
 import gsap from "gsap";
 
-import LogoTech from "@/components/animations/LogoTech";
+import LogoStatic from "@/components/animations/LogoStatic";
 import { participantApi } from "@/services/participant-api";
 
 export default function Signup() {
@@ -15,8 +15,6 @@ export default function Signup() {
     const sectionRef = useRef<HTMLElement>(null);
     const logoRef = useRef<HTMLDivElement>(null);
 
-    const logoProgressRef = useRef({ value: 1 });
-    const logoOpacityRef = useRef({ value: 1 });
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -166,10 +164,7 @@ export default function Signup() {
                         className="relative mx-auto aspect-square w-full max-w-[29rem] overflow-visible xl:max-w-[32rem]"
                     >
                         <div className="relative h-full w-full overflow-visible">
-                            <LogoTech
-                                progressRef={logoProgressRef}
-                                opacityRef={logoOpacityRef}
-                            />
+                            <LogoStatic />
                         </div>
                     </div>
 
@@ -392,10 +387,7 @@ export default function Signup() {
                     {/* Mobile logo */}
                     <div className="relative mx-auto mt-5 aspect-square w-full max-w-[13rem] shrink-0 overflow-visible sm:mt-7 sm:max-w-[15rem] lg:hidden">
                         <div className="absolute inset-0 overflow-visible">
-                            <LogoTech
-                                progressRef={logoProgressRef}
-                                opacityRef={logoOpacityRef}
-                            />
+                            <LogoStatic />
                         </div>
                     </div>
                 </div>
