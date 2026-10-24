@@ -1,11 +1,23 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
-import BackGround from "@/components/animations/BackGround";
-import GlobalEffect from "@/components/effects/GlobalEffect";
-import Navbar from "@/components/layouts/navbar/NavBar";
-import SmoothScroll from "@/components/layouts/SmoothScroll";
-import Footer from "@/components/layouts/Footer";
+
+const BackGround = dynamic(
+  () => import("@/components/animations/BackGround")
+);
+const GlobalEffect = dynamic(
+  () => import("@/components/effects/GlobalEffect")
+);
+const Navbar = dynamic(
+  () => import("@/components/layouts/navbar/NavBar")
+);
+const SmoothScroll = dynamic(
+  () => import("@/components/layouts/SmoothScroll")
+);
+const Footer = dynamic(
+  () => import("@/components/layouts/Footer")
+);
 
 export default function RouteShell({
   children,
@@ -14,8 +26,9 @@ export default function RouteShell({
 }) {
   const pathname = usePathname();
   const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isAuthPage = pathname === "/login" || pathname === "/signup";
 
-  if (isAdmin) {
+  if (isAdmin || isAuthPage) {
     return <>{children}</>;
   }
 

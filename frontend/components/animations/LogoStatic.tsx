@@ -16,86 +16,106 @@ export default function LogoStatic({
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-
-    if (!canvas || !context) return;
+    if (!canvas) return;
 
     let disposed = false;
-    const size = 600;
+    let image: HTMLImageElement | undefined;
 
-    canvas.width = size;
-    canvas.height = size;
-
-    const image = new Image();
-
-    image.onload = () => {
+    const renderLogo = () => {
       if (disposed) return;
 
-      const offscreen = document.createElement("canvas");
-      offscreen.width = size;
-      offscreen.height = size;
+      const context = canvas.getContext("2d");
+      if (!context) return;
 
-      const source = offscreen.getContext("2d");
-      if (!source) return;
+      const size = 600;
+      canvas.width = size;
+      canvas.height = size;
+      image = new Image();
 
-      const scale = Math.min(
-        (size * 0.84) / image.width,
-        (size * 0.84) / image.height
-      );
+      image.onload = () => {
+        if (disposed || !image) return;
 
-      const width = image.width * scale;
-      const height = image.height * scale;
+        const offscreen = document.createElement("canvas");
+        offscreen.width = size;
+        offscreen.height = size;
 
-      source.clearRect(0, 0, size, size);
-      source.drawImage(
-        image,
-        (size - width) / 2,
-        (size - height) / 2,
-        width,
-        height
-      );
+        const source = offscreen.getContext("2d");
+        if (!source) return;
 
-      const pixels = source.getImageData(0, 0, size, size).data;
+        const scale = Math.min(
+          (size * 0.84) / image.width,
+          (size * 0.84) / image.height
+        );
 
-      context.clearRect(0, 0, size, size);
-      context.save();
-      context.globalCompositeOperation = "lighter";
+        const width = image.width * scale;
+        const height = image.height * scale;
 
-      for (let y = 0; y < size; y += 5) {
-        for (let x = 0; x < size; x += 5) {
-          const index = (y * size + x) * 4;
-          if (pixels[index + 3] < 70) continue;
+        source.clearRect(0, 0, size, size);
+        source.drawImage(
+          image,
+          (size - width) / 2,
+          (size - height) / 2,
+          width,
+          height
+        );
 
-          const white = (x * 7 + y * 13) % 17 === 0;
+        const pixels = source.getImageData(0, 0, size, size).data;
 
-          context.fillStyle = white
-            ? "rgba(225,250,255,0.95)"
-            : "rgba(65,205,255,0.88)";
+        context.clearRect(0, 0, size, size);
+        context.save();
+        context.globalCompositeOperation = "lighter";
 
-          context.shadowColor = white ? "#B7F3FF" : "#16AFFF";
-          context.shadowBlur = white ? 7 : 5;
+        for (let y = 0; y < size; y += 5) {
+          for (let x = 0; x < size; x += 5) {
+            const index = (y * size + x) * 4;
+            if (pixels[index + 3] < 70) continue;
 
-          const radius = white ? 1.65 : 1.35;
+            const white = (x * 7 + y * 13) % 17 === 0;
 
-          context.beginPath();
-          context.arc(x, y, radius, 0, Math.PI * 2);
-          context.fill();
+            context.fillStyle = white
+              ? "rgba(225,250,255,0.95)"
+              : "rgba(65,205,255,0.88)";
+
+            context.shadowColor = white ? "#B7F3FF" : "#16AFFF";
+            context.shadowBlur = white ? 7 : 5;
+
+            const radius = white ? 1.65 : 1.35;
+
+            context.beginPath();
+            context.arc(x, y, radius, 0, Math.PI * 2);
+            context.fill();
+          }
         }
-      }
 
-      context.restore();
+        context.restore();
+      };
+
+      image.onerror = () => {
+        console.error(`Unable to load static logo: ${logoSrc}`);
+      };
+
+      image.src = logoSrc;
     };
 
-    image.onerror = () => {
-      console.error(`Unable to load static logo: ${logoSrc}`);
-    };
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
 
-    image.src = logoSrc;
+        observer.disconnect();
+        renderLogo();
+      },
+      { rootMargin: "100px" }
+    );
+    observer.observe(canvas);
 
     return () => {
       disposed = true;
-      image.onload = null;
-      image.onerror = null;
+      observer.disconnect();
+
+      if (image) {
+        image.onload = null;
+        image.onerror = null;
+      }
     };
   }, [logoSrc]);
 

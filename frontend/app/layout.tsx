@@ -40,6 +40,13 @@ const multiTypePixel = localFont({
   display: "swap",
 });
 
+const roboto = localFont({
+  src: "../public/fonts/OriginTech personal use.ttf",
+  variable: "--font-roboto",
+  display: "swap",
+});
+
+
 
 export const metadata: Metadata = {
   title: "TechXetra 2026",
@@ -60,6 +67,7 @@ export default function RootLayout({
         ${multiTypePixel.variable}
         ${autoTechno.variable}
         ${biscora.variable}
+        ${roboto.variable}
         bg-[#090909]
         antialiased
       `}

@@ -1,20 +1,16 @@
 
 "use client";
 
-import { useLayoutEffect, useRef, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GoogleLogin } from "@react-oauth/google";
-import gsap from "gsap";
 
 import LogoStatic from "@/components/animations/LogoStatic";
 import { participantApi } from "@/services/participant-api";
 
 export default function Signup() {
     const router = useRouter();
-    const sectionRef = useRef<HTMLElement>(null);
-    const logoRef = useRef<HTMLDivElement>(null);
-
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -23,47 +19,6 @@ export default function Signup() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
-
-    useLayoutEffect(() => {
-        const section = sectionRef.current;
-        const logo = logoRef.current;
-
-        if (!section) return;
-
-        const ctx = gsap.context(() => {
-            if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-                return;
-            }
-
-            gsap.fromTo(
-                section.querySelectorAll(".signup-reveal"),
-                { autoAlpha: 0, y: 12 },
-                {
-                    autoAlpha: 1,
-                    y: 0,
-                    duration: 0.65,
-                    stagger: 0.07,
-                    ease: "power2.out",
-                    delay: 0.1,
-                }
-            );
-
-            if (logo) {
-                gsap.fromTo(
-                    logo,
-                    { autoAlpha: 0, scale: 0.97 },
-                    {
-                        autoAlpha: 1,
-                        scale: 1,
-                        duration: 0.9,
-                        ease: "power2.out",
-                    }
-                );
-            }
-        }, section);
-
-        return () => ctx.revert();
-    }, []);
 
     async function handleGoogleSignup(idToken: string) {
         setLoading(true);
@@ -135,7 +90,6 @@ export default function Signup() {
 
     return (
         <main
-            ref={sectionRef}
             className="relative isolate flex min-h-dvh items-center justify-center overflow-x-clip bg-transparent px-5 pb-6 pt-24 text-white sm:px-8 sm:py-12 lg:px-10 lg:py-8 xl:px-16"
         >
             <div
@@ -143,24 +97,11 @@ export default function Signup() {
                 className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_18%_42%,rgba(0,190,255,0.06),transparent_42%),radial-gradient(ellipse_at_85%_75%,rgba(25,90,255,0.05),transparent_38%)]"
             />
 
-            <Link
-                href="/"
-                aria-label="TechXetra home"
-                className="absolute left-5 top-5 z-20 flex items-center gap-3 sm:left-8 sm:top-7 lg:left-10 lg:top-6"
-            >
-                <span className="font-heading text-3xl leading-none text-cyan-300">
-                    X
-                </span>
-                <span className="font-autotech text-sm tracking-[0.16em] sm:text-base">
-                    TECHXETRA
-                </span>
-            </Link>
-
+            
             <section className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-7 sm:gap-9 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 xl:gap-16">
                 {/* Desktop branding */}
                 <div className="hidden min-w-0 flex-col justify-center lg:flex">
                     <div
-                        ref={logoRef}
                         className="relative mx-auto aspect-square w-full max-w-[29rem] overflow-visible xl:max-w-[32rem]"
                     >
                         <div className="relative h-full w-full overflow-visible">
@@ -168,7 +109,7 @@ export default function Signup() {
                         </div>
                     </div>
 
-                    <div className="signup-reveal mx-auto mt-2 w-full max-w-xl">
+                    <div className="mx-auto mt-2 w-full max-w-xl">
                         <p className="mb-3 font-autotech text-[clamp(0.65rem,0.75vw,0.8rem)] tracking-[0.2em] text-cyan-300">
                             FOR THE CURIOUS AND THE CREATIVE
                         </p>
@@ -187,7 +128,7 @@ export default function Signup() {
 
                 {/* Signup form */}
                 <div className="mx-auto flex w-full max-w-md min-w-0 flex-col overflow-visible lg:max-w-[27rem]">
-                    <div className="signup-reveal mb-5 lg:hidden">
+                    <div className="mb-5 lg:hidden">
                         <p className="mb-2 font-autotech text-[0.65rem] tracking-[0.16em] text-cyan-300 sm:text-xs">
                             FOR THE CURIOUS AND THE CREATIVE
                         </p>
@@ -198,7 +139,7 @@ export default function Signup() {
                         </h1>
                     </div>
 
-                    <div className="signup-reveal rounded-[1.5rem] border border-cyan-200/15 bg-black/30 p-5 backdrop-blur-xl sm:rounded-[1.75rem] sm:p-8 lg:p-7 xl:p-8">
+                    <div className="rounded-[1.5rem] border border-cyan-200/15 bg-black/30 p-5 sm:rounded-[1.75rem] sm:p-8 lg:p-7 xl:p-8">
                         <div className="mb-5 sm:mb-6">
                             <p className="mb-2 font-autotech text-[0.65rem] tracking-[0.18em] text-cyan-300 sm:text-xs">
                                 JOIN TECHXETRA
@@ -380,7 +321,7 @@ export default function Signup() {
                         </p>
                     </div>
 
-                    <p className="signup-reveal mt-4 text-center text-xs text-white/35 lg:mt-3">
+                    <p className="mt-4 text-center text-xs text-white/35 lg:mt-3">
                         A community built around ideas and possibility.
                     </p>
 
