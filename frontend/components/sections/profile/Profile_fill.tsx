@@ -272,7 +272,7 @@ export default function Profile_fill() {
               </div>
             </div>
 
-            <div ref={formCardRef} className="w-full min-w-0 rounded-2xl border border-white/10 bg-[#0b1019] p-4 sm:p-6 md:p-8 will-change-transform">
+            <div ref={formCardRef} className="w-full min-w-0 rounded-2xl border border-white/10 bg-transparent p-4 sm:p-6 md:p-8 will-change-transform">
               <div className="mb-6 border-b border-white/10 pb-4 sm:mb-7 sm:pb-5">
                 <h2 className="font-pixel text-lg font-semibold sm:text-2xl">
                   Your details

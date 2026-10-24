@@ -3,11 +3,11 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import gsap from "gsap";
 import type { EventItem, FestCatalog } from "@/types/api";
 import EventCard from "@/components/sections/events/EventCard";
+import EventDetailsModal from "@/components/sections/events/EventDetailsModal";
 import { participantApi } from "@/services/participant-api";
 import {
   CATEGORIES,
@@ -133,7 +133,6 @@ function ArrowIcon({ className = "" }: { className?: string }) {
 }
 
 export default function EventsDirectory() {
-  const router = useRouter();
   const pageRef = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
 
@@ -141,6 +140,7 @@ export default function EventsDirectory() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<EventItem | null>(null);
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
@@ -148,6 +148,7 @@ export default function EventsDirectory() {
   const [teamFilter, setTeamFilter] = useState<"ALL" | "SOLO" | "TEAM">(
     "ALL"
   );
+  const [showPassModal, setShowPassModal] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -233,7 +234,7 @@ export default function EventsDirectory() {
   };
 
   const handleEventSelect = (event: EventItem) => {
-    router.push(`/events/${event.slug || event.id}`);
+    setSelectedEvent(event);
   };
 
   return (
@@ -302,13 +303,14 @@ export default function EventsDirectory() {
                   </p>
                 </div>
 
-                <Link
-                  href="/checkout"
+                <button
+                  type="button"
+                  onClick={() => setShowPassModal(true)}
                   className="cursor-pointer inline-flex min-h-12 items-center justify-between gap-8 bg-[#D6E8E9] px-5 py-3 text-xs text-[#10242B] transition-colors hover:bg-white [font-family:var(--font-gotham-bold)]"
                 >
                   {DIRECTORY_COPY.passButton}
                   <ArrowIcon className="h-4 w-4" />
-                </Link>
+                </button>
               </div>
             </div>
           </section>
@@ -614,8 +616,8 @@ export default function EventsDirectory() {
                 <EventCard
                   event={event}
                   index={index}
-                  onSelect={(selectedEvent, _trigger) => {
-                    handleEventSelect(selectedEvent);
+                  onSelect={(event) => {
+                    handleEventSelect(event);
                   }}
                 />
               </motion.div>
@@ -623,6 +625,87 @@ export default function EventsDirectory() {
           </motion.div>
         )}
       </div>
+      {selectedEvent && (
+        <EventDetailsModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+        />
+      )}
+      {showPassModal && (
+        <div
+          role="presentation"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 p-0 backdrop-blur-sm min-[640px]:items-center min-[640px]:p-6"
+          onMouseDown={(click) => {
+            if (click.target === click.currentTarget) setShowPassModal(false);
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="gate-pass-title"
+            className="w-full max-w-[720px] overflow-hidden rounded-t-2xl border border-white/15 bg-[#101F26] text-[#F5F0DE] min-[640px]:rounded-xl"
+          >
+            <header className="flex items-center justify-between border-b border-white/10 px-5 py-3 min-[640px]:px-7">
+              <span className="text-[9px] uppercase tracking-[0.15em] text-sky-300 [font-family:var(--font-pixel)]">
+                Festival access
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowPassModal(false)}
+                aria-label="Close gate pass details"
+                className="flex h-10 w-10 items-center justify-center text-2xl focus-visible:outline-2 focus-visible:outline-[#55DFFF]"
+              >
+                ×
+              </button>
+            </header>
+
+            <div className="p-5 min-[640px]:p-7">
+              <h2
+                id="gate-pass-title"
+                className="text-[clamp(1.9rem,4vw,3rem)] leading-[1.08] tracking-[-0.035em] [font-family:var(--font-gotham-bold)]"
+              >
+                TechXetra 2026 gate pass
+              </h2>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-[#F5F0DE]/70">
+                General entry to the festival grounds, tech exhibitions,
+                arenas and cultural night pro-shows across the festival dates.
+              </p>
+
+              <div className="mt-7 grid grid-cols-2 gap-5 border-y border-white/10 py-6 sm:grid-cols-3">
+                <div>
+                  <p className="text-[9px] uppercase tracking-[0.12em] text-sky-300 [font-family:var(--font-pixel)]">
+                    Access
+                  </p>
+                  <p className="mt-2 text-sm">Festival grounds</p>
+                </div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-[0.12em] text-sky-300 [font-family:var(--font-pixel)]">
+                    Validity
+                  </p>
+                  <p className="mt-2 text-sm">All festival dates</p>
+                </div>
+                <div>
+                  <p className="text-[9px] uppercase tracking-[0.12em] text-sky-300 [font-family:var(--font-pixel)]">
+                    Entry
+                  </p>
+                  <p className="mt-2 text-sm">Student / General pricing</p>
+                </div>
+              </div>
+            </div>
+
+            <footer className="border-t border-white/15 px-5 pb-5 pt-4 min-[640px]:px-7">
+              <Link
+                href="/checkout"
+                onClick={() => setShowPassModal(false)}
+                className="flex min-h-12 items-center justify-between gap-5 bg-[#55DFFF] px-5 py-3 text-sm text-[#09151B] [font-family:var(--font-gotham-bold)] transition-colors hover:bg-[#8BEAFF] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
+              >
+                Continue to checkout
+                <span aria-hidden="true">→</span>
+              </Link>
+            </footer>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

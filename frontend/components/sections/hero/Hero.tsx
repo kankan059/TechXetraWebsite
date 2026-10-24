@@ -276,15 +276,16 @@ const Hero = () => {
         {/* Bottom information */}
         <div
           ref={bottomRef}
-          className="flex items-end justify-between gap-4 border-t border-(--tx-cream)/15 pt-4 sm:pt-5"
+          className="flex flex-col items-stretch gap-6 border-t border-(--tx-cream)/15 pt-4 sm:pt-5 lg:flex-row lg:items-start lg:justify-between lg:gap-10"
         >
           <div className="flex items-center gap-3">
-            <span className="h-2 w-2 rounded-full bg-(--tx-green)" />
+            <span className="h-2 w-2 shrink-0 rounded-full bg-(--tx-green)" />
 
             <span className="font-pixel text-[8px] uppercase tracking-[0.12em] text-(--tx-cream)/50 sm:text-[9px] sm:tracking-[0.18em]">
               Tezpur University · Assam, India
             </span>
           </div>
+
         </div>
 
         {/* Scroll indicator */}

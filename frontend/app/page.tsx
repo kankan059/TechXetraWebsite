@@ -13,7 +13,6 @@ export default function HomePage() {
         <Hero />
         <About />
         <EventGlimpse />
-
         <Platform/>
       </main>
     </div>

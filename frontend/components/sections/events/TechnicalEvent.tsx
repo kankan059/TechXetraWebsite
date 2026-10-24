@@ -67,9 +67,8 @@ function formatFee(event: EventItem) {
     return "Free";
   }
 
-  return `₹${(pricePaise / 100).toLocaleString("en-IN")}${
-    priceModel === "PER_TEAM" ? " / team" : " / person"
-  }`;
+  return `₹${(pricePaise / 100).toLocaleString("en-IN")}${priceModel === "PER_TEAM" ? " / team" : " / person"
+    }`;
 }
 
 function getTeamSize(event: EventItem) {
@@ -325,7 +324,7 @@ export default function TechnicalEvents() {
             data-heading-part
             className="mb-4 text-[9px] uppercase tracking-[0.18em] text-[#55DFFF] [font-family:var(--font-pixel)]"
           >
-           TECHNICAL
+            TECHNICAL
           </p>
 
           <h1
@@ -530,9 +529,9 @@ export default function TechnicalEvents() {
                     [
                       "Prize",
                       selectedMetadata.prize ||
-                        (Array.isArray(selectedEvent.prizes) && (selectedEvent.prizes[0] as any)?.total_prize_pool_inr
-                          ? `₹${(selectedEvent.prizes[0] as any).total_prize_pool_inr.toLocaleString("en-IN")}`
-                          : "Trophies & Medals"),
+                      (Array.isArray(selectedEvent.prizes) && (selectedEvent.prizes[0] as any)?.total_prize_pool_inr
+                        ? `₹${(selectedEvent.prizes[0] as any).total_prize_pool_inr.toLocaleString("en-IN")}`
+                        : "Trophies & Medals"),
                     ],
                   ].map(([label, value]) => (
                     <div key={label}>
@@ -558,10 +557,10 @@ export default function TechnicalEvents() {
                     const rules = selectedMetadata.rules?.length
                       ? selectedMetadata.rules
                       : typeof selectedEvent.rules === "string" && selectedEvent.rules.trim()
-                      ? selectedEvent.rules.split("\n").map((r) => r.trim()).filter(Boolean)
-                      : Array.isArray(selectedEvent.rules) && selectedEvent.rules.length
-                      ? (selectedEvent.rules as string[])
-                      : null;
+                        ? selectedEvent.rules.split("\n").map((r) => r.trim()).filter(Boolean)
+                        : Array.isArray(selectedEvent.rules) && selectedEvent.rules.length
+                          ? (selectedEvent.rules as string[])
+                          : null;
 
                     return rules && rules.length > 0 ? (
                       <ul className="mt-4 list-disc space-y-3 pl-5 text-[13px] leading-[1.8] text-[#F5F0DE]/75">
@@ -580,7 +579,7 @@ export default function TechnicalEvents() {
 
               <div className="sticky bottom-0 z-20 mt-auto shrink-0 border-t border-white/15 bg-[#101F26] px-5 pb-[calc(16px+env(safe-area-inset-bottom))] pt-4 min-[640px]:px-7">
                 {selectedMetadata.registration_url ||
-                selectedMetadata.registrationUrl ? (
+                  selectedMetadata.registrationUrl ? (
                   <a
                     href={
                       selectedMetadata.registration_url ||
@@ -588,7 +587,7 @@ export default function TechnicalEvents() {
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex min-h-12 items-center justify-between gap-5 bg-[#55DFFF] px-5 py-3 text-sm text-[#09151B] [font-family:var(--font-gotham-bold)] transition-colors hover:bg-[#8BEAFF] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
+                    className="flex min-h-12 items-center justify-center gap-5 bg-[#55DFFF] px-5 py-3 text-sm text-[#09151B] [font-family:var(--font-gotham-bold)] transition-colors hover:bg-[#8BEAFF] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
                   >
                     Register for this event
                     <span aria-hidden="true">↗</span>
@@ -597,7 +596,7 @@ export default function TechnicalEvents() {
                 ) : (
                   <Link
                     href={`/events/${selectedEvent.slug || selectedEvent.id}`}
-                    className="flex min-h-12 items-center justify-between gap-5 bg-[#55DFFF] px-5 py-3 text-sm text-[#09151B] [font-family:var(--font-gotham-bold)] transition-colors hover:bg-[#8BEAFF] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
+                    className="flex min-h-12 items-center justify-center gap-5 bg-[#55DFFF] px-5 py-3 text-sm text-[#09151B] [font-family:var(--font-gotham-bold)] transition-colors hover:bg-[#8BEAFF] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
                   >
                     Register on TechXetra
                     <span aria-hidden="true">→</span>

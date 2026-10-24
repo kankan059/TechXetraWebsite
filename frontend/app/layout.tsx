@@ -16,6 +16,12 @@ const autoTechno = localFont({
   display: "swap",
 })
 
+const biscora = localFont({
+  src: "../public/fonts/Biscora.ttf",
+  variable: "--font-biscora",
+  display: "swap",
+});
+
 const gothamBook = localFont({
   src: "../public/fonts/Gotham-Book.woff2",
   variable: "--font-gotham-book",
@@ -53,6 +59,7 @@ export default function RootLayout({
         ${gothamBold.variable}
         ${multiTypePixel.variable}
         ${autoTechno.variable}
+        ${biscora.variable}
         bg-[#090909]
         antialiased
       `}
@@ -66,7 +73,6 @@ export default function RootLayout({
   );
 
 }
-
 
 
 

@@ -5,22 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Calendar,
-  Clock,
   MapPin,
-  Users,
   Tag,
   Shield,
+  Users,
   ArrowRight,
   ArrowLeft,
   CheckCircle,
   AlertCircle,
   Trophy,
-  Award,
   BookOpen,
-  ListChecks,
-  Cpu,
-  Phone,
-  Mail,
   Sparkles,
   Layers,
   Scale,
@@ -299,7 +293,7 @@ export default function EventDetailPage({
   if (error || (!event && !isCategoryView)) {
     return (
       <main className="relative z-10 min-h-screen  px-4 pt-32 text-white">
-        <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-white/[0.02] p-8 text-center">
+        <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-transparent p-8 text-center">
           <AlertCircle className="mx-auto h-12 w-12 text-amber-400" />
           <h1 className="mt-4 text-xl font-bold">Event Unavailable</h1>
           <p className="mt-2 text-sm text-white/50">{error || "Event not found."}</p>
@@ -338,7 +332,7 @@ export default function EventDetailPage({
             {categoryEvents.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.02] p-6 transition hover:border-cyan-300/40"
+                className="flex flex-col justify-between rounded-2xl border border-cyan-300/15 bg-transparent p-6 transition hover:border-cyan-300/40"
               >
                 <div>
                   <span className="text-[10px] font-semibold uppercase text-cyan-300">
@@ -502,7 +496,7 @@ export default function EventDetailPage({
         </Link>
 
         {/* 1. Header Hero Card */}
-        <div className="rounded-3xl border bg-[#07090e] border-white/10 bg-gradient-to-b from-white/[0.05] to-white/[0.01] p-6 sm:p-10">
+        <div className="rounded-3xl border border-cyan-300/20 bg-transparent p-6 sm:p-10">
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-full bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-300">
               {event.category}
@@ -655,29 +649,23 @@ export default function EventDetailPage({
 
         {/* 2. Prize Pool & Awards Section (if present) */}
         {(prizePoolDisplay || prizeBreakdown.length > 0) && (
-          <div className="rounded-3xl border border-amber-500/20 bg-gradient-to-b from-amber-500/10 to-amber-500/[0.02] p-6 sm:p-8">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/20 text-amber-400">
-                <Trophy className="h-5 w-5" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Prize Pool & Awards</h2>
-                {prizePoolDisplay && (
-                  <p className="text-sm font-bold text-amber-400">Total: {prizePoolDisplay}</p>
-                )}
-              </div>
+          <div className="rounded-3xl border border-cyan-300/20 bg-transparent p-6 sm:p-8">
+            <div>
+              <h2 className="text-xl font-bold text-white">Prize Pool & Awards</h2>
+              {prizePoolDisplay && (
+                <p className="text-sm font-bold text-cyan-300">Total: {prizePoolDisplay}</p>
+              )}
             </div>
 
             {prizeBreakdown.length > 0 && (
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                {prizeBreakdown.map((p, idx) => (
-                  <div
-                    key={idx}
-                    className="rounded-2xl border border-white/10 bg-black/40 p-4 transition hover:border-amber-400/40"
-                  >
-                    <div className="flex items-center gap-2 text-amber-400">
-                      <Award className="h-4 w-4" />
-                      <span className="text-xs font-bold uppercase">{p.position || `Prize ${idx + 1}`}</span>
+                  {prizeBreakdown.map((p, idx) => (
+                    <div
+                      key={idx}
+                      className="rounded-2xl border border-cyan-300/15 bg-transparent p-4 transition hover:border-cyan-300/40"
+                    >
+                      <div className="flex items-center gap-2 text-cyan-300">
+                        <span className="text-xs font-bold uppercase">{p.position || `Prize ${idx + 1}`}</span>
                     </div>
                     {p.prize_inr ? (
                       <p className="mt-2 text-2xl font-black text-white">
@@ -690,13 +678,13 @@ export default function EventDetailPage({
               </div>
             )}
 
-            {prizeNotes && <p className="mt-4 text-xs text-amber-300/80 italic">{prizeNotes}</p>}
+            {prizeNotes && <p className="mt-4 text-xs text-cyan-300/80 italic">{prizeNotes}</p>}
           </div>
         )}
 
         {/* 3. Tracks & Problem Statements Section (if present) */}
         {Array.isArray(meta.tracks) && meta.tracks.length > 0 && (
-          <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
+          <div className="rounded-3xl border border-cyan-300/20 bg-transparent p-6 sm:p-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
                 <Layers className="h-5 w-5" />
@@ -711,7 +699,7 @@ export default function EventDetailPage({
               {meta.tracks.map((track, idx) => (
                 <div
                   key={idx}
-                  className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 transition hover:border-cyan-300/40"
+                  className="rounded-2xl border border-cyan-300/15 bg-transparent p-5 transition hover:border-cyan-300/40"
                 >
                   <span className="text-[10px] font-bold uppercase text-cyan-300">Track {idx + 1}</span>
                   <h3 className="mt-1 text-base font-bold text-white">{track.name || track.title}</h3>
@@ -725,11 +713,8 @@ export default function EventDetailPage({
         )}
 
         {/* 4. Rules & Guidelines Section */}
-        <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-400/10 text-blue-300">
-              <ListChecks className="h-5 w-5" />
-            </div>
+        <div className="rounded-3xl border border-cyan-300/20 bg-transparent p-6 sm:p-8">
+          <div className="mb-6">
             <div>
               <h2 className="text-xl font-bold text-white">Rules & Guidelines</h2>
               <p className="text-xs text-white/50">Official criteria and participation constraints</p>
@@ -740,26 +725,20 @@ export default function EventDetailPage({
             <ul className="space-y-3">
               {rulesList.map((rule, idx) => (
                 <li key={idx} className="flex items-start gap-3 text-xs leading-relaxed text-white/80">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-400/10 text-[10px] font-bold text-cyan-300">
-                    {idx + 1}
-                  </span>
                   <span>{rule}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-xs leading-relaxed text-white/60">
+            <div className="rounded-2xl border border-cyan-300/15 bg-transparent p-4 text-xs leading-relaxed text-white/60">
               Standard festival and fair-play regulations apply. Specific tournament rulebooks, match round draws, and evaluation criteria will be briefed by event coordinators at the venue ({event.venue || "Campus Arena"}).
             </div>
           )}
         </div>
 
         {/* 5. Schedule / Rounds Timeline */}
-        <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-400/10 text-purple-300">
-              <Clock className="h-5 w-5" />
-            </div>
+        <div className="rounded-3xl border border-cyan-300/20 bg-transparent p-6 sm:p-8">
+          <div className="mb-6">
             <div>
               <h2 className="text-xl font-bold text-white">Event Timeline & Schedule</h2>
               <p className="text-xs text-white/50">Scheduled festival day and timeline</p>
@@ -771,10 +750,10 @@ export default function EventDetailPage({
               {scheduleStages.map((stage, idx) => (
                 <div
                   key={idx}
-                  className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  className="rounded-2xl border border-cyan-300/15 bg-transparent p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="rounded-lg bg-purple-500/20 px-2.5 py-1 font-mono text-xs font-bold text-purple-300">
+                    <span className="rounded-lg bg-cyan-400/10 px-2.5 py-1 font-mono text-xs font-bold text-cyan-300">
                       {stage.stage !== undefined ? `STAGE ${stage.stage}` : `ROUND ${idx + 1}`}
                     </span>
                     <div>
@@ -786,7 +765,7 @@ export default function EventDetailPage({
               ))}
             </div>
           ) : (
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="rounded-2xl border border-cyan-300/15 bg-transparent p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold text-white">Festival Day {event.day_of_event}</p>
                 <p className="mt-0.5 text-xs text-white/60">
@@ -802,7 +781,7 @@ export default function EventDetailPage({
 
         {/* 6. Evaluation / Judging Criteria (if present) */}
         {Array.isArray(meta.evaluation_criteria) && meta.evaluation_criteria.length > 0 && (
-          <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
+          <div className="rounded-3xl border border-cyan-300/20 bg-transparent p-6 sm:p-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/10 text-emerald-300">
                 <Scale className="h-5 w-5" />
@@ -817,7 +796,7 @@ export default function EventDetailPage({
               {meta.evaluation_criteria.map((c, idx) => (
                 <div
                   key={idx}
-                  className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 flex items-start justify-between gap-3"
+                  className="rounded-2xl border border-cyan-300/15 bg-transparent p-4 flex items-start justify-between gap-3"
                 >
                   <div>
                     <h4 className="font-bold text-white text-sm">{c.criterion}</h4>
@@ -835,11 +814,8 @@ export default function EventDetailPage({
         )}
 
         {/* 7. Eligibility & Tools / Equipment Requirements */}
-        <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-400/10 text-sky-300">
-              <Cpu className="h-5 w-5" />
-            </div>
+        <div className="rounded-3xl border border-cyan-300/20 bg-transparent p-6 sm:p-8">
+          <div className="mb-6">
             <div>
               <h2 className="text-xl font-bold text-white">Requirements & Eligibility</h2>
               <p className="text-xs text-white/50">Prerequisites and participation mode</p>
@@ -847,14 +823,14 @@ export default function EventDetailPage({
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-xs">
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+            <div className="rounded-2xl border border-cyan-300/15 bg-transparent p-4">
               <span className="text-[10px] font-bold uppercase text-slate-400">Eligibility</span>
               <p className="mt-1 text-white font-medium">
                 {event.eligibility || meta.eligibility || "Open to all registered festival delegates and students with valid ID."}
               </p>
             </div>
 
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+            <div className="rounded-2xl border border-cyan-300/15 bg-transparent p-4">
               <span className="text-[10px] font-bold uppercase text-slate-400">Format & Capacity</span>
               <p className="mt-1 text-white font-medium">
                 {event.is_team_event
@@ -865,28 +841,28 @@ export default function EventDetailPage({
             </div>
 
             {meta.software_required && (
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+              <div className="rounded-2xl border border-cyan-300/15 bg-transparent p-4">
                 <span className="text-[10px] font-bold uppercase text-slate-400">Required Software</span>
                 <p className="mt-1 text-white font-medium">{meta.software_required}</p>
               </div>
             )}
 
             {meta.tools_allowed && (
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+              <div className="rounded-2xl border border-cyan-300/15 bg-transparent p-4">
                 <span className="text-[10px] font-bold uppercase text-slate-400">Allowed Tools</span>
                 <p className="mt-1 text-white font-medium">{meta.tools_allowed}</p>
               </div>
             )}
 
             {meta.device_requirement && (
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+              <div className="rounded-2xl border border-cyan-300/15 bg-transparent p-4">
                 <span className="text-[10px] font-bold uppercase text-slate-400">Device Requirement</span>
                 <p className="mt-1 text-white font-medium">{meta.device_requirement}</p>
               </div>
             )}
 
             {meta.materials_provided && (
-              <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 sm:col-span-2">
+              <div className="rounded-2xl border border-cyan-300/15 bg-transparent p-4 sm:col-span-2">
                 <span className="text-[10px] font-bold uppercase text-slate-400">Materials Provided by Fest</span>
                 <p className="mt-1 text-white font-medium">{meta.materials_provided}</p>
               </div>
@@ -895,11 +871,8 @@ export default function EventDetailPage({
         </div>
 
         {/* 8. Event Coordinators & Contacts */}
-        <div className="rounded-3xl border border-white/10 bg-[#0C1017] p-6 sm:p-8">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
-              <Phone className="h-5 w-5" />
-            </div>
+        <div className="rounded-3xl border border-cyan-300/20 bg-transparent p-6 sm:p-8">
+          <div className="mb-6">
             <div>
               <h2 className="text-xl font-bold text-white">Student Coordinators & Support</h2>
               <p className="text-xs text-white/50">Contact organizers for queries and assistance</p>
@@ -911,13 +884,12 @@ export default function EventDetailPage({
               {coordinatorsList.map((coord, idx) => (
                 <div
                   key={idx}
-                  className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-1.5 text-xs"
+                  className="rounded-2xl border border-cyan-300/15 bg-transparent p-4 space-y-1.5 text-xs"
                 >
                   <p className="font-bold text-white text-sm">{coord.name}</p>
                   {coord.role && <p className="text-[11px] text-cyan-300">{coord.role}</p>}
                   {coord.phone && (
                     <div className="flex items-center gap-2 text-white/70">
-                      <Phone className="h-3 w-3 text-cyan-300" />
                       <a href={`tel:${coord.phone}`} className="hover:text-white">
                         {coord.phone}
                       </a>
@@ -925,7 +897,6 @@ export default function EventDetailPage({
                   )}
                   {coord.email && (
                     <div className="flex items-center gap-2 text-white/70">
-                      <Mail className="h-3 w-3 text-cyan-300" />
                       <a href={`mailto:${coord.email}`} className="hover:text-white">
                         {coord.email}
                       </a>
@@ -935,7 +906,7 @@ export default function EventDetailPage({
               ))}
             </div>
           ) : (
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4 text-xs text-white/70">
+            <div className="rounded-2xl border border-cyan-300/15 bg-transparent p-4 text-xs text-white/70">
               <p className="font-semibold text-white">
                 {event.organizer || meta.organizer || "TechXetra 2026 Core Organizing Committee"}
               </p>

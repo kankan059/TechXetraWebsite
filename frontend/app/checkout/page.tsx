@@ -262,7 +262,7 @@ export default function CheckoutPassPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.65, ease: "easeOut" }}
           whileHover={prefersReducedMotion ? undefined : { y: -3 }}
-          className="relative rounded-3xl border border-white/[0.10] bg-[#0b1019]/90 p-5 shadow-2xl shadow-black/20 sm:p-8"
+          className="relative rounded-3xl border border-white/[0.10] bg-transparent p-5 shadow-2xl shadow-black/20 sm:p-8"
         >
           <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-cyan-300/60 to-transparent" />
 

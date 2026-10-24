@@ -611,7 +611,7 @@ export default function NonTechnicalEvents() {
                 ) : (
                   <Link
                     href={`/events/${selectedEvent.slug || selectedEvent.id}`}
-                    className="flex min-h-12 items-center justify-between gap-5 bg-[#FF806E] px-5 py-3 text-sm text-[#09151B] [font-family:var(--font-gotham-bold)] transition-colors hover:bg-[#FFA092] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FF806E]"
+                    className="flex min-h-12 items-center justify-center gap-5 bg-[#FF806E] px-5 py-3 text-sm text-[#09151B] [font-family:var(--font-gotham-bold)] transition-colors hover:bg-[#FFA092] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#FF806E]"
                   >
                     Register on TechXetra
                     <span aria-hidden="true">→</span>

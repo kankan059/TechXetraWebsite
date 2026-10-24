@@ -151,7 +151,7 @@ export default function DashboardPage() {
         <div className="flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-center">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="font-autotech text-2xl font-bold tracking-tight sm:text-3xl">
+              <h1 className="[font-family:var(--font-gotham-bold)] text-2xl font-normal leading-tight tracking-normal sm:text-3xl">
                 Welcome, {user.name}
               </h1>
               <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-0.5 text-xs font-medium text-cyan-300">
@@ -214,7 +214,7 @@ export default function DashboardPage() {
         {/* Profile Card & Stats Grid */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {/* User info card */}
-          <div className="border border-[#55DFFF]/25 bg-[#0A151D]/80 p-5 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
+          <div className="border border-[#55DFFF]/25 bg-transparent p-5 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
             <div className="flex items-center gap-3 border-b border-white/10 pb-4">
               
               <div>
@@ -265,7 +265,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick pass summary */}
-          <div className="border border-[#55DFFF]/25 bg-[#0A151D]/80 p-5 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
+          <div className="border border-[#55DFFF]/25 bg-transparent p-5 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
             <div className="flex items-center gap-3 border-b border-white/10 pb-4">
               
               <div>
@@ -279,7 +279,7 @@ export default function DashboardPage() {
                 tickets.slice(0, 3).map((tkt) => (
                   <div
                     key={tkt.id}
-                    className="flex items-center justify-between rounded-none border border-white/5 bg-white/[0.02] p-2.5 text-xs"
+                    className="flex items-center justify-between rounded-none border border-white/5 bg-transparent p-2.5 text-xs"
                   >
                     <div>
                       <p className="font-medium text-white">{tkt.ticket_type}</p>
@@ -306,7 +306,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Teams summary */}
-          <div className="border border-[#55DFFF]/25 bg-[#0A151D]/80 p-5 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
+          <div className="border border-[#55DFFF]/25 bg-transparent p-5 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
             <div className="flex items-center gap-3 border-b border-white/10 pb-4">
               
               <div>
@@ -331,7 +331,7 @@ export default function DashboardPage() {
                 teams.slice(0, 3).map((tm) => (
                   <div
                     key={tm.id}
-                    className="flex items-center justify-between rounded-none border border-white/5 bg-white/[0.02] p-2.5 text-xs"
+                    className="flex items-center justify-between rounded-none border border-white/5 bg-transparent p-2.5 text-xs"
                   >
                     <div>
                       <p className="font-medium text-white">{tm.name}</p>
@@ -359,7 +359,7 @@ export default function DashboardPage() {
 
         {/* Pending Team Invitations Section */}
         {invites.length > 0 && (
-          <section className="border border-[#55DFFF]/25 bg-[#0A151D]/80 p-6 [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
+          <section className="border border-[#55DFFF]/25 bg-transparent p-6 [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
             <div className="mb-4 flex items-center gap-2">
               
               <h2 className="font-[var(--font-gotham-bold)] text-lg font-semibold text-white">Pending Team Invitations</h2>
@@ -369,7 +369,7 @@ export default function DashboardPage() {
               {invites.map((invite) => (
                 <div
                   key={invite.id}
-                  className="flex flex-col justify-between gap-4 rounded-none border border-white/10 bg-white/[0.02] p-4 sm:flex-row sm:items-center"
+                  className="flex flex-col justify-between gap-4 rounded-none border border-white/10 bg-transparent p-4 sm:flex-row sm:items-center"
                 >
                   <div>
                     <p className="font-medium text-white">
@@ -409,7 +409,7 @@ export default function DashboardPage() {
 
         {/* Preparing Tickets (Retry banner) */}
         {preparingTickets.length > 0 && (
-          <section className="border border-[#55DFFF]/30 bg-[#55DFFF]/[0.06] p-6 [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
+          <section className="border border-[#55DFFF]/30 bg-transparent p-6 [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 
@@ -421,7 +421,7 @@ export default function DashboardPage() {
               {preparingTickets.map((prep) => (
                 <div
                   key={prep.purchase_id}
-                  className="flex flex-col justify-between gap-4 rounded-none border border-white/10 bg-white/[0.02] p-4 sm:flex-row sm:items-center"
+                  className="flex flex-col justify-between gap-4 rounded-none border border-white/10 bg-transparent p-4 sm:flex-row sm:items-center"
                 >
                   <div>
                     <p className="font-medium text-white">Order {prep.purchase_id}</p>
@@ -446,7 +446,7 @@ export default function DashboardPage() {
         )}
 
         {/* Digital Tickets Section */}
-        <section className="border border-[#55DFFF]/25 bg-[#0A151D]/80 p-6 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
+        <section className="border border-[#55DFFF]/25 bg-transparent p-6 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-3">
               
@@ -476,7 +476,7 @@ export default function DashboardPage() {
               {tickets.map((tkt) => (
                 <div
                   key={tkt.id}
-                  className="relative overflow-hidden border border-[#55DFFF]/35 bg-gradient-to-b from-[#10212B] to-[#081219] p-5 [clip-path:polygon(0_0,calc(100%_-_22px)_0,100%_22px,100%_100%,22px_100%,0_calc(100%_-_22px))]"
+                  className="relative overflow-hidden border border-[#55DFFF]/35 bg-transparent p-5 [clip-path:polygon(0_0,calc(100%_-_22px)_0,100%_22px,100%_100%,22px_100%,0_calc(100%_-_22px))]"
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -509,7 +509,7 @@ export default function DashboardPage() {
                   )}
 
                   {/* Tamper-proof QR Token Display */}
-                  <div className="mt-5 rounded-none border border-white/10 bg-black/40 p-4">
+                  <div className="mt-5 rounded-none border border-white/10 bg-transparent p-4">
                     <p className="text-[11px] font-medium uppercase tracking-wider text-white/40">
                       Signed QR Entry Token
                     </p>
@@ -528,7 +528,7 @@ export default function DashboardPage() {
         </section>
 
         {/* Recent Purchases Section */}
-        <section className="border border-[#55DFFF]/25 bg-[#0A151D]/80 p-6 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
+        <section className="border border-[#55DFFF]/25 bg-transparent p-6 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               

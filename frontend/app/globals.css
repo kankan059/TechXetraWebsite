@@ -72,6 +72,11 @@ body {
   font-family: var(--font-autotechno), sans-serif;
 }
 
+.font-biscora {
+  font-family: var(--font-biscora), sans-serif;
+  font-synthesis: none;
+}
+
 
 @keyframes glitch-shake {
   0% {
