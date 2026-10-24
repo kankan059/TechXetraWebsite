@@ -76,6 +76,10 @@ body {
   font-family: var(--font-biscora), sans-serif;
   font-synthesis: none;
 }
+.font-roboto {
+  font-family: var(--font-roboto), sans-serif;
+  font-synthesis: none;
+}
 
 
 @keyframes glitch-shake {
