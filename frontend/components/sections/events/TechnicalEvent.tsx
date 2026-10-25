@@ -483,6 +483,7 @@ export default function TechnicalEvents() {
                   <div className="overflow-hidden rounded-lg">
                     {(() => {
                       const image =
+                        selectedEvent.imageURL ||
                         selectedMetadata.image ||
                         selectedMetadata.image_url ||
                         selectedMetadata.poster;

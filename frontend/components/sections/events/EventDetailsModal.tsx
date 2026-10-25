@@ -93,7 +93,7 @@ export default function EventDetailsModal({
   const metadata = getMetadata(event);
   const category = event.category.replaceAll("_", " ");
   const accent = getCategoryColor(event.category);
-  const image = metadata.image || metadata.image_url || metadata.poster;
+  const image = event.imageURL || metadata.image || metadata.image_url || metadata.poster;
   const rules =
     metadata.rules?.length
       ? metadata.rules

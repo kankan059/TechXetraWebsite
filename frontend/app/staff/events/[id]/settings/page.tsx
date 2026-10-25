@@ -15,6 +15,7 @@ import {
   ChevronRight,
   ShieldAlert,
   Loader2,
+  Image as ImageIcon,
 } from "lucide-react";
 import { staffApi } from "@/services/staff-api";
 import { participantApi } from "@/services/participant-api";
@@ -39,6 +40,7 @@ export default function StaffEventSettingsPage({
 
   // Form State
   const [venue, setVenue] = useState("");
+  const [imageURL, setImageURL] = useState("");
   const [description, setDescription] = useState("");
   const [metadata, setMetadata] = useState("");
   const [registrationClosesAt, setRegistrationClosesAt] = useState<string>("");
@@ -77,6 +79,7 @@ export default function StaffEventSettingsPage({
       // 3. Populate form fields from event
       const evt = dash.event;
       setVenue(evt.venue || "");
+      setImageURL(evt.imageURL || (evt as any).imageUrl || "");
       setDescription(evt.description || "");
       setMetadata(evt.metadata || "");
 
@@ -128,6 +131,7 @@ export default function StaffEventSettingsPage({
 
       await staffApi.events.update(id, {
         venue: venue.trim() || null,
+        imageURL: imageURL.trim() || null,
         description: description.trim() || null,
         metadata: metadata.trim() || null,
         registration_closes_at: deadlineMs,
@@ -274,6 +278,36 @@ export default function StaffEventSettingsPage({
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Image URL */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-white/80">
+                Event Artwork / Poster (imageURL)
+              </label>
+              <div className="relative">
+                <ImageIcon className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                <input
+                  type="url"
+                  value={imageURL}
+                  onChange={(e) => setImageURL(e.target.value)}
+                  placeholder="https://example.com/images/poster.png"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] pl-10 pr-4 py-2.5 text-xs text-white placeholder-white/30 outline-none focus:border-purple-400"
+                />
+              </div>
+              {imageURL.trim() && (
+                <div className="mt-2 flex items-center gap-3 rounded-lg border border-white/10 bg-black/30 p-2">
+                  <img
+                    src={imageURL.trim()}
+                    alt="Poster preview"
+                    className="h-12 w-20 rounded object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = "none";
+                    }}
+                  />
+                  <span className="text-xs text-white/50">Poster Preview</span>
+                </div>
+              )}
             </div>
 
             {/* Description */}

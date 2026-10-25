@@ -1,7 +1,18 @@
 const RAW_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  process.env.BACKEND_API_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:4000";
 
 export function getApiBaseUrl(): string {
+  // In the browser, route through Next.js proxy to treat session cookies as 1st-party
+  if (
+    typeof window !== "undefined" &&
+    process.env.NEXT_PUBLIC_DIRECT_API !== "true"
+  ) {
+    return "/api/v1";
+  }
+
   let base = RAW_BASE_URL.replace(/\/+$/, "");
   if (!base.endsWith("/api/v1")) {
     if (base.endsWith("/api")) {

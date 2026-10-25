@@ -156,7 +156,7 @@ export default function EventCard({
   onSelect,
 }: EventCardProps) {
   const metadata = getMetadata(event);
-  const image = metadata.image || metadata.image_url || metadata.poster;
+  const image = event.imageURL || metadata.image || metadata.image_url || metadata.poster;
   const tone = getCategoryTone(event.category);
 
   const categoryLabel = event.category
@@ -186,6 +186,7 @@ export default function EventCard({
               src={image}
               alt={`${event.title} event artwork`}
               fill
+              unoptimized
               priority={index < 3}
               sizes="(min-width: 1100px) 400px, (min-width: 640px) 46vw, 92vw"
               className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.035]"

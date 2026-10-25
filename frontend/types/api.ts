@@ -107,6 +107,7 @@ export interface EventItem {
   id: string;
   slug: string;
   title: string;
+  imageURL?: string | null;
   category: EventCategory;
   shortDescription?: string | null;
   description: string | null;
@@ -681,6 +682,7 @@ export interface StaffEventSummary {
   id: string;
   slug: string;
   title: string;
+  imageURL?: string | null;
   category: EventCategory;
   role: "LEAD" | "VOLUNTEER" | "SUPER_ADMIN";
   day_of_event: number;
@@ -766,6 +768,7 @@ export interface ReviewStaffPaymentBody {
 export interface LeadUpdateEventBody {
   description?: string | null;
   venue?: string | null;
+  imageURL?: string | null;
   metadata?: string | null;
   form_schema?: string | null;
   registration_closes_at?: number | null;
