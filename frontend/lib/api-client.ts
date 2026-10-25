@@ -1,19 +1,5 @@
-const RAW_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  process.env.BACKEND_API_URL ||
-  "http://localhost:4000";
-
 export function getApiBaseUrl(): string {
-  let base = RAW_BASE_URL.replace(/\/+$/, "");
-  if (!base.endsWith("/api/v1")) {
-    if (base.endsWith("/api")) {
-      base = base + "/v1";
-    } else {
-      base = base + "/api/v1";
-    }
-  }
-  return base;
+  return "/api/v1";
 }
 
 export function normalizePath(path: string): string {
