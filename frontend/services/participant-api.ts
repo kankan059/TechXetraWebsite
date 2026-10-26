@@ -304,13 +304,25 @@ export const participantApi = {
         },
       ),
     myTeams: () => apiRequest<TeamDetail[]>("/teams/mine"),
-    myInvites: () => apiRequest<TeamMember[]>("/team-invites/mine"),
+    myInvites: async () => {
+      const raw = await apiRequest<any>("/team-invites/mine");
+
+      const list: any[] = Array.isArray(raw)
+        ? raw
+        : Array.isArray(raw?.data)
+          ? raw.data
+          : [];
+
+      return list.map((inv) => ({
+        ...inv,
+        id: inv.invitationId ?? inv.id,
+      }));
+    },
+
     acceptInvite: (invitationId: string) =>
-      apiRequest<{ accepted: boolean }>(
+      apiRequest<{ accepted?: boolean }>(
         `/team-invites/${encodeURIComponent(invitationId)}/accept`,
-        {
-          method: "POST",
-        },
+        { method: "POST" },
       ),
     declineInvite: (invitationId: string) =>
       apiRequest<{ declined: boolean }>(

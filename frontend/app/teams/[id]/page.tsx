@@ -20,6 +20,14 @@ import DynamicQuestionnaireModal from "@/components/forms/DynamicQuestionnaireMo
 import { participantApi } from "@/services/participant-api";
 import { ApiError } from "@/lib/api-client";
 
+function memberEmail(m: any): string {
+  return (m.invited_email ?? m.invitedEmail ?? m.user?.email ?? "").toLowerCase();
+}
+
+function memberUserId(m: any): string | undefined {
+  return m.user_id ?? m.userId ?? m.user?.id;
+}
+
 export default function TeamWorkspacePage({
   params,
 }: {
@@ -279,8 +287,8 @@ export default function TeamWorkspacePage({
 
   const myPendingInvite = pendingMembers.find(
     (m) =>
-      (m.user_id && m.user_id === user.id) ||
-      (user.email && m.invited_email.toLowerCase() === user.email.toLowerCase())
+      (memberUserId(m) && memberUserId(m) === user.id) ||
+      (user.email && memberEmail(m) === user.email.toLowerCase())
   );
 
   return (
