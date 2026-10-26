@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useRef, useCallback } from 'react';
 import { useGesture } from '@use-gesture/react';
-import { domGalleryImages } from '@/data/galary';
-type ImageItem = string | { src: string; alt?: string };
+import type { ImageItem } from '@/data/galary';
+type GalleryImage = string | { src: string; alt?: string };
 
 type DomeGalleryProps = {
-  images?: ImageItem[];
+  images?: GalleryImage[];
   fit?: number;
   fitBasis?: 'auto' | 'min' | 'max' | 'width' | 'height';
   minRadius?: number;
@@ -34,8 +34,6 @@ type ItemDef = {
   sizeY: number;
 };
 
-const DEFAULT_IMAGES: ImageItem[] = domGalleryImages;
-
 const DEFAULTS = {
   maxVerticalRotationDeg: 5,
   dragSensitivity: 20,
@@ -55,7 +53,7 @@ const getDataNumber = (el: HTMLElement, name: string, fallback: number) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
-function buildItems(pool: ImageItem[], seg: number): ItemDef[] {
+function buildItems(pool: GalleryImage[], seg: number): ItemDef[] {
   const xCols = Array.from({ length: seg }, (_, i) => -37 + i * 2);
   const evenYs = [-4, -2, 0, 2, 4];
   const oddYs = [-3, -1, 1, 3, 5];
@@ -112,7 +110,7 @@ function computeItemBaseRotation(offsetX: number, offsetY: number, sizeX: number
 }
 
 export default function DomeGallery({
-  images = DEFAULT_IMAGES,
+  images = [],
   fit = 0.5,
   fitBasis = 'auto',
   minRadius = 600,
@@ -733,7 +731,5 @@ export default function DomeGallery({
     </div>
   );
 }
-
-
 
 
