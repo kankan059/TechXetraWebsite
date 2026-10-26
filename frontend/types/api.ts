@@ -190,7 +190,8 @@ export interface TeamDetail {
   id: string;
   event_id: string;
   name: string;
-  leader_id: string;
+  leader_id: string | null;
+  leaderId: string | null;
   status: TeamStatus;
   created_at: number;
   updated_at: number;

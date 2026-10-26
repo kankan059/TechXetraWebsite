@@ -272,7 +272,7 @@ export default function TeamWorkspacePage({
 
   if (!team || !user) return null;
 
-  const isLeader = team.leader_id === user.id;
+  const isLeader = team.leaderId === user.id || team.leader_id === user.id;
   const acceptedMembers = team.members.filter((m) => m.status === "ACCEPTED");
   const pendingMembers = team.members.filter((m) => m.status === "INVITED");
   const anyIncomplete = acceptedMembers.some((m) => m.user?.profile_completed_at === null);
