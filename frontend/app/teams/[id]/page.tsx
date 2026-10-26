@@ -199,6 +199,17 @@ export default function TeamWorkspacePage({
   const executeCheckout = async (responses: Record<string, any>) => {
     if (!team) return;
 
+    const eventId =
+      (team as any).eventId ??
+      team.event_id ??
+      team.event?.id ??
+      event?.id;
+
+    if (!eventId) {
+      setError("Could not determine the event for this team. Please reload and try again.");
+      return;
+    }
+
     setProcessingAction(true);
     setError(null);
     setQuestionnaireError(null);
@@ -207,14 +218,14 @@ export default function TeamWorkspacePage({
       const data = await participantApi.purchases.create({
         items: [
           {
-            item_type: "EVENT_PASS",
-            event_id: team.event_id,
-            team_id: team.id,
-            form_responses:
+            itemType: "EVENT_PASS",
+            eventId,
+            teamId: team.id,
+            formResponses:
               Object.keys(responses).length > 0 ? responses : undefined,
           } as any,
         ],
-        acknowledge_student_id_policy: Boolean(
+        acknowledgeStudentIdPolicy: Boolean(
           user?.isStudent ?? user?.is_student
         ),
       });
