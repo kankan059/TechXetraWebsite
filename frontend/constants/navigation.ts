@@ -5,7 +5,7 @@ export const navigation = [
   { label: "Schedule", href: "/schedule" },
   { label: "Sponsors", href: "/sponsors" },
   { label: "Gallery", href: "/gallery" },
-  { label: "Team", href: "/team" },
+  // { label: "Team", href: "/team" },
 ];
 
 export const mainlogo = {
