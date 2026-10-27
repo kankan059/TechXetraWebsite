@@ -96,27 +96,38 @@ function HowToRegister() {
     {
       number: "01",
       title: "Complete your profile",
-      description: "Add your personal and academic details so your registration information is ready.",
+      description:
+        "Add your personal and academic details. Make sure your information is correct before registering.",
     },
     {
       number: "02",
-      title: "Explore the events",
-      description: "Open the events page and choose the event you want to take part in.",
+      title: "Explore events",
+      description:
+        "Browse the available TechXetra events and check their participation requirements to see whether individual or team registration is needed.",
     },
     {
       number: "03",
-      title: "Follow the registration steps",
-      description: "Open the event page and follow the instructions shown there. Some events may have different requirements.",
+      title: "Create or join a team (if required)",
+      description:
+        "Some events require team participation, while others allow individual registration. If a team is required, create or join one. All team members must have registered on the TechXetra platform, as team invitations are sent through the platform itself.",
     },
     {
       number: "04",
-      title: "Check your registration",
-      description: "Visit My Registrations to review the status and details of your event registrations.",
+      title: "Register for an event",
+      description:
+        "Open your chosen event and follow its registration instructions. For team events, make sure your team is ready before completing registration, if required.",
     },
     {
       number: "05",
-      title: "Find your pass when issued",
-      description: "If your event provides a digital pass, open My Digital Passes to view it and its QR code. Follow the event's entry instructions.",
+      title: "Check your registration",
+      description:
+        "Visit your Registrations page to review your registration status and related details.",
+    },
+    {
+      number: "06",
+      title: "Access your digital pass",
+      description:
+        "If a pass is issued for your registration, open My Digital Passes to view your pass and QR code. Follow any event-specific entry instructions.",
     },
   ];
 

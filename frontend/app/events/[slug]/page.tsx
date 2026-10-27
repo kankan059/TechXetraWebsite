@@ -495,6 +495,31 @@ export default function EventDetailPage({
           Back to Events Directory
         </Link>
 
+        {/* Registration guide notice */}
+        <aside className="relative overflow-hidden border border-amber-300/25 bg-amber-300/[0.06] p-4 sm:p-5">
+          <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-amber-300/[0.08] blur-3xl" />
+          <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center border border-amber-300/25 bg-amber-300/[0.08] text-amber-200">
+                <BookOpen className="h-4 w-4" />
+              </span>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-200">First time registering?</p>
+                <h2 className="mt-1 text-sm font-semibold text-white sm:text-base">Need help registering for this event?</h2>
+                <p className="mt-1 max-w-2xl text-xs leading-5 text-white/60">
+                  We’ve added a simple step-by-step registration guide at the bottom of this page. Check it before you register.
+                </p>
+              </div>
+            </div>
+            <a
+              href="#registration-guide"
+              className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 self-start border border-amber-200/25 px-4 py-2 text-xs font-semibold text-amber-100 transition hover:border-amber-200/50 hover:bg-amber-200/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 sm:self-center"
+            >
+              Read the guide <ArrowRight className="h-3.5 w-3.5" />
+            </a>
+          </div>
+        </aside>
+
         {/* 1. Header Hero Card */}
         <div className="rounded-3xl border border-cyan-300/20 bg-transparent p-6 sm:p-10">
           <div className="flex flex-wrap items-center gap-3">
@@ -926,6 +951,93 @@ export default function EventDetailPage({
             </p>
           )}
         </div>
+
+        {/* Registration guide */}
+        <section
+          id="registration-guide"
+          className="scroll-mt-28 border border-cyan-300/20 bg-[#07111b]/70 p-5 sm:p-7 lg:p-8"
+        >
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-cyan-300/25 bg-cyan-300/[0.07] text-cyan-200">
+              <BookOpen className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">Quick guide</p>
+              <h2 className="mt-1 text-xl font-bold text-white sm:text-2xl">How to register for this event</h2>
+              <p className="mt-2 text-sm leading-6 text-white/60">
+                Follow these steps to complete your registration. The exact next step may depend on whether this is a solo or team event and whether a fee applies.
+              </p>
+            </div>
+          </div>
+
+          <ol className="mt-6 grid gap-3 sm:grid-cols-2">
+            {[
+              {
+                number: "01",
+                title: "Complete your profile",
+                description:
+                  "Add your personal and academic details. Make sure your information is correct before registering.",
+              },
+              {
+                number: "02",
+                title: "Explore events",
+                description:
+                  "Browse the available TechXetra events and check their participation requirements to see whether individual or team registration is needed.",
+              },
+              {
+                number: "03",
+                title: "Create or join a team (if required)",
+                description:
+                  "Some events require team participation, while others allow individual registration. If a team is required, create or join one. All team members must have registered on the TechXetra platform, as team invitations are sent through the platform itself.",
+              },
+              {
+                number: "04",
+                title: "Register for an event",
+                description:
+                  "Open your chosen event and follow its registration instructions. For team events, make sure your team is ready before completing registration, if required.",
+              },
+              {
+                number: "05",
+                title: "Check your registration",
+                description:
+                  "Visit your Registrations page to review your registration status and related details.",
+              },
+              {
+                number: "06",
+                title: "Access your digital pass",
+                description:
+                  "If a pass is issued for your registration, open My Digital Passes to view your pass and QR code. Follow any event-specific entry instructions.",
+              },
+            ].map((step) => (
+              <li key={step.number} className="flex gap-3 border border-white/[0.08] bg-white/[0.02] p-4">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center border border-cyan-300/25 bg-cyan-300/[0.06] font-mono text-xs font-semibold text-cyan-200">
+                  {step.number}
+                </span>
+                <div>
+                  <h3 className="text-sm font-semibold text-white">{step.title}</h3>
+                  <p className="mt-1.5 text-xs leading-5 text-white/55">{step.description}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+
+          <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row">
+            <button
+              type="button"
+              onClick={event.is_team_event ? () => setShowTeamModal(true) : handleSoloRegister}
+              className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#55DFFF] px-5 py-3 text-sm font-semibold text-[#09151B] transition hover:bg-[#8BE9FF] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
+            >
+              {event.is_team_event ? "Create a team" : "Register for this event"}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+            <Link
+              href="/dashboard"
+              className="inline-flex min-h-11 items-center justify-center gap-2 border border-white/15 px-5 py-3 text-sm font-medium text-white/75 transition hover:border-cyan-300/40 hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+            >
+              Go to dashboard <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </section>
 
         {/* Create Team Modal */}
         {showTeamModal && (
