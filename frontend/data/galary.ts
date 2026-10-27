@@ -17,10 +17,10 @@ const supportedImageExtensions = new Set([
 ]);
 
 export async function getDomGalleryImages(): Promise<ImageItem[]> {
-  const imagesDirectory = path.join(process.cwd(), "public", "images");
+  const imagesDirectory = path.join(process.cwd(), "public", "Images");
   const files = await readdir(imagesDirectory, { withFileTypes: true });
 
-  return files
+  const images = files
     .filter(
       (file) =>
         file.isFile() &&
@@ -31,6 +31,7 @@ export async function getDomGalleryImages(): Promise<ImageItem[]> {
       alt: path.parse(file.name).name.replace(/[-_]+/g, " "),
       fileName: file.name,
     }))
-    .sort((a, b) => a.fileName.localeCompare(b.fileName))
-    .map(({ fileName: _fileName, ...image }) => image);
+    .sort((a, b) => a.fileName.localeCompare(b.fileName));
+
+  return images.map(({ src, alt }) => ({ src, alt }));
 }

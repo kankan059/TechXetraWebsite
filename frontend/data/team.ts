@@ -51,17 +51,17 @@ export const teamGroups: TeamGroup[] = [
       {
         name: "Ananya Hazarika",
         role: "Registration Lead",
-        image: "/images/team/ananya-hazarika.webp",
+        image: "/gallary/image1.png",
       },
       {
         name: "Parthajit Dutta",
         role: "Logistics Lead",
-        image: "/images/team/parthajit-dutta.webp",
+        image: "/gallary/image2.png",
       },
       {
         name: "Nandita Gogoi",
         role: "Publicity Lead",
-        image: "/images/team/nandita-gogoi.webp",
+        image: "/gallary/image3.png",
       },
     ],
   },
@@ -74,17 +74,17 @@ export const teamGroups: TeamGroup[] = [
       {
         name: "Kankan Ray",
         role: "Webmaster",
-        image: "/images/team/kankan-ray.webp",
+        image: "/gallary/image1.png",
       },
       {
         name: "Member Two",
         role: "Web Developer",
-        image: "/images/team/webmaster-2.webp",
+        image: "/gallary/image2.png",
       },
       {
         name: "Member Three",
         role: "Web Developer",
-        image: "/images/team/webmaster-3.webp",
+        image: "/gallary/image3.png",
       },
     ],
   },
@@ -97,17 +97,17 @@ export const teamGroups: TeamGroup[] = [
       {
         name: "Mousumi Das",
         role: "Designer",
-        image: "/images/team/mousumi-das.webp",
+        image: "/gallary/image1.png",
       },
       {
         name: "Member Two",
         role: "Graphic Designer",
-        image: "/images/team/design-2.webp",
+        image: "/gallary/image2.png",
       },
       {
         name: "Member Three",
         role: "Graphic Designer",
-        image: "/images/team/design-3.webp",
+        image: "/gallary/image3.png",
       },
     ],
   },
