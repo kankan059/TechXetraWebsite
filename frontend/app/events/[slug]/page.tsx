@@ -235,7 +235,9 @@ export default function EventDetailPage({
   const handleQuestionnaireSubmit = async (responses: Record<string, any>) => {
     if (!event || !user) return;
 
-    if (registrationMode === "team") {
+    const isTeamEvent = event.max_team_size > 1 || event.is_team_event;
+
+    if (registrationMode === "team" || (isTeamEvent && registrationMode !== "solo")) {
       setPendingFormResponses(responses);
       try {
         sessionStorage.setItem(`team_form_${event.id}`, JSON.stringify(responses));
@@ -323,16 +325,23 @@ export default function EventDetailPage({
         name: teamName.trim(),
       });
 
+      const teamId = data?.id || (data as any)?.team?.id;
+
+      if (!teamId) {
+        throw new Error("Team was created but could not retrieve team ID.");
+      }
+
       if (pendingFormResponses) {
         try {
-          sessionStorage.setItem(`team_form_${data.id}`, JSON.stringify(pendingFormResponses));
+          sessionStorage.setItem(`team_form_${teamId}`, JSON.stringify(pendingFormResponses));
           sessionStorage.setItem(`team_form_${event.id}`, JSON.stringify(pendingFormResponses));
         } catch {
           // ignore
         }
       }
 
-      router.push(`/teams/${data.id}`);
+      setShowTeamModal(false);
+      router.push(`/teams/${teamId}`);
     } catch (err: unknown) {
       setTeamError(err instanceof Error ? err.message : "Team creation failed");
     } finally {
@@ -1133,7 +1142,10 @@ export default function EventDetailPage({
 
         {/* Create Team Modal */}
         {showTeamModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md"
+            data-lenis-prevent="true"
+          >
             <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0c121d] p-6 shadow-2xl">
               <h3 className="text-xl font-bold text-white">Create Team for {event.title}</h3>
               <p className="mt-2 text-xs text-white/60">

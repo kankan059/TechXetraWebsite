@@ -9,6 +9,30 @@
   display: none;
 }
 
+.questionnaire-modal-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(85, 223, 255, 0.4) rgba(255, 255, 255, 0.05);
+}
+
+.questionnaire-modal-scroll::-webkit-scrollbar {
+  display: block !important;
+  width: 6px;
+}
+
+.questionnaire-modal-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.questionnaire-modal-scroll::-webkit-scrollbar-thumb {
+  background: rgba(85, 223, 255, 0.4);
+  border-radius: 4px;
+}
+
+.questionnaire-modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(85, 223, 255, 0.7);
+}
+
 @theme {
   --color-theme-bg: #080808;
   --color-theme-surface: #121212;

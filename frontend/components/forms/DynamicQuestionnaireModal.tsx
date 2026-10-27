@@ -94,7 +94,10 @@ export default function DynamicQuestionnaireModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-8">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-8"
+      data-lenis-prevent="true"
+    >
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity"
@@ -102,7 +105,10 @@ export default function DynamicQuestionnaireModal({
       />
 
       {/* Modal Dialog */}
-      <div className="relative z-10 flex max-h-[85vh] w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-[#0C1017] shadow-[0_24px_70px_rgba(0,0,0,0.85)] transition-all sm:max-h-[88vh]">
+      <div
+        className="relative z-10 flex max-h-[85vh] w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-[#0C1017] shadow-[0_24px_70px_rgba(0,0,0,0.85)] transition-all sm:max-h-[88vh]"
+        data-lenis-prevent="true"
+      >
         {/* Header - Fixed at top */}
         <div className="flex shrink-0 items-start justify-between border-b border-white/10 px-6 py-5 sm:px-7">
           <div className="flex items-center gap-3">
@@ -146,7 +152,8 @@ export default function DynamicQuestionnaireModal({
         <form
           id="dynamic-questionnaire-form"
           onSubmit={handleSubmit}
-          className="flex-1 min-h-0 overflow-y-auto px-6 py-3 sm:px-7 space-y-4"
+          data-lenis-prevent="true"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-4 sm:px-7 space-y-4 questionnaire-modal-scroll"
         >
           {formSchema.map((field) => (
             <FormFieldRenderer
