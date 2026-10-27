@@ -27,7 +27,7 @@ export async function getDomGalleryImages(): Promise<ImageItem[]> {
         supportedImageExtensions.has(path.extname(file.name).toLowerCase()),
     )
     .map((file) => ({
-      src: `/images/${encodeURIComponent(file.name)}`,
+      src: `/Images/${encodeURIComponent(file.name)}`,
       alt: path.parse(file.name).name.replace(/[-_]+/g, " "),
       fileName: file.name,
     }))
