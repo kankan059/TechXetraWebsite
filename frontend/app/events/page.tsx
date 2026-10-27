@@ -8,7 +8,7 @@ import EventsDirectory from "@/components/sections/events/EventsDirectory";
 export default function EventsPage() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-[#07090e]" />}>
-      <EventsContent />
+      <EventsDirectory />
     </Suspense>
   );
 }
