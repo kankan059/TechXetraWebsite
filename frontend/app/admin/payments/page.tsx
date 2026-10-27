@@ -14,6 +14,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { adminApi } from "@/services/admin-api";
+import { participantApi } from "@/services/participant-api";
 import type { AdminPayment } from "@/types/api";
 
 export default function AdminPaymentsPage() {
@@ -46,18 +47,15 @@ export default function AdminPaymentsPage() {
         params.search = searchQuery.trim();
       }
 
-      const [paymentsRes, eventsRes, purchasesRes] = await Promise.allSettled([
+      const [paymentsRes, eventsRes] = await Promise.allSettled([
         adminApi.payments.list(params),
         adminApi.events.list({ limit: 100 }),
-        adminApi.purchases.list({ limit: 100 }),
       ]);
 
       const rawPayments =
         paymentsRes.status === "fulfilled" ? paymentsRes.value.payments || [] : [];
       const events =
         eventsRes.status === "fulfilled" ? eventsRes.value.events || [] : [];
-      const purchases =
-        purchasesRes.status === "fulfilled" ? purchasesRes.value.purchases || [] : [];
 
       // Build event lookup map: ID/Slug -> Title
       const eventTitleById = new Map<string, string>();
@@ -68,40 +66,96 @@ export default function AdminPaymentsPage() {
 
       // Build purchase lookup map: Purchase ID -> Event Title / Gate Pass
       const purchaseEventMap = new Map<string, string>();
-      purchases.forEach((pur) => {
-        let title: string | null = null;
-        if (Array.isArray(pur.registrations) && pur.registrations.length > 0) {
-          const reg = pur.registrations[0];
-          title =
-            reg.event_title ||
-            (reg.event_id ? eventTitleById.get(reg.event_id) : null) ||
-            null;
-        }
-        if (!title && Array.isArray(pur.items) && pur.items.length > 0) {
-          const item = pur.items[0];
-          if (item.item_type === "GATE_PASS") {
-            title = "Festival Gate Pass";
-          } else if (item.event_id && eventTitleById.has(item.event_id)) {
-            title = eventTitleById.get(item.event_id)!;
-          } else if ((item as any).descriptionSnapshot?.title) {
-            title = (item as any).descriptionSnapshot.title;
+
+      // Extract unique purchase IDs
+      const uniquePurchaseIds = Array.from(
+        new Set(
+          rawPayments
+            .map((p) => p.purchase_id || (p as any).purchaseId)
+            .filter((id): id is string => Boolean(id) && typeof id === "string")
+        )
+      );
+
+      // Fetch purchase details in parallel
+      if (uniquePurchaseIds.length > 0) {
+        const purchaseSettled = await Promise.allSettled(
+          uniquePurchaseIds.map((pid) => participantApi.purchases.get(pid))
+        );
+
+        purchaseSettled.forEach((res) => {
+          if (res.status === "fulfilled" && res.value) {
+            const pur = res.value;
+            let title: string | null = null;
+            if (Array.isArray(pur.registrations) && pur.registrations.length > 0) {
+              const reg = pur.registrations[0];
+              title =
+                reg.event_title ||
+                (reg.event_id ? eventTitleById.get(reg.event_id) : null) ||
+                null;
+            }
+            if (!title && Array.isArray(pur.items) && pur.items.length > 0) {
+              const item = pur.items[0];
+              if (
+                item.item_type === "GATE_PASS" ||
+                (item as any).itemType === "GATE_PASS"
+              ) {
+                title = "Festival Gate Pass";
+              } else if (item.event_id && eventTitleById.has(item.event_id)) {
+                title = eventTitleById.get(item.event_id)!;
+              } else if ((item as any).descriptionSnapshot?.title) {
+                title = (item as any).descriptionSnapshot.title;
+              }
+            }
+            if (title && pur.id) {
+              purchaseEventMap.set(pur.id, title);
+            }
           }
-        }
-        if (title && pur.id) {
-          purchaseEventMap.set(pur.id, title);
-        }
-      });
+        });
+      }
+
+      // Fallback: For payments still missing titles, fetch payment detail via adminApi.payments.get
+      const paymentsNeedingDetail = rawPayments.filter(
+        (p) => !p.event_title && !purchaseEventMap.has(p.purchase_id)
+      );
+
+      if (paymentsNeedingDetail.length > 0) {
+        const detailSettled = await Promise.allSettled(
+          paymentsNeedingDetail.slice(0, 15).map((p) => adminApi.payments.get(p.id))
+        );
+        detailSettled.forEach((res) => {
+          if (res.status === "fulfilled" && res.value) {
+            const pDetail = res.value as any;
+            const title =
+              pDetail.event_title ||
+              pDetail.eventTitle ||
+              pDetail.event?.title ||
+              pDetail.purchase?.items?.[0]?.descriptionSnapshot?.title ||
+              (pDetail.purchase?.items?.[0]?.item_type === "GATE_PASS"
+                ? "Festival Gate Pass"
+                : null) ||
+              (pDetail.event_id ? eventTitleById.get(pDetail.event_id) : null);
+            if (title && (pDetail.purchase_id || pDetail.id)) {
+              purchaseEventMap.set(pDetail.purchase_id || pDetail.id, title);
+            }
+          }
+        });
+      }
 
       // Enrich payments with resolved event titles
       const enrichedPayments = rawPayments.map((p) => {
-        const title =
+        let rawTitle =
           p.event_title ||
           purchaseEventMap.get(p.purchase_id) ||
           (p.event_id ? eventTitleById.get(p.event_id) : null) ||
           null;
+
+        if (rawTitle === "null" || rawTitle === "undefined") {
+          rawTitle = null;
+        }
+
         return {
           ...p,
-          event_title: title,
+          event_title: rawTitle,
         };
       });
 
@@ -306,7 +360,7 @@ export default function AdminPaymentsPage() {
                       </td>
 
                       <td className="px-5 py-4">
-                        {p.event_title ? (
+                        {p.event_title && p.event_title !== "null" ? (
                           <span className="inline-flex items-center rounded-lg border border-purple-400/20 bg-purple-400/10 px-2.5 py-1 text-xs font-medium text-purple-200">
                             {p.event_title}
                           </span>
@@ -429,7 +483,7 @@ export default function AdminPaymentsPage() {
               Buyer: <span className="text-white">{selectedPayment.buyer_name}</span> (
               {selectedPayment.buyer_email}) · Amount: ₹
               {(selectedPayment.expected_amount_paise / 100).toFixed(2)}
-              {selectedPayment.event_title && (
+              {selectedPayment.event_title && selectedPayment.event_title !== "null" && (
                 <> · Event: <span className="font-medium text-purple-300">{selectedPayment.event_title}</span></>
               )}
             </p>

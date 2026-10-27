@@ -551,20 +551,139 @@ export default function DashboardPage() {
           {purchases.length === 0 ? (
             <EmptyState title="No orders yet" description="When you make an order, its details and current status will appear here." href="/events" action="Browse events" />
           ) : (
+            // <<<<<<< HEAD
+            //             <div className="divide-y divide-white/[0.07]">
+            //               {purchases.map((purchase) => (
+            //                 <div key={purchase.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+            //                   <div className="min-w-0">
+            //                     <p className={`${heading} break-words text-sm`}>Order {purchase.id}</p>
+            //                     <p className="mt-1 text-sm text-white/50">{new Date(purchase.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</p>
+            //                     {purchase.status === "AWAITING_PAYMENT" && <p className="mt-1 text-xs text-cyan-200">Your reservation is active while payment is pending.</p>}
+            //                   </div>
+            //                   <div className="flex items-center justify-between gap-4 sm:justify-end">
+            //                     <p className={`${heading} text-base tabular-nums`}>₹{(purchase.total_amount_paise / 100).toFixed(2)}</p>
+            //                     <StatusPill tone={purchaseTone(purchase.status)}>{purchaseStatusLabel(purchase.status)}</StatusPill>
+            //                   </div>
+            //                 </div>
+            //               ))}
+            // =======
+            // ```tsx
             <div className="divide-y divide-white/[0.07]">
-              {purchases.map((purchase) => (
-                <div key={purchase.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className={`${heading} break-words text-sm`}>Order {purchase.id}</p>
-                    <p className="mt-1 text-sm text-white/50">{new Date(purchase.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</p>
-                    {purchase.status === "AWAITING_PAYMENT" && <p className="mt-1 text-xs text-cyan-200">Your reservation is active while payment is pending.</p>}
+              {purchases.map((purchase) => {
+                const p = purchase as any;
+
+                const rawAmountInr = p.totalAmountInr;
+                const rawPaise =
+                  p.totalAmountPaise ??
+                  p.total_amount_paise ??
+                  p.amountPaise ??
+                  p.amount_paise;
+                const rawAmount = p.amount ?? p.total_amount;
+
+                let amountFormatted = "0.00";
+
+                if (
+                  typeof rawAmountInr === "number" &&
+                  !isNaN(rawAmountInr)
+                ) {
+                  amountFormatted = rawAmountInr.toFixed(2);
+                } else if (
+                  typeof rawPaise === "number" &&
+                  !isNaN(rawPaise)
+                ) {
+                  amountFormatted = (rawPaise / 100).toFixed(2);
+                } else if (
+                  typeof rawAmount === "number" &&
+                  !isNaN(rawAmount)
+                ) {
+                  amountFormatted = (
+                    rawAmount > 1000 ? rawAmount / 100 : rawAmount
+                  ).toFixed(2);
+                } else {
+                  const parsed = Number(
+                    rawAmountInr ?? rawPaise ?? rawAmount
+                  );
+
+                  if (!isNaN(parsed) && parsed > 0) {
+                    amountFormatted = (
+                      rawPaise != null || parsed > 1000
+                        ? parsed / 100
+                        : parsed
+                    ).toFixed(2);
+                  }
+                }
+
+                const rawDate =
+                  p.created_at ?? p.createdAt ?? p.updated_at;
+
+                const dateObj = rawDate ? new Date(rawDate) : null;
+
+                const formattedDate =
+                  dateObj && !isNaN(dateObj.getTime())
+                    ? dateObj.toLocaleDateString(undefined, {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })
+                    : "Recent";
+
+                const orderTitle =
+                  p.items?.[0]?.descriptionSnapshot?.title ||
+                  p.registrations?.[0]?.event_title ||
+                  (p.items?.[0]?.item_type === "GATE_PASS" ||
+                    p.items?.[0]?.itemType === "GATE_PASS"
+                    ? "Festival Gate Pass"
+                    : null);
+
+                return (
+                  <div
+                    key={purchase.id}
+                    className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className={`${heading} break-words text-sm`}>
+                          Order {p.publicId || purchase.id}
+                        </p>
+
+                        <StatusPill tone={purchaseTone(purchase.status)}>
+                          {purchaseStatusLabel(purchase.status)}
+                        </StatusPill>
+                      </div>
+
+                      <p className="mt-1 text-sm text-white/50">
+                        {formattedDate}
+                        {orderTitle && (
+                          <span className="ml-2 text-cyan-300/80">
+                            · {orderTitle}
+                          </span>
+                        )}
+                      </p>
+
+                      {purchase.status === "AWAITING_PAYMENT" && (
+                        <p className="mt-1 text-xs text-cyan-200">
+                          Your reservation is active while payment is pending.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 sm:justify-end">
+                      <p className={`${heading} text-base tabular-nums`}>
+                        ₹{amountFormatted}
+                      </p>
+
+                      {purchase.status === "AWAITING_PAYMENT" && (
+                        <Link
+                          href={`/checkout/${encodeURIComponent(purchase.id)}/pay`}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-xs font-medium text-cyan-300 hover:bg-cyan-400/20"
+                        >
+                          Complete Payment →
+                        </Link>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between gap-4 sm:justify-end">
-                    <p className={`${heading} text-base tabular-nums`}>₹{(purchase.total_amount_paise / 100).toFixed(2)}</p>
-                    <StatusPill tone={purchaseTone(purchase.status)}>{purchaseStatusLabel(purchase.status)}</StatusPill>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

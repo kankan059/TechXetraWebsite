@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import type { TeamDetail, UserProfile, EventItem, FormFieldDefinition } from "@/types/api";
 import DynamicQuestionnaireModal from "@/components/forms/DynamicQuestionnaireModal";
-import { participantApi } from "@/services/participant-api";
+import { participantApi, normalizeEventItem } from "@/services/participant-api";
 import { ApiError } from "@/lib/api-client";
 
 function memberEmail(m: any): string {
@@ -52,14 +52,22 @@ export default function TeamWorkspacePage({
   const [questionnaireError, setQuestionnaireError] = useState<string | null>(null);
 
   const parsedSchema: FormFieldDefinition[] = useMemo(() => {
-    if (!event?.form_schema) return [];
-    try {
-      const parsed = JSON.parse(event.form_schema);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
+    const rawSchema = (event as any)?.formSchema ?? event?.form_schema;
+    if (!rawSchema) return [];
+    if (Array.isArray(rawSchema)) return rawSchema;
+    if (typeof rawSchema === "object") {
+      return Array.isArray((rawSchema as any).fields) ? (rawSchema as any).fields : [];
     }
-  }, [event?.form_schema]);
+    if (typeof rawSchema === "string") {
+      try {
+        const parsed = JSON.parse(rawSchema);
+        return Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.fields) ? parsed.fields : []);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }, [event?.form_schema, (event as any)?.formSchema]);
 
   const loadTeamData = async () => {
     try {
@@ -82,7 +90,10 @@ export default function TeamWorkspacePage({
       setTeam(teamData);
 
       // 3. Get event details to inspect form_schema
-      const eventId = teamData.event_id || (teamData as any).eventId;
+      if ((teamData as any).event) {
+        setEvent(normalizeEventItem((teamData as any).event));
+      }
+      const eventId = teamData.event_id || (teamData as any).eventId || (teamData as any).event?.id;
       if (eventId) {
         try {
           const eventData = await participantApi.events.get(eventId);

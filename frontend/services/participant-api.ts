@@ -35,11 +35,21 @@ function queryString(params: Record<string, QueryValue> = {}) {
 export function normalizeEventItem(raw: any): EventItem {
   if (!raw || typeof raw !== "object") return raw;
 
+  const rawMax = raw.maxTeamSize ?? raw.max_team_size;
+  const rawMin = raw.minTeamSize ?? raw.min_team_size;
+  const parsedMaxTeam = rawMax !== undefined && rawMax !== null ? Number(rawMax) : undefined;
+  const parsedMinTeam = rawMin !== undefined && rawMin !== null ? Number(rawMin) : undefined;
+
   const isTeam = Boolean(
-    raw.isTeam ?? raw.is_team_event ?? raw.isTeamEvent ?? false,
+    (parsedMaxTeam !== undefined && parsedMaxTeam > 1) ||
+    (parsedMinTeam !== undefined && parsedMinTeam > 1) ||
+    raw.isTeam ||
+    raw.is_team_event ||
+    raw.isTeamEvent ||
+    false
   );
-  const minTeamSize = raw.minTeamSize ?? raw.min_team_size ?? 1;
-  const maxTeamSize = raw.maxTeamSize ?? raw.max_team_size ?? (isTeam ? 4 : 1);
+  const minTeamSize = parsedMinTeam !== undefined ? parsedMinTeam : (isTeam ? 2 : 1);
+  const maxTeamSize = parsedMaxTeam !== undefined ? parsedMaxTeam : (isTeam ? 4 : 1);
   const priceModel = raw.priceModel ?? raw.price_model ?? "FREE";
   const pricePaise = raw.pricePaise ?? raw.price_paise ?? 0;
   const studentPricePaise =

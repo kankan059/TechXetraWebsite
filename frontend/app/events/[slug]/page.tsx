@@ -99,14 +99,22 @@ export default function EventDetailPage({
   const [registrationModalError, setRegistrationModalError] = useState<string | null>(null);
 
   const parsedSchema: FormFieldDefinition[] = useMemo(() => {
-    if (!event?.form_schema) return [];
-    try {
-      const parsed = JSON.parse(event.form_schema);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
+    const rawSchema = (event as any)?.formSchema ?? event?.form_schema;
+    if (!rawSchema) return [];
+    if (Array.isArray(rawSchema)) return rawSchema;
+    if (typeof rawSchema === "object") {
+      return Array.isArray((rawSchema as any).fields) ? (rawSchema as any).fields : [];
     }
-  }, [event?.form_schema]);
+    if (typeof rawSchema === "string") {
+      try {
+        const parsed = JSON.parse(rawSchema);
+        return Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.fields) ? parsed.fields : []);
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  }, [event?.form_schema, (event as any)?.formSchema]);
 
   useEffect(() => {
     async function loadEventData() {
@@ -604,30 +612,54 @@ export default function EventDetailPage({
 
           {/* Call to Action Bar */}
           <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-white/10 pt-6">
-            {event.is_team_event ? (
-              <button
-                type="button"
-                onClick={() => setShowTeamModal(true)}
-                className="group relative inline-flex min-h-[54px] items-center gap-4 overflow-hidden bg-[#55DFFF] px-6 py-4 text-[#09151B] transition-all duration-300 hover:bg-[#8BE9FF] hover:shadow-[0_0_32px_rgba(85,223,255,0.2)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
-                style={{
-                  clipPath:
-                    "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))",
-                  fontFamily: "var(--font-gotham-bold)",
-                }}
-              >
-                <span className="flex h-9 w-9 items-center justify-center border border-[#09151B]/20 bg-[#09151B]/[0.07]">
-                  <Users className="h-4 w-4" />
-                </span>
-                <span className="flex flex-col items-start gap-1">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.14em]">
-                    Create a Team
+            {(event.max_team_size > 1 || event.is_team_event) ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setShowTeamModal(true)}
+                  className="group relative inline-flex min-h-[54px] items-center gap-4 overflow-hidden bg-[#55DFFF] px-6 py-4 text-[#09151B] transition-all duration-300 hover:bg-[#8BE9FF] hover:shadow-[0_0_32px_rgba(85,223,255,0.2)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
+                  style={{
+                    clipPath:
+                      "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))",
+                    fontFamily: "var(--font-gotham-bold)",
+                  }}
+                >
+                  <span className="flex h-9 w-9 items-center justify-center border border-[#09151B]/20 bg-[#09151B]/[0.07]">
+                    <Users className="h-4 w-4" />
                   </span>
-                  <span className="text-[9px] font-medium uppercase tracking-[0.12em] opacity-60">
-                    Build your squad
+                  <span className="flex flex-col items-start gap-1">
+                    <span className="text-[11px] font-bold uppercase tracking-[0.14em]">
+                      Create a Team
+                    </span>
+                    <span className="text-[9px] font-medium uppercase tracking-[0.12em] opacity-60">
+                      Build your squad
+                    </span>
                   </span>
-                </span>
-                <ArrowRight className="ml-3 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1.5" />
-              </button>
+                  <ArrowRight className="ml-3 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1.5" />
+                </button>
+
+                {event.min_team_size === 1 && (
+                  <button
+                    type="button"
+                    onClick={handleSoloRegister}
+                    className="group relative inline-flex min-h-[54px] cursor-pointer items-center gap-3 border border-white/20 bg-white/5 px-6 py-4 text-white transition-all duration-300 hover:border-white/40 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
+                    style={{
+                      clipPath:
+                        "polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 16px 100%, 0 calc(100% - 16px))",
+                      fontFamily: "var(--font-gotham-bold)",
+                    }}
+                  >
+                    <span className="flex flex-col items-start gap-0.5">
+                      <span className="text-[11px] font-bold uppercase tracking-[0.14em]">
+                        Register as Solo
+                      </span>
+                      <span className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/50">
+                        Participate individually
+                      </span>
+                    </span>
+                  </button>
+                )}
+              </>
             ) : (
               <button
                 type="button"
