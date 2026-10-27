@@ -15,11 +15,11 @@
 - Local/root: `http://localhost:<PORT>/events`
 - Versioned: `http://localhost:<PORT>/api/v1/events`
 
-Choose one prefix for the frontend environment and use it consistently. Prefer `/api/v1` for the frontend integration.
+The frontend calls the same-origin `/api/v1` path. `next.config.ts` rewrites it to the backend, so browser requests stay on the frontend origin and session cookies remain first-party. Configure the backend upstream with `BACKEND_API_URL` (preferred), `NEXT_PUBLIC_BACKEND_URL`, or `NEXT_PUBLIC_API_URL` when building/deploying the frontend.
 
 ## Environment variables
 Inspect `src/config/env.ts` and deployment configuration for the exact runtime requirements. The frontend typically needs only:
-- `VITE_API_BASE_URL` (or framework equivalent), e.g. `http://localhost:4000/api/v1`
+- Backend upstream for the Next.js rewrite, e.g. `BACKEND_API_URL=https://api.example.com`
 - Google OAuth client ID only if Google sign-in is enabled in the UI.
 
 Never put database credentials, session secrets, ticket HMAC secrets, or admin seed credentials in frontend environment variables. Anything bundled into frontend code is public.

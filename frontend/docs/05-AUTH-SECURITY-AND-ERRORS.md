@@ -3,6 +3,7 @@
 ## Session model
 - Auth routes create/revoke server-side sessions and set/clear cookies (`src/services/session.service.ts`).
 - Browser requests must include cookies (`credentials: 'include'`).
+- Frontend API calls use the same-origin `/api/v1` Next.js rewrite, which proxies requests to the backend. Keep browser requests on this path instead of calling a separate backend hostname directly; this keeps session cookies first-party in production.
 - Frontend JavaScript should not read or persist the raw session token.
 - On startup, call `GET /auth/session`. This route intentionally returns `authenticated: false` with `user: null` for no valid session.
 - On logout, await the backend response before showing logout as complete.
