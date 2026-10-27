@@ -64,7 +64,6 @@ const About = () => {
         return;
       }
 
-      // Animate heading only when matching elements exist.
       if (titleChars.length) {
         gsap.set(titleChars, {
           autoAlpha: 0,
@@ -157,7 +156,6 @@ const About = () => {
         );
       }
 
-      // Preserve the existing logo animation.
       const logo = logoRef.current;
 
       if (logo) {
@@ -219,10 +217,21 @@ const About = () => {
     <section
       ref={sectionRef}
       id="about"
-      className="relative isolate min-h-[100svh] overflow-hidden px-5 text-white sm:px-8 lg:px-12 xl:px-20"
+      className="relative isolate w-full overflow-hidden px-4 py-16 text-white sm:px-6 sm:py-20 md:px-8 md:py-24 lg:px-12 lg:py-28 xl:px-20"
     >
-      <div className="mx-auto flex min-h-[100svh] w-full max-w-[1440px] flex-col justify-center">
-        <header className="relative z-10 mb-10 sm:mb-12 lg:mb-14">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 overflow-hidden"
+      >
+        <div className="absolute -left-40 top-1/4 h-72 w-72 rounded-full bg-cyan-400/[0.045] blur-[120px] sm:h-96 sm:w-96" />
+
+        <div className="absolute -right-40 bottom-0 h-80 w-80 rounded-full bg-blue-600/[0.06] blur-[130px]" />
+
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:linear-gradient(to_bottom,transparent,black_20%,black_80%,transparent)]" />
+      </div>
+
+      <div className="mx-auto w-full max-w-[1440px]">
+        <header className="relative z-10 mb-10 sm:mb-12 md:mb-14 lg:mb-16">
           <SectionTitle
             title={aboutInfo.title}
             eyebrow={aboutInfo.eyebrow}
@@ -230,42 +239,57 @@ const About = () => {
           />
         </header>
 
-        <div className="relative z-10 grid grid-cols-1 items-center gap-8 sm:gap-10 lg:grid-cols-[1fr_0.9fr] lg:gap-16 xl:gap-24">
+        <div className="relative z-10 grid grid-cols-1 items-center gap-8 sm:gap-10 md:gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-10 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] xl:gap-16 2xl:gap-24">
           <div
             ref={logoRef}
-            className="relative mx-auto h-[300px] w-full max-w-[420px] sm:h-[380px] sm:max-w-[500px] lg:h-[440px] lg:max-w-none xl:h-[500px]"
+            className="relative mx-auto flex h-[260px] w-full max-w-[340px] items-center justify-center sm:h-[340px] sm:max-w-[440px] md:h-[390px] md:max-w-[500px] lg:h-[420px] lg:max-w-none xl:h-[500px]"
           >
-            <LogoTech
-              progressRef={logoProgressRef}
-              opacityRef={logoOpacityRef}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-[12%] rounded-full border border-cyan-300/[0.08]"
             />
+
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-[22%] rounded-full border border-dashed border-blue-300/[0.12]"
+            />
+
+            <div className="relative h-full w-full">
+              <LogoTech
+                progressRef={logoProgressRef}
+                opacityRef={logoOpacityRef}
+              />
+            </div>
           </div>
 
-          <div className="flex min-w-0 flex-col justify-center lg:py-8">
+          <div className="min-w-0 lg:py-4 xl:py-8">
+            <div
+              aria-hidden="true"
+              className="mb-6 h-px w-16 bg-gradient-to-r from-cyan-300 via-blue-400/70 to-transparent sm:mb-8 sm:w-20"
+            />
+
             <TextReveal
               text={aboutInfo.description}
               as="p"
               split="words"
               stagger={0.025}
               duration={0.85}
-              y={28}
-              rotateX={-25}
-              className="w-full max-w-[65ch] font-pixel text-[clamp(1rem,1.1vw+0.65rem,1.5rem)] leading-[1.8] tracking-[0.015em] text-white/80 sm:leading-[1.85] lg:text-[clamp(1.35rem,1.5vw,2rem)] lg:leading-[1.65] xl:text-[clamp(1.5rem,1.6vw,2.1rem)]"
+              y={24}
+              rotateX={-15}
+              className="w-full max-w-[58ch] font-pixel text-[clamp(0.9rem,0.45vw+0.8rem,1.15rem)] leading-[1.9] tracking-[0.005em] text-white/75 sm:text-base sm:leading-[1.95] md:text-[1.05rem] lg:text-[clamp(0.9rem,0.35vw+0.75rem,1.1rem)] lg:leading-[1.9] xl:text-[1.15rem] xl:leading-[1.95]"
             />
 
-            <div className="mt-8 flex flex-wrap items-center gap-3 sm:mt-10">
-              {/* <span className="about-label-line inline-block h-px w-8 shrink-0 bg-cyan-400 sm:w-10" /> */}
-
+            <div className="mt-7 border-t border-white/10 pt-5 sm:mt-9 sm:pt-6 md:mt-10">
               <TextReveal
                 text={aboutInfo.tagline}
-                as="span"
+                as="p"
                 split="chars"
                 stagger={0.025}
                 duration={0.6}
                 y={12}
-                rotateX={-45}
+                rotateX={-30}
                 delay={0.2}
-               className="font-heading text-[clamp(0.7rem,0.8vw+0.45rem,0.95rem)] uppercase leading-relaxed tracking-[0.14em] text-cyan-300/90 sm:tracking-[0.2em]"
+                className="max-w-[52ch] font-heading text-[clamp(0.7rem,0.55vw+0.55rem,0.95rem)] uppercase leading-[1.9] tracking-[0.12em] text-cyan-300/90 sm:tracking-[0.17em] md:text-sm"
               />
             </div>
           </div>
