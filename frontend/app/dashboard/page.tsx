@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type {
@@ -14,6 +15,143 @@ import type {
 import { participantApi } from "@/services/participant-api";
 import { ApiError } from "@/lib/api-client";
 
+const panel =
+  "border border-white/10 bg-[#07111b]/70 shadow-[0_12px_40px_rgba(0,0,0,0.12)]";
+const heading =
+  "font-[var(--font-gotham-bold)] font-semibold tracking-tight text-white";
+const muted = "text-sm leading-6 text-white/60";
+const actionLink =
+  "inline-flex min-h-10 items-center justify-center gap-2 border border-white/15 px-4 py-2 font-sans text-sm font-medium text-white/80 transition hover:border-cyan-300/40 hover:text-cyan-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55DFFF]";
+
+function SectionHeading({
+  eyebrow,
+  title,
+  description,
+  action,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        {eyebrow && (
+          <p className="mb-1.5 font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">
+            {eyebrow}
+          </p>
+        )}
+        <h2 className={`${heading} text-xl sm:text-2xl`}>{title}</h2>
+        {description && <p className={`mt-1.5 ${muted}`}>{description}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
+
+function StatusPill({ children, tone = "neutral" }: { children: ReactNode; tone?: "success" | "warning" | "info" | "neutral" }) {
+  const tones = {
+    success: "border-emerald-300/20 bg-emerald-300/10 text-[#A7F3C0]",
+    warning: "border-amber-300/20 bg-amber-300/10 text-[#FFD49A]",
+    info: "border-cyan-300/20 bg-cyan-300/10 text-cyan-200",
+    neutral: "border-white/10 bg-white/[0.05] text-white/65",
+  };
+  return (
+    <span className={`inline-flex w-fit items-center rounded-full border px-2.5 py-1 font-sans text-[11px] font-medium ${tones[tone]}`}>
+      {children}
+    </span>
+  );
+}
+
+function EmptyState({
+  title,
+  description,
+  href,
+  action,
+}: {
+  title: string;
+  description: string;
+  href?: string;
+  action?: string;
+}) {
+  return (
+    <div className="border border-dashed border-white/10 px-5 py-8 text-center sm:px-8">
+      <div className="mx-auto flex size-10 items-center justify-center border border-cyan-300/20 bg-cyan-300/[0.06] text-cyan-200">
+        <span aria-hidden="true" className="text-lg">↗</span>
+      </div>
+      <h3 className={`${heading} mt-4 text-base`}>{title}</h3>
+      <p className={`mx-auto mt-1.5 max-w-md ${muted}`}>{description}</p>
+      {href && action && (
+        <Link href={href} className="mt-5 inline-flex min-h-10 items-center justify-center bg-[#55DFFF] px-4 py-2 font-sans text-sm font-semibold text-[#041018] transition hover:bg-[#8BEAFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
+          {action} <span aria-hidden="true" className="ml-1">→</span>
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function HowToRegister() {
+  const steps = [
+    {
+      number: "01",
+      title: "Complete your profile",
+      description: "Add your personal and academic details so your registration information is ready.",
+    },
+    {
+      number: "02",
+      title: "Explore the events",
+      description: "Open the events page and choose the event you want to take part in.",
+    },
+    {
+      number: "03",
+      title: "Follow the registration steps",
+      description: "Open the event page and follow the instructions shown there. Some events may have different requirements.",
+    },
+    {
+      number: "04",
+      title: "Check your registration",
+      description: "Visit My Registrations to review the status and details of your event registrations.",
+    },
+    {
+      number: "05",
+      title: "Find your pass when issued",
+      description: "If your event provides a digital pass, open My Digital Passes to view it and its QR code. Follow the event's entry instructions.",
+    },
+  ];
+
+  return (
+    <section id="how-to-register" className={`${panel} p-5 sm:p-7 lg:p-8`}>
+      <SectionHeading
+        eyebrow="New to TechXetra?"
+        title="How to register for an event"
+        description="A simple guide to help you get from your account to your event."
+      />
+      <ol className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+        {steps.map((step, index) => (
+          <li key={step.number} className="relative flex gap-3 border border-white/[0.07] bg-white/[0.02] p-4 sm:p-5">
+            <span className="flex size-9 shrink-0 items-center justify-center border border-cyan-300/25 bg-cyan-300/[0.07] font-sans text-xs font-semibold text-cyan-200">
+              {step.number}
+            </span>
+            <div>
+              <h3 className={`${heading} text-sm`}>{step.title}</h3>
+              <p className="mt-1.5 font-sans text-sm leading-6 text-white/55">{step.description}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div className="mt-6 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row">
+        <Link href="/events" className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#55DFFF] px-5 py-3 font-sans text-sm font-semibold text-[#041018] transition hover:bg-[#8BEAFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
+          Explore events <span aria-hidden="true">→</span>
+        </Link>
+        <Link href="/registrations" className={actionLink}>
+          View my registrations <span aria-hidden="true">→</span>
+        </Link>
+      </div>
+    </section>
+  );
+}
+
 export default function DashboardPage() {
   const router = useRouter();
 
@@ -26,10 +164,10 @@ export default function DashboardPage() {
   const [purchases, setPurchases] = useState<PurchaseDetail[]>([]);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [busyInviteId, setBusyInviteId] = useState<string | null>(null);
 
   const fetchDashboardData = useCallback(async () => {
     try {
-      // 1. Fetch current user
       let currentUser: UserProfile | null = null;
       try {
         currentUser = await participantApi.auth.me();
@@ -42,7 +180,6 @@ export default function DashboardPage() {
         throw err;
       }
 
-      // 2. Fetch data in parallel
       const [ticketsRes, teamsRes, invitesRes, purchasesRes] = await Promise.allSettled([
         participantApi.tickets.myTickets(),
         participantApi.teams.myTeams(),
@@ -54,20 +191,12 @@ export default function DashboardPage() {
         setTickets(ticketsRes.value.tickets || []);
         setPreparingTickets(ticketsRes.value.preparing_tickets || []);
       }
-
-      if (teamsRes.status === "fulfilled" && teamsRes.value) {
-        setTeams(teamsRes.value || []);
-      }
-
-      if (invitesRes.status === "fulfilled" && invitesRes.value) {
-        setInvites(invitesRes.value || []);
-      }
-
-      if (purchasesRes.status === "fulfilled" && purchasesRes.value) {
-        setPurchases(purchasesRes.value || []);
-      }
+      if (teamsRes.status === "fulfilled" && teamsRes.value) setTeams(teamsRes.value || []);
+      if (invitesRes.status === "fulfilled" && invitesRes.value) setInvites(invitesRes.value || []);
+      if (purchasesRes.status === "fulfilled" && purchasesRes.value) setPurchases(purchasesRes.value || []);
     } catch (err) {
       console.error("Dashboard data load error:", err);
+      setActionMessage("Some dashboard information could not be loaded. Please refresh and try again.");
     } finally {
       setLoading(false);
     }
@@ -79,37 +208,44 @@ export default function DashboardPage() {
 
   const handleAcceptInvite = async (memberId: string) => {
     try {
+      setBusyInviteId(memberId);
       setActionMessage(null);
       await participantApi.teams.acceptInvite(memberId);
-      setActionMessage("Team invitation accepted!");
-      void fetchDashboardData();
+      setActionMessage("Invitation accepted. Your team details are being updated.");
+      await fetchDashboardData();
     } catch (err: unknown) {
-      setActionMessage(err instanceof Error ? err.message : "Could not accept invite");
+      setActionMessage(err instanceof Error ? err.message : "Could not accept this invitation. Please try again.");
+    } finally {
+      setBusyInviteId(null);
     }
   };
 
   const handleDeclineInvite = async (memberId: string) => {
     try {
+      setBusyInviteId(memberId);
       setActionMessage(null);
       await participantApi.teams.declineInvite(memberId);
-      setActionMessage("Team invitation declined.");
-      void fetchDashboardData();
+      setActionMessage("Invitation declined.");
+      await fetchDashboardData();
     } catch (err: unknown) {
-      setActionMessage(err instanceof Error ? err.message : "Could not decline invite");
+      setActionMessage(err instanceof Error ? err.message : "Could not decline this invitation. Please try again.");
+    } finally {
+      setBusyInviteId(null);
     }
   };
 
   const handleRetryFulfillment = async (purchaseId: string) => {
     try {
       setRetryingId(purchaseId);
+      setActionMessage(null);
       await participantApi.purchases.retryFulfillment(purchaseId);
-      setActionMessage("Tickets generated successfully!");
-      void fetchDashboardData();
+      setActionMessage("Pass generation was requested successfully.");
+      await fetchDashboardData();
     } catch (err: unknown) {
       setActionMessage(
         err instanceof Error
           ? err.message
-          : "Fulfillment retry requires administrator approval. Please contact support."
+          : "Pass generation could not be completed. Please contact support if this continues."
       );
     } finally {
       setRetryingId(null);
@@ -127,317 +263,212 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <main className="relative z-10 min-h-screen px-4 pt-28 text-white font-heading">
-        <div className="mx-auto max-w-6xl animate-pulse space-y-6">
-          <div className="h-10 w-48 rounded-none bg-white/10" />
-          <div className="h-40 rounded-none bg-white/5" />
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="h-60 rounded-none bg-white/5" />
-            <div className="h-60 rounded-none bg-white/5" />
+      <main className="relative z-10 min-h-screen px-4 pb-16 pt-28 text-white sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl animate-pulse space-y-6" aria-label="Loading dashboard">
+          <div className="h-8 w-44 bg-white/10" />
+          <div className="h-36 border border-white/10 bg-white/[0.03]" />
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="h-44 bg-white/[0.04]" />
+            <div className="h-44 bg-white/[0.04]" />
+            <div className="h-44 bg-white/[0.04]" />
           </div>
+          <p className="font-sans text-sm text-white/45">Loading your dashboard…</p>
         </div>
       </main>
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
+
+  const profileComplete = Boolean(user.profileComplete ?? user.profile_complete);
+  const isStudent = Boolean(user.isStudent ?? user.is_student);
+  const studentFieldsLocked = Boolean(user.studentFieldsLocked ?? user.student_fields_locked);
+  const missingFields = user.missingFields ?? user.missing_fields ?? [];
+
+  const purchaseStatusLabel = (status: string) => {
+    const labels: Record<string, string> = {
+      PAID: "Paid",
+      PENDING_VERIFICATION: "Pending verification",
+      AWAITING_PAYMENT: "Awaiting payment",
+    };
+    return labels[status] ?? status.replaceAll("_", " ").toLowerCase();
+  };
+
+  const purchaseTone = (status: string): "success" | "warning" | "info" | "neutral" => {
+    if (status === "PAID") return "success";
+    if (status === "PENDING_VERIFICATION") return "warning";
+    if (status === "AWAITING_PAYMENT") return "info";
+    return "neutral";
+  };
 
   return (
-    <main className="relative z-10 min-h-screen px-4 pb-20 pt-28 text-white font-pixel sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-6xl space-y-7">
-        {/* Welcome Header */}
-        <div className="flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-center">
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="[font-family:var(--font-gotham-bold)] text-2xl font-normal leading-tight tracking-normal sm:text-3xl">
-                Welcome, {user.name}
-              </h1>
-              <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-0.5 text-xs font-medium text-cyan-300">
-                {user.role}
-              </span>
+    <main className="relative z-10 min-h-screen px-4 pb-16 pt-24 font-sans text-white sm:px-6 sm:pt-28 lg:px-8">
+      <div className="mx-auto max-w-6xl space-y-6 sm:space-y-8">
+        <header className="relative overflow-hidden border border-cyan-300/15 bg-[#07111b]/80 p-5 sm:p-7 lg:p-8">
+          <div aria-hidden="true" className="pointer-events-none absolute -right-12 -top-24 size-64 rounded-full bg-cyan-400/[0.08] blur-[90px]" />
+          <div className="relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-300">Participant dashboard</p>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <h1 className={`${heading} break-words text-2xl sm:text-3xl lg:text-4xl`}>
+                  Welcome, {user.name}
+                </h1>
+                <StatusPill tone="info">{user.role}</StatusPill>
+              </div>
+              <p className="mt-3 break-all text-sm text-white/60">{user.email}</p>
+              <p className="mt-1 break-all font-mono text-xs text-white/35">Account ID: {user.id}</p>
             </div>
-            <p className="mt-1 text-sm text-white/50">{user.email}</p>
-            <p className="mt-1 text-sm text-white/50">{user.id}</p>
+            <div className="flex flex-wrap gap-3">
+              <Link href="/events" className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#55DFFF] px-5 py-2.5 font-sans text-sm font-semibold text-[#041018] transition hover:bg-[#8BEAFF] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
+                Browse events <span aria-hidden="true">→</span>
+              </Link>
+              <button type="button" onClick={handleLogout} className="inline-flex min-h-11 items-center justify-center border border-white/15 px-4 py-2.5 font-sans text-sm text-white/75 transition hover:border-red-300/40 hover:bg-red-300/[0.06] hover:text-red-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">
+                Sign out
+              </button>
+            </div>
           </div>
+        </header>
 
-          <div className="flex items-center gap-3 ">
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="inline-flex items-center gap-2 font-sans rounded-none border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white/80 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55DFFF] cursor-pointer hover:border-red-400/40 hover:bg-red-400/10 hover:text-red-300"
+        <aside
+          aria-label="Registration guide notice"
+          className="relative overflow-hidden border border-amber-300/25 bg-amber-300/[0.06] p-4 sm:flex sm:items-center sm:justify-between sm:gap-6 sm:p-5"
+        >
+          <div className="flex items-start gap-3">
+            <span
+              aria-hidden="true"
+              className="flex size-9 shrink-0 items-center justify-center border border-amber-300/25 bg-amber-300/[0.08] text-lg text-amber-200"
             >
-
-              Sign out
-            </button>
+              !
+            </span>
+            <div>
+              <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-200">
+                New to TechXetra?
+              </p>
+              <h2 className={`${heading} mt-1 text-base`}>
+                Need help registering for an event?
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-white/65">
+                A step-by-step guide is available near the bottom of this dashboard.
+                Scroll down or jump straight to the guide.
+              </p>
+            </div>
           </div>
-        </div>
+          <a
+            href="#how-to-register"
+            className="mt-4 inline-flex min-h-10 shrink-0 items-center justify-center gap-2 border border-amber-200/30 px-4 py-2 font-sans text-sm font-semibold text-amber-100 transition hover:bg-amber-200/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 sm:mt-0"
+          >
+            How to register <span aria-hidden="true">↓</span>
+          </a>
+        </aside>
 
-        {/* Action alert toast/banner */}
         {actionMessage && (
-          <div className="flex items-center justify-between rounded-none border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm text-cyan-200">
-            <span>{actionMessage}</span>
-            <button
-              type="button"
-              onClick={() => setActionMessage(null)}
-              className="text-xs text-white/60 hover:text-white"
-            >
-              Dismiss
-            </button>
+          <div role="status" aria-live="polite" className="flex items-start justify-between gap-4 border border-cyan-300/20 bg-cyan-300/[0.07] p-4 text-sm text-cyan-100">
+            <p>{actionMessage}</p>
+            <button type="button" onClick={() => setActionMessage(null)} aria-label="Dismiss message" className="shrink-0 px-2 text-white/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">Dismiss</button>
           </div>
         )}
 
-        {/* Profile Incomplete Banner */}
-        {!(user.profileComplete ?? user.profile_complete) && (
-          <div className="flex flex-col items-start justify-between gap-4 rounded-none border border-amber-400/30 bg-amber-400/10 p-5 sm:flex-row sm:items-center">
-            <div className="flex items-start gap-3">
-
-              <div>
-                <p className="font-medium text-[#FFCA8A]">Profile incomplete</p>
-                <p className="mt-0.5 text-xs text-[#FFCA8A]/80">
-                  Please complete your profile to register for events or purchase passes.
-                  {(user.missingFields ?? user.missing_fields ?? []).length > 0 &&
-                    ` Missing: ${(user.missingFields ?? user.missing_fields ?? []).join(", ")}`}
-                </p>
-              </div>
+        {!profileComplete && (
+          <section className="flex flex-col gap-4 border border-amber-300/25 bg-amber-300/[0.06] p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div>
+              <StatusPill tone="warning">Action needed</StatusPill>
+              <h2 className={`${heading} mt-3 text-lg`}>Complete your profile to get started</h2>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-white/65">
+                Add your required details before registering for events or purchasing passes.
+                {missingFields.length > 0 && (
+                  <span className="mt-1 block text-amber-100/80">
+                    Still needed: {missingFields.join(", ")}
+                  </span>
+                )}
+              </p>
             </div>
-            <Link
-              href="/profile-completion"
-              className="inline-flex shrink-0 items-center gap-2 rounded-none bg-amber-400 px-4 py-2 text-xs font-semibold text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55DFFF] cursor-pointer hover:bg-amber-300"
-            >
-              Complete Profile
-
+            <Link href="/profile-completion" className="inline-flex min-h-11 shrink-0 items-center justify-center bg-amber-300 px-5 py-2.5 font-sans text-sm font-semibold text-[#171006] transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200">
+              Complete profile <span aria-hidden="true" className="ml-2">→</span>
             </Link>
-          </div>
+          </section>
         )}
 
-        {/* Profile Card & Stats Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {/* User info card */}
-          <div className="border border-[#55DFFF]/25 bg-transparent p-5 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
-            <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-
-              <div>
-                <p className="font-[var(--font-gotham-bold)] font-semibold text-white">Profile Details</p>
-                <p className="text-xs text-white/50">Personal & Academic info</p>
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-3 text-xs">
-              <div className="flex justify-between">
-                <span className="text-white/40">Phone</span>
-                <span className="text-white/80">{user.phone ? `+91 ${user.phone}` : "Not set"}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-white/40">Student Status</span>
-                <span className="text-white/80">{(user.isStudent ?? user.is_student) ? "Yes" : "General Attendee"}</span>
-              </div>
-              {(user.isStudent ?? user.is_student) && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-white/40">Institution</span>
-                    <span className="max-w-[150px] truncate text-right text-white/80">
-                      {user.institutionName ?? user.institution_name ?? "—"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-white/40">Student ID</span>
-                    <span className="text-white/80">{user.institutionId ?? user.institution_id ?? "—"}</span>
-                  </div>
-                </>
-              )}
-              {(user.studentFieldsLocked ?? user.student_fields_locked) && (
-                <div className="mt-2 flex items-center gap-2 rounded-none bg-[#8FE388]/10 p-2 text-[11px] text-[#8FE388]">
-
-                  <span>Student ID verified & locked</span>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-5 pt-3">
-              <Link
-                href="/profile-completion"
-                className="text-xs font-medium text-cyan-300 hover:text-cyan-200"
-              >
-                Edit details →
-              </Link>
-            </div>
+        <section aria-label="Dashboard overview" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className={`${panel} p-5`}>
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-white/45">Profile</p>
+            <p className={`${heading} mt-3 text-xl`}>{profileComplete ? "Complete" : "Incomplete"}</p>
+            <div className="mt-3"><StatusPill tone={profileComplete ? "success" : "warning"}>{profileComplete ? "Ready to continue" : "Finish setup"}</StatusPill></div>
+            <Link href="/profile-completion" className="mt-4 inline-flex text-sm font-medium text-cyan-300 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">View profile →</Link>
           </div>
-
-          {/* Quick pass summary */}
-          <div className="border border-[#55DFFF]/25 bg-transparent p-5 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
-            <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-
-              <div>
-                <p className="font-[var(--font-gotham-bold)] font-semibold text-white">Digital Passes</p>
-                <p className="text-xs text-white/50">{tickets.length} Active Tickets</p>
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-2">
-              {tickets.length > 0 ? (
-                tickets.slice(0, 3).map((tkt) => (
-                  <div
-                    key={tkt.id}
-                    className="flex items-center justify-between rounded-none border border-white/5 bg-transparent p-2.5 text-xs"
-                  >
-                    <div>
-                      <p className="font-medium text-white">{tkt.ticket_type}</p>
-                      <p className="text-[10px] text-white/40">Tier: {tkt.tier}</p>
-                    </div>
-                    <span className="rounded-full bg-[#8FE388]/10 px-2 py-0.5 text-[10px] font-medium text-[#8FE388]">
-                      VALID
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="py-6 text-center text-xs text-white/40">No passes purchased yet.</p>
-              )}
-            </div>
-
-            <div className="mt-4 flex items-center justify-between pt-3">
-              <Link href="/me/tickets" className="text-xs font-semibold text-cyan-300 hover:text-cyan-200">
-                View passes & QR →
-              </Link>
-              <Link href="/registrations" className="text-xs text-[#55DFFF] hover:text-purple-200">
-                Registrations →
-              </Link>
-            </div>
+          <div className={`${panel} p-5`}>
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-white/45">Digital passes</p>
+            <p className={`${heading} mt-3 text-3xl tabular-nums`}>{tickets.length}</p>
+            <p className="mt-1 text-sm text-white/50">Passes currently available</p>
+            <Link href="/me/tickets" className="mt-4 inline-flex text-sm font-medium text-cyan-300 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">View passes →</Link>
           </div>
-
-          {/* Teams summary */}
-          <div className="border border-[#55DFFF]/25 bg-transparent p-5 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
-            <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-
-              <div>
-                <p className="font-[var(--font-gotham-bold)] font-semibold text-white">Teams & Invites</p>
-                <p className="text-xs text-white/50">
-                  {teams.length} Teams · {invites.length} Pending Invites
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-2">
-              {invites.length > 0 && (
-                <div className="rounded-none border border-amber-400/20 bg-amber-400/10 p-2.5 text-xs">
-                  <p className="font-medium text-[#FFCA8A]">{invites.length} pending invite(s)</p>
-                  <p className="mt-0.5 text-[10px] text-[#FFCA8A]/70">
-                    Respond below to join team rosters
-                  </p>
-                </div>
-              )}
-
-              {teams.length > 0 ? (
-                teams.slice(0, 3).map((tm) => (
-                  <div
-                    key={tm.id}
-                    className="flex items-center justify-between rounded-none border border-white/5 bg-transparent p-2.5 text-xs"
-                  >
-                    <div>
-                      <p className="font-medium text-white">{tm.name}</p>
-                      <p className="text-[10px] text-white/40">
-                        {tm.leader_id === user.id ? "Leader" : "Member"} · {tm.status}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="py-4 text-center text-xs text-white/40">You are not part of any team yet.</p>
-              )}
-            </div>
-
-            <div className="mt-4 flex items-center justify-between pt-3">
-              <Link href="/teams" className="text-xs font-semibold text-[#55DFFF] hover:text-sky-200">
-                Manage all teams →
-              </Link>
-              <Link href="/me/team-invites" className="text-xs font-medium text-[#FFB86B] hover:text-[#FFCA8A]">
-                Invitations inbox ({invites.length}) →
-              </Link>
-            </div>
+          <div className={`${panel} p-5`}>
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-white/45">My teams</p>
+            <p className={`${heading} mt-3 text-3xl tabular-nums`}>{teams.length}</p>
+            <p className="mt-1 text-sm text-white/50">{invites.length} pending invitation{invites.length === 1 ? "" : "s"}</p>
+            <Link href="/teams" className="mt-4 inline-flex text-sm font-medium text-cyan-300 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">Manage teams →</Link>
           </div>
-        </div>
+          <div className={`${panel} p-5`}>
+            <p className="text-xs font-medium uppercase tracking-[0.12em] text-white/45">Orders</p>
+            <p className={`${heading} mt-3 text-3xl tabular-nums`}>{purchases.length}</p>
+            <p className="mt-1 text-sm text-white/50">Orders in your account</p>
+            <a href="#order-history" className="mt-4 inline-flex text-sm font-medium text-cyan-300 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">View history ↓</a>
+          </div>
+        </section>
 
-        {/* Pending Team Invitations Section */}
+        <section className={`${panel} p-5 sm:p-6`}>
+          <SectionHeading eyebrow="Your account" title="Profile details" description="Review the information connected to your TechXetra account." action={<Link href="/profile-completion" className={actionLink}>Edit profile →</Link>} />
+          <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div><dt className="text-xs text-white/45">Phone number</dt><dd className="mt-1.5 break-words text-sm text-white/85">{user.phone ? `+91 ${user.phone}` : "Not added yet"}</dd></div>
+            <div><dt className="text-xs text-white/45">Attendee type</dt><dd className="mt-1.5 text-sm text-white/85">{isStudent ? "Student" : "General attendee"}</dd></div>
+            {isStudent && <div><dt className="text-xs text-white/45">Institution</dt><dd className="mt-1.5 break-words text-sm text-white/85">{user.institutionName ?? user.institution_name ?? "Not added yet"}</dd></div>}
+            {isStudent && <div><dt className="text-xs text-white/45">Student ID</dt><dd className="mt-1.5 break-words text-sm text-white/85">{user.institutionId ?? user.institution_id ?? "Not added yet"}</dd></div>}
+            {studentFieldsLocked && <div className="sm:col-span-2 lg:col-span-3"><StatusPill tone="success">Student ID verified and locked</StatusPill></div>}
+          </dl>
+        </section>
+
         {invites.length > 0 && (
-          <section className="border border-[#55DFFF]/25 bg-transparent p-6 [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
-            <div className="mb-4 flex items-center gap-2">
-
-              <h2 className="font-[var(--font-gotham-bold)] text-lg font-semibold text-white">Pending Team Invitations</h2>
-            </div>
-
+          <section className={`${panel} p-5 sm:p-6`}>
+            <SectionHeading eyebrow="Team updates" title="Pending invitations" description="Accept an invitation to join a team, or decline if it isn't for you." />
             <div className="space-y-3">
               {invites.map((invite) => (
-                <div
-                  key={invite.id}
-                  className="flex flex-col justify-between gap-4 rounded-none border border-white/10 bg-transparent p-4 sm:flex-row sm:items-center"
-                >
-                  <div>
-                    <p className="font-medium text-white">
-                      {(invite as any).team_name
-                        ? `Invitation to join ${(invite as any).team_name}`
-                        : "Team Invitation"}
-                    </p>
-                    <p className="text-xs text-white/50">
-                      {(invite as any).event_title && (
-                        <span className="text-cyan-300">{(invite as any).event_title} · </span>
-                      )}
-                      Sent to: {invite.invited_email} · Invited {new Date(invite.invited_at).toLocaleDateString()}
+                <div key={invite.id} className="flex flex-col gap-4 border border-amber-300/15 bg-amber-300/[0.025] p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <h3 className={`${heading} text-sm`}>
+                      {(invite as any).team_name ? `Invitation to join ${(invite as any).team_name}` : "Team invitation"}
+                    </h3>
+                    <p className="mt-1.5 break-words text-sm text-white/55">
+                      {(invite as any).event_title && <span className="text-cyan-200">{(invite as any).event_title} · </span>}
+                      Sent to {invite.invited_email} · {new Date(invite.invited_at).toLocaleDateString()}
                     </p>
                   </div>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleAcceptInvite(invite.id)}
-                      className="rounded-none bg-[#55DFFF] px-3 py-1.5 text-xs font-medium text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55DFFF] cursor-pointer hover:bg-[#8BEAFF]"
-                    >
-                      Accept
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <button type="button" disabled={busyInviteId === invite.id} onClick={() => handleAcceptInvite(invite.id)} className="inline-flex min-h-10 items-center justify-center bg-[#55DFFF] px-4 py-2 text-sm font-semibold text-[#041018] transition hover:bg-[#8BEAFF] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
+                      {busyInviteId === invite.id ? "Please wait…" : "Accept invite"}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeclineInvite(invite.id)}
-                      className="rounded-none border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs text-white/70 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55DFFF] cursor-pointer hover:bg-white/10 hover:text-white"
-                    >
+                    <button type="button" disabled={busyInviteId === invite.id} onClick={() => handleDeclineInvite(invite.id)} className="inline-flex min-h-10 items-center justify-center border border-white/15 px-4 py-2 text-sm text-white/75 transition hover:border-white/30 hover:text-white disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
                       Decline
                     </button>
                   </div>
                 </div>
               ))}
             </div>
+            <div className="mt-4"><Link href="/me/team-invites" className="text-sm font-medium text-cyan-300 hover:text-cyan-100">View all invitations →</Link></div>
           </section>
         )}
 
-        {/* Preparing Tickets (Retry banner) */}
         {preparingTickets.length > 0 && (
-          <section className="border border-[#55DFFF]/30 bg-transparent p-6 [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-
-                <h2 className="font-[var(--font-gotham-bold)] text-lg font-semibold text-white">Preparing Passes</h2>
-              </div>
-            </div>
-
+          <section className={`${panel} p-5 sm:p-6`}>
+            <SectionHeading eyebrow="Order updates" title="Passes being prepared" description="Some passes may need a little time before they become available." />
             <div className="space-y-3">
               {preparingTickets.map((prep) => (
-                <div
-                  key={prep.purchase_id}
-                  className="flex flex-col justify-between gap-4 rounded-none border border-white/10 bg-transparent p-4 sm:flex-row sm:items-center"
-                >
-                  <div>
-                    <p className="font-medium text-white">Order {prep.purchase_id}</p>
-                    <p className="text-xs text-white/60">{prep.message}</p>
+                <div key={prep.purchase_id} className="flex flex-col gap-3 border border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className={`${heading} break-words text-sm`}>Order {prep.purchase_id}</p>
+                    <p className="mt-1 text-sm leading-6 text-white/55">{prep.message}</p>
                   </div>
-
                   {prep.can_retry && (
-                    <button
-                      type="button"
-                      disabled={retryingId === prep.purchase_id}
-                      onClick={() => handleRetryFulfillment(prep.purchase_id)}
-                      className="inline-flex items-center gap-2 rounded-none bg-[#55DFFF] px-4 py-2 text-xs font-semibold text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55DFFF] cursor-pointer hover:bg-[#8BEAFF] disabled:opacity-50"
-                    >
-
-                      Generate Passes Now
+                    <button type="button" disabled={retryingId === prep.purchase_id} onClick={() => handleRetryFulfillment(prep.purchase_id)} className="inline-flex min-h-10 shrink-0 items-center justify-center bg-[#55DFFF] px-4 py-2 text-sm font-semibold text-[#041018] transition hover:bg-[#8BEAFF] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200">
+                      {retryingId === prep.purchase_id ? "Requesting…" : "Try generating passes"}
                     </button>
                   )}
                 </div>
@@ -446,133 +477,93 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {/* Digital Tickets Section */}
-        <section className="border border-[#55DFFF]/25 bg-transparent p-6 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-
-              <h2 className="font-[var(--font-gotham-bold)] text-xl font-semibold text-white">My Digital Passes</h2>
-            </div>
-            <Link
-              href="/me/tickets"
-              className="inline-flex items-center gap-1.5 rounded-none border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-cyan-300 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55DFFF] cursor-pointer hover:bg-cyan-300 hover:text-black"
-            >
-              Full Pass View & QR Codes →
-            </Link>
-          </div>
-
+        <section className={`${panel} p-5 sm:p-6`}>
+          <SectionHeading eyebrow="Entry to TechXetra" title="My digital passes" description="Your available passes and entry information will appear here." action={<Link href="/me/tickets" className={actionLink}>Full pass view →</Link>} />
           {tickets.length === 0 ? (
-            <div className="rounded-none border border-dashed border-white/10 py-12 text-center">
-
-              <p className="mt-3 text-sm text-white/50">You don’t have any active digital passes.</p>
-              <Link
-                href="/events"
-                className="mt-4 inline-flex items-center gap-2 rounded-none bg-cyan-300 px-4 py-2 text-xs font-semibold text-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#55DFFF] cursor-pointer hover:bg-cyan-200"
-              >
-                Browse Events & Passes
-              </Link>
-            </div>
+            <EmptyState title="No digital passes yet" description="Once a pass is issued to your account, you can find it here. You can explore events to see what's available." href="/events" action="Explore events" />
           ) : (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {tickets.map((tkt) => (
-                <div
-                  key={tkt.id}
-                  className="relative overflow-hidden border border-[#55DFFF]/35 bg-transparent p-5 [clip-path:polygon(0_0,calc(100%_-_22px)_0,100%_22px,100%_100%,22px_100%,0_calc(100%_-_22px))]"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <span className="rounded-full bg-cyan-400/10 px-2.5 py-1 text-[10px] font-semibold tracking-wider text-cyan-300">
-                        {tkt.ticket_type}
-                      </span>
-                      <h3 className="font-[var(--font-gotham-bold)] mt-2 text-lg font-bold text-white">
-                        {tkt.event?.title || "TechXetra Gate Pass"}
-                      </h3>
-                      <p className="text-xs text-white/50">Ticket ID: {tkt.id}</p>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {tickets.map((ticket) => (
+                <article key={ticket.id} className="relative overflow-hidden border border-cyan-300/20 bg-gradient-to-br from-cyan-300/[0.05] to-transparent p-5">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <StatusPill tone="info">{ticket.ticket_type}</StatusPill>
+                      <h3 className={`${heading} mt-3 break-words text-lg`}>{ticket.event?.title || "TechXetra Gate Pass"}</h3>
+                      <p className="mt-1 break-all font-mono text-xs text-white/40">Ticket ID: {ticket.id}</p>
+                      <p className="mt-2 text-xs text-white/55">Pass type: {ticket.tier}</p>
                     </div>
-
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${tkt.validity.state === "VALID"
-                          ? "bg-[#8FE388]/10 text-[#8FE388]"
-                          : "bg-amber-400/10 text-[#FFB86B]"
-                        }`}
-                    >
-                      {tkt.validity.state}
-                    </span>
+                    <StatusPill tone={ticket.validity.state === "VALID" ? "success" : "warning"}>
+                      {ticket.validity.state === "VALID" ? "Valid" : ticket.validity.state.replaceAll("_", " ")}
+                    </StatusPill>
                   </div>
-
-                  {/* Student ID alert for student tier passes */}
-                  {tkt.tier === "STUDENT" && (
-                    <div className="mt-4 flex items-start gap-2 rounded-none border border-amber-400/20 bg-amber-400/[0.07] p-2.5 text-xs text-[#FFCA8A]">
-
-                      <span>{tkt.student_id_warning || "Physical college ID required at check-in."}</span>
+                  {ticket.tier === "STUDENT" && (
+                    <div className="mt-4 border border-amber-300/15 bg-amber-300/[0.05] p-3 text-sm leading-6 text-amber-100/85">
+                      {ticket.student_id_warning || "Please bring your physical college ID for check-in."}
                     </div>
                   )}
-
-                  {/* Tamper-proof QR Token Display */}
-                  <div className="mt-5 rounded-none border border-white/10 bg-transparent p-4">
-                    <p className="text-[11px] font-medium uppercase tracking-wider text-white/40">
-                      Signed QR Entry Token
+                  <div className="mt-5 border-t border-white/10 pt-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/40">QR entry token</p>
+                    <p className="mt-2 break-all font-mono text-xs leading-5 text-cyan-100/85">{ticket.qr_token}</p>
+                    <p className="mt-3 text-xs leading-5 text-white/45">
+                      Valid from {new Date(ticket.validity.valid_from).toLocaleDateString()} to {new Date(ticket.validity.valid_to).toLocaleDateString()}
                     </p>
-                    <p className="mt-1 break-all font-mono text-xs text-cyan-200">
-                      {tkt.qr_token}
-                    </p>
-                    <p className="mt-2 text-[10px] text-white/30">
-                      Valid from {new Date(tkt.validity.valid_from).toLocaleDateString()} to{" "}
-                      {new Date(tkt.validity.valid_to).toLocaleDateString()}
-                    </p>
+                    <Link href="/me/tickets" className="mt-4 inline-flex text-sm font-medium text-cyan-300 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">Open pass and QR code →</Link>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           )}
         </section>
 
-        {/* Recent Purchases Section */}
-        <section className="border border-[#55DFFF]/25 bg-transparent p-6 shadow-[0_0_24px_rgba(85,223,255,0.035)] [clip-path:polygon(0_0,calc(100%_-_18px)_0,100%_18px,100%_100%,18px_100%,0_calc(100%_-_18px))]">
-          <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-
-              <h2 className="font-[var(--font-gotham-bold)] text-xl font-semibold text-white">Order & Payment History</h2>
+        <section className={`${panel} p-5 sm:p-6`}>
+          <SectionHeading eyebrow="Your groups" title="Teams and memberships" description="See the teams you're part of and manage team activity." action={<Link href="/teams" className={actionLink}>Manage teams →</Link>} />
+          {teams.length === 0 ? (
+            <EmptyState title="You're not part of a team yet" description="If an event supports teams, you can join one through an invitation or the team options available for that event." href="/teams" action="Explore teams" />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {teams.map((team) => (
+                <article key={team.id} className="border border-white/10 bg-white/[0.02] p-4">
+                  <h3 className={`${heading} break-words text-base`}>{team.name}</h3>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <StatusPill tone={team.leader_id === user.id ? "info" : "neutral"}>{team.leader_id === user.id ? "Team leader" : "Team member"}</StatusPill>
+                    <StatusPill>{team.status}</StatusPill>
+                  </div>
+                </article>
+              ))}
             </div>
-          </div>
+          )}
+          <div className="mt-4"><Link href="/me/team-invites" className="text-sm font-medium text-cyan-300 hover:text-cyan-100">Open invitation inbox ({invites.length}) →</Link></div>
+        </section>
 
+        <section id="order-history" className={`${panel} scroll-mt-24 p-5 sm:p-6`}>
+          <SectionHeading eyebrow="Payments and orders" title="Order history" description="Check the status, date and amount of your orders." />
           {purchases.length === 0 ? (
-            <p className="py-6 text-center text-xs text-white/40">No orders recorded yet.</p>
+            <EmptyState title="No orders yet" description="When you make an order, its details and current status will appear here." href="/events" action="Browse events" />
           ) : (
-            <div className="divide-y divide-white/5">
-              {purchases.map((p) => (
-                <div key={p.id} className="flex flex-col justify-between gap-3 py-4 sm:flex-row sm:items-center">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-white">Order {p.id}</p>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${p.status === "PAID"
-                            ? "bg-[#8FE388]/10 text-[#8FE388]"
-                            : p.status === "PENDING_VERIFICATION"
-                              ? "bg-amber-400/10 text-[#FFB86B]"
-                              : p.status === "AWAITING_PAYMENT"
-                                ? "bg-[#55DFFF]/10 text-[#55DFFF]"
-                                : "bg-white/10 text-white/50"
-                          }`}
-                      >
-                        {p.status}
-                      </span>
-                    </div>
-                    <p className="text-xs text-white/50">
-                      {new Date(p.created_at).toLocaleDateString()} · ₹{(p.total_amount_paise / 100).toFixed(2)}
-                    </p>
+            <div className="divide-y divide-white/[0.07]">
+              {purchases.map((purchase) => (
+                <div key={purchase.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className={`${heading} break-words text-sm`}>Order {purchase.id}</p>
+                    <p className="mt-1 text-sm text-white/50">{new Date(purchase.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</p>
+                    {purchase.status === "AWAITING_PAYMENT" && <p className="mt-1 text-xs text-cyan-200">Your reservation is active while payment is pending.</p>}
                   </div>
-
-                  {p.status === "AWAITING_PAYMENT" && (
-                    <span className="text-xs text-cyan-300">
-                      Reservation active
-                    </span>
-                  )}
+                  <div className="flex items-center justify-between gap-4 sm:justify-end">
+                    <p className={`${heading} text-base tabular-nums`}>₹{(purchase.total_amount_paise / 100).toFixed(2)}</p>
+                    <StatusPill tone={purchaseTone(purchase.status)}>{purchaseStatusLabel(purchase.status)}</StatusPill>
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </section>
+
+        <HowToRegister />
+
+        <footer className="flex flex-col gap-2 border-t border-white/10 pt-5 text-xs leading-5 text-white/40 sm:flex-row sm:items-center sm:justify-between">
+          <p>Need a hand? Review the event instructions or contact the TechXetra team.</p>
+          <Link href="/events" className="font-medium text-cyan-300 hover:text-cyan-100">Back to events →</Link>
+        </footer>
       </div>
     </main>
   );

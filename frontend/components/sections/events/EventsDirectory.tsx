@@ -244,7 +244,7 @@ export default function EventsDirectory() {
     >
       <div className="mx-auto max-w-[1280px]">
         {/* Gate pass */}
-        {catalog && (
+        {/* {catalog && (
           <section className="mb-14 border border-white/10 bg-[#101F26] p-5 sm:p-8 lg:p-9">
             <div className="flex flex-col justify-between gap-7 lg:flex-row lg:items-end">
               <div className="max-w-3xl">
@@ -314,7 +314,7 @@ export default function EventsDirectory() {
               </div>
             </div>
           </section>
-        )}
+        )} */}
 
         {/* Heading */}
         <header className="mb-9 border-b border-white/15 pb-8 sm:mb-12 sm:pb-10">
