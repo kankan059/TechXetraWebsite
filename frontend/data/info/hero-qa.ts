@@ -11,7 +11,7 @@ export const heroQuestions: HeroQuestion[] = [
     id: "what-is-techxetra",
     question: "What is TechXetra?",
     answer:
-      "TechXetra is a college festival celebrating technology, creativity, competition and culture.",
+      "TechXetra is the annual techno-cultural fest organized by the School of Engineering, Tezpur University. Held since 2008, it celebrates technology, creativity, competition and culture through technical events, interactive events and recreational events.",
     category: "ABOUT",
     order: 1,
   },
@@ -19,7 +19,7 @@ export const heroQuestions: HeroQuestion[] = [
     id: "who-can-participate",
     question: "Who can participate?",
     answer:
-      "Eligibility details will be announced soon. Check each event page for its latest participation requirements.",
+      "TechXetra is open to students from Tezpur University as well as students from other institutions. Eligibility and team size may vary by event, so please check the event's page for details.",
     category: "ENTRY",
     order: 2,
   },
@@ -27,31 +27,31 @@ export const heroQuestions: HeroQuestion[] = [
     id: "how-to-register",
     question: "How do I register?",
     answer:
-      "Explore the events directory, choose an event and follow its registration flow. Registration requirements may vary by event.",
+      "Go to the Events directory, find the event you want to join and follow its registration process. Registration requirements may vary by event.",
     category: "START",
     order: 3,
   },
   {
-    id: "what-events-are-available",
+    id: "what-events-can-i-join",
     question: "What events can I join?",
     answer:
-      "The festival includes technical challenges, cultural contests, gaming, sports, workshops and other experiences.",
-    category: "DISCOVER",
-    order: 4,
-  },
-  {
-    id: "where-is-the-event",
-    question: "Where will it take place?",
-    answer:
-      "Venue and schedule details will be announced soon. Event pages will carry the latest confirmed information.",
+      "You can join any event. Please check each event's eligibility criteria before registering. Visit the Events directory for event details; more events will be announced soon.",
     category: "DETAILS",
     order: 5,
   },
   {
-    id: "is-there-a-fee",
+    id: "where-will-it-take-place",
+    question: "Where will it take place?",
+    answer:
+      "TechXetra will be held at Tezpur University. The exact venue within the university will be announced soon.",
+    category: "COST",
+    order: 6,
+  },
+  {
+    id: "is-there-a-registration-fee",
     question: "Is there a registration fee?",
     answer:
-      "Fees depend on the event. Pricing and any applicable pass requirements will be shown on the relevant event page.",
+      "Registration fees are charged according to the event you register for. The exact fee is shown on the event's registration page.",
     category: "COST",
     order: 6,
   },
