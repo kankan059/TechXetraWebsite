@@ -1133,7 +1133,7 @@ export default function EventDetailPage({
 
         {/* Create Team Modal */}
         {showTeamModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 p-4 backdrop-blur-md">
             <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0c121d] p-6 shadow-2xl">
               <h3 className="text-xl font-bold text-white">Create Team for {event.title}</h3>
               <p className="mt-2 text-xs text-white/60">

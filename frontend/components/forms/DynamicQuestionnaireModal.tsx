@@ -62,7 +62,13 @@ export default function DynamicQuestionnaireModal({
         newErrors[field.id] = `${field.label} is required.`;
         continue;
       }
-      if (val && field.type === "longText") {
+      const isUrlField =
+        (field.type as string) === "url" ||
+        field.id.toLowerCase().includes("url") ||
+        field.label.toLowerCase().includes("url") ||
+        field.label.toLowerCase().includes("link");
+
+      if (val && isUrlField) {
         try {
           new URL(String(val));
         } catch {
@@ -88,26 +94,26 @@ export default function DynamicQuestionnaireModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 md:p-8">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity"
         onClick={isSubmitting ? undefined : onClose}
       />
 
       {/* Modal Dialog */}
-      <div className="relative w-full max-w-lg rounded-3xl border border-white/10 bg-[#0C1017] p-6 shadow-2xl transition-all sm:p-8 max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-start justify-between border-b border-white/10 pb-4">
+      <div className="relative z-10 flex max-h-[85vh] w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-[#0C1017] shadow-[0_24px_70px_rgba(0,0,0,0.85)] transition-all sm:max-h-[88vh]">
+        {/* Header - Fixed at top */}
+        <div className="flex shrink-0 items-start justify-between border-b border-white/10 px-6 py-5 sm:px-7">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-300">
               <ClipboardList className="h-5 w-5" />
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">
                 Registration Questionnaire
               </h2>
-              <p className="text-xs text-white/60 truncate max-w-[280px] sm:max-w-xs">
+              <p className="text-xs text-white/60 truncate max-w-[260px] sm:max-w-xs">
                 {eventTitle}
               </p>
             </div>
@@ -122,11 +128,10 @@ export default function DynamicQuestionnaireModal({
           </button>
         </div>
 
-        {/* Info text & Error banner */}
-        <div className="pt-4">
+        {/* Info text & External Error banner */}
+        <div className="shrink-0 px-6 pt-4 pb-2 sm:px-7">
           <p className="text-xs text-white/60">
-            Please answer the required questions below to complete your
-            registration for this event.
+            Please answer the required questions below to complete your registration for this event.
           </p>
 
           {externalError && (
@@ -138,7 +143,11 @@ export default function DynamicQuestionnaireModal({
         </div>
 
         {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="mt-4 flex-1 overflow-y-auto pr-1 space-y-4">
+        <form
+          id="dynamic-questionnaire-form"
+          onSubmit={handleSubmit}
+          className="flex-1 min-h-0 overflow-y-auto px-6 py-3 sm:px-7 space-y-4"
+        >
           {formSchema.map((field) => (
             <FormFieldRenderer
               key={field.id}
@@ -149,33 +158,34 @@ export default function DynamicQuestionnaireModal({
               disabled={isSubmitting}
             />
           ))}
-
-          {/* Footer actions inside form */}
-          <div className="sticky bottom-0 pt-4 pb-1 border-t border-white/10 bg-[#0C1017] flex items-center justify-end gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting}
-              className="rounded-xl border border-white/10 px-4 py-2.5 text-xs font-semibold text-white/70 transition hover:bg-white/[0.04] hover:text-white disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center gap-2 rounded-xl bg-cyan-300 px-5 py-2.5 text-xs font-bold text-black transition hover:bg-cyan-200 disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving & Proceeding...
-                </>
-              ) : (
-                submitLabel || "Continue to Checkout"
-              )}
-            </button>
-          </div>
         </form>
+
+        {/* Footer Actions - Pinned at bottom */}
+        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-white/10 bg-[#090D13] px-6 py-4 sm:px-7">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSubmitting}
+            className="rounded-xl border border-white/10 px-4 py-2.5 text-xs font-semibold text-white/70 transition hover:bg-white/[0.04] hover:text-white disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="dynamic-questionnaire-form"
+            disabled={isSubmitting}
+            className="inline-flex items-center gap-2 rounded-xl bg-cyan-300 px-5 py-2.5 text-xs font-bold text-black transition hover:bg-cyan-200 disabled:opacity-50 cursor-pointer shadow-[0_0_20px_rgba(85,223,255,0.2)]"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving & Proceeding...
+              </>
+            ) : (
+              submitLabel || "Continue to Checkout"
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
