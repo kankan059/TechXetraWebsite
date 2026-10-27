@@ -4,25 +4,21 @@ export const footerInfo = {
   university: "Tezpur University",
   address: ["Napaam, Tezpur", "Assam 784028"],
   socialLinks: [
-    {
-      label: "YouTube",
-      href: "https://youtube.com/",
-      type: "youtube",
-    },
-    {
-      label: "Facebook",
-      href: "https://facebook.com/",
-      type: "facebook",
-    },
+    // {
+    //   label: "YouTube",
+    //   href: "https://youtube.com/",
+    //   type: "youtube",
+    // },
+    // {
+    //   label: "Facebook",
+    //   href: "https://facebook.com/",
+    //   type: "facebook",
+    // },
     {
       label: "Instagram",
-      href: "https://instagram.com/",
+      href: "https://www.instagram.com/techxetra",
       type: "instagram",
     },
-    {
-      label: "LinkedIn",
-      href: "https://linkedin.com/",
-      type: "linkedin",
-    },
+  
   ],
 };
