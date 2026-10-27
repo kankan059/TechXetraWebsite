@@ -643,7 +643,7 @@ export default function EventsDirectory() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="gate-pass-title"
-            className="w-full max-w-[720px] overflow-hidden rounded-t-2xl border border-white/15 bg-[#101F26] text-[#F5F0DE] min-[640px]:rounded-xl"
+            className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 min-[640px]:p-7"
           >
             <header className="flex items-center justify-between border-b border-white/10 px-5 py-3 min-[640px]:px-7">
               <span className="text-[9px] uppercase tracking-[0.15em] text-sky-300 [font-family:var(--font-pixel)]">
