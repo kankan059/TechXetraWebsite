@@ -198,11 +198,30 @@ export default function TeamWorkspacePage({
 
   const handleProceedToCheckout = () => {
     if (!team) return;
-    if (parsedSchema.length > 0) {
+
+    const eventId =
+      (team as any).eventId ??
+      team.event_id ??
+      team.event?.id ??
+      event?.id;
+
+    let savedResponses: Record<string, any> = {};
+    try {
+      const stored =
+        (eventId ? sessionStorage.getItem(`team_form_${eventId}`) : null) ||
+        sessionStorage.getItem(`team_form_${team.id}`);
+      if (stored) {
+        savedResponses = JSON.parse(stored);
+      }
+    } catch {
+      // ignore
+    }
+
+    if (parsedSchema.length > 0 && Object.keys(savedResponses).length === 0) {
       setQuestionnaireError(null);
       setShowQuestionnaireModal(true);
     } else {
-      void executeCheckout({});
+      void executeCheckout(savedResponses);
     }
   };
 
@@ -245,6 +264,15 @@ export default function TeamWorkspacePage({
 
       if (!purchase?.id) {
         throw new Error("Purchase ID is missing from the response.");
+      }
+
+      if (eventId) {
+        try {
+          sessionStorage.removeItem(`team_form_${eventId}`);
+          sessionStorage.removeItem(`team_form_${team.id}`);
+        } catch {
+          // ignore
+        }
       }
 
       setShowQuestionnaireModal(false);

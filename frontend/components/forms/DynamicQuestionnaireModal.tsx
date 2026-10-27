@@ -13,6 +13,7 @@ interface DynamicQuestionnaireModalProps {
   onSubmit: (responses: Record<string, any>) => Promise<void>;
   isSubmitting: boolean;
   externalError?: string | null;
+  submitLabel?: string;
 }
 
 export default function DynamicQuestionnaireModal({
@@ -23,6 +24,7 @@ export default function DynamicQuestionnaireModal({
   onSubmit,
   isSubmitting,
   externalError,
+  submitLabel,
 }: DynamicQuestionnaireModalProps) {
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -169,7 +171,7 @@ export default function DynamicQuestionnaireModal({
                   Saving & Proceeding...
                 </>
               ) : (
-                "Continue to Checkout"
+                submitLabel || "Continue to Checkout"
               )}
             </button>
           </div>

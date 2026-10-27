@@ -97,6 +97,8 @@ export default function EventDetailPage({
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
   const [submittingRegistration, setSubmittingRegistration] = useState(false);
   const [registrationModalError, setRegistrationModalError] = useState<string | null>(null);
+  const [registrationMode, setRegistrationMode] = useState<"team" | "solo">("team");
+  const [pendingFormResponses, setPendingFormResponses] = useState<Record<string, any> | null>(null);
 
   const parsedSchema: FormFieldDefinition[] = useMemo(() => {
     const rawSchema = (event as any)?.formSchema ?? event?.form_schema;
@@ -182,18 +184,45 @@ export default function EventDetailPage({
     void loadEventData();
   }, [slug]);
 
-  const handleSoloRegister = () => {
+  const handleStartTeamRegistration = () => {
     if (!user) {
       router.push(`/login?redirect=/events/${slug}`);
       return;
     }
 
-    if (!user.profileComplete) {
+    const isComplete = Boolean(user.profileComplete ?? user.profile_complete);
+    if (!isComplete) {
       router.push("/profile-completion");
       return;
     }
 
     if (!event) return;
+
+    setRegistrationMode("team");
+
+    if (parsedSchema.length > 0) {
+      setRegistrationModalError(null);
+      setShowQuestionnaireModal(true);
+    } else {
+      setShowTeamModal(true);
+    }
+  };
+
+  const handleStartSoloRegistration = () => {
+    if (!user) {
+      router.push(`/login?redirect=/events/${slug}`);
+      return;
+    }
+
+    const isComplete = Boolean(user.profileComplete ?? user.profile_complete);
+    if (!isComplete) {
+      router.push("/profile-completion");
+      return;
+    }
+
+    if (!event) return;
+
+    setRegistrationMode("solo");
 
     if (parsedSchema.length > 0) {
       setRegistrationModalError(null);
@@ -203,6 +232,22 @@ export default function EventDetailPage({
     }
   };
 
+  const handleQuestionnaireSubmit = async (responses: Record<string, any>) => {
+    if (!event || !user) return;
+
+    if (registrationMode === "team") {
+      setPendingFormResponses(responses);
+      try {
+        sessionStorage.setItem(`team_form_${event.id}`, JSON.stringify(responses));
+      } catch {
+        // ignore
+      }
+      setShowQuestionnaireModal(false);
+      setShowTeamModal(true);
+    } else {
+      await executeCheckout(responses);
+    }
+  };
 
   const executeCheckout = async (responses: Record<string, any>) => {
     if (!event || !user) return;
@@ -277,6 +322,15 @@ export default function EventDetailPage({
         eventId: event.id,
         name: teamName.trim(),
       });
+
+      if (pendingFormResponses) {
+        try {
+          sessionStorage.setItem(`team_form_${data.id}`, JSON.stringify(pendingFormResponses));
+          sessionStorage.setItem(`team_form_${event.id}`, JSON.stringify(pendingFormResponses));
+        } catch {
+          // ignore
+        }
+      }
 
       router.push(`/teams/${data.id}`);
     } catch (err: unknown) {
@@ -616,7 +670,7 @@ export default function EventDetailPage({
               <>
                 <button
                   type="button"
-                  onClick={() => setShowTeamModal(true)}
+                  onClick={handleStartTeamRegistration}
                   className="group relative inline-flex min-h-[54px] items-center gap-4 overflow-hidden bg-[#55DFFF] px-6 py-4 text-[#09151B] transition-all duration-300 hover:bg-[#8BE9FF] hover:shadow-[0_0_32px_rgba(85,223,255,0.2)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
                   style={{
                     clipPath:
@@ -641,7 +695,7 @@ export default function EventDetailPage({
                 {event.min_team_size === 1 && (
                   <button
                     type="button"
-                    onClick={handleSoloRegister}
+                    onClick={handleStartSoloRegistration}
                     className="group relative inline-flex min-h-[54px] cursor-pointer items-center gap-3 border border-white/20 bg-white/5 px-6 py-4 text-white transition-all duration-300 hover:border-white/40 hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
                     style={{
                       clipPath:
@@ -663,7 +717,7 @@ export default function EventDetailPage({
             ) : (
               <button
                 type="button"
-                onClick={handleSoloRegister}
+                onClick={handleStartSoloRegistration}
                 className="group relative inline-flex min-h-[54px] cursor-pointer items-center gap-4 overflow-hidden bg-[#55DFFF] px-6 py-4 text-[#09151B] transition-all duration-300 hover:bg-[#8BE9FF] hover:shadow-[0_0_32px_rgba(85,223,255,0.2)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
                 style={{
                   clipPath:
@@ -1056,10 +1110,16 @@ export default function EventDetailPage({
           <div className="mt-5 flex flex-col gap-3 border-t border-white/10 pt-5 sm:flex-row">
             <button
               type="button"
-              onClick={event.is_team_event ? () => setShowTeamModal(true) : handleSoloRegister}
+              onClick={
+                event.max_team_size > 1 || event.is_team_event
+                  ? handleStartTeamRegistration
+                  : handleStartSoloRegistration
+              }
               className="inline-flex min-h-11 items-center justify-center gap-2 bg-[#55DFFF] px-5 py-3 text-sm font-semibold text-[#09151B] transition hover:bg-[#8BE9FF] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
             >
-              {event.is_team_event ? "Create a team" : "Register for this event"}
+              {event.max_team_size > 1 || event.is_team_event
+                ? "Create a team"
+                : "Register for this event"}
               <ArrowRight className="h-4 w-4" />
             </button>
             <Link
@@ -1131,9 +1191,14 @@ export default function EventDetailPage({
             onClose={() => setShowQuestionnaireModal(false)}
             eventTitle={event.title}
             formSchema={parsedSchema}
-            onSubmit={executeCheckout}
+            onSubmit={handleQuestionnaireSubmit}
             isSubmitting={submittingRegistration}
             externalError={registrationModalError}
+            submitLabel={
+              registrationMode === "team"
+                ? "Continue to Team Creation →"
+                : "Continue to Checkout →"
+            }
           />
         )}
       </div>
