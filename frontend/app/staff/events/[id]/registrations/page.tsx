@@ -79,11 +79,15 @@ export default function StaffEventRegistrationsPage({
       }
       setUser(currentUser);
 
-      // 2. Fetch dashboard metadata & registrations
-      const [dash, regs] = await Promise.all([
+      // 2. Fetch dashboard metadata, registrations, and canonical event
+      const [dash, regs, fullEvt] = await Promise.all([
         staffApi.events.getDashboard(id),
         staffApi.events.getRegistrations(id, debouncedSearch.trim() || undefined),
+        participantApi.events.get(id).catch(() => null),
       ]);
+      if (dash && fullEvt) {
+        dash.event = { ...dash.event, ...fullEvt };
+      }
       setDashboard(dash);
       setRegistrations(regs || []);
     } catch (err: unknown) {

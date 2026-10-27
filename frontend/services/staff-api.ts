@@ -177,32 +177,35 @@ export const staffApi = {
 
     getRegistrations: async (eventId: string, search?: string) => {
       const query = search ? `?search=${encodeURIComponent(search)}` : "";
-      const raw = await apiRequest<any[]>(
+      const raw = await apiRequest<any>(
         `/staff/events/${encodeURIComponent(eventId)}/participants${query}`,
       );
-      return (raw ?? []).map((r): EventRegistrationDetail => ({
-        registration_id: r.registrationId,
-        status: r.registrationStatus,
-        seat_count: r.seatCount,
-        registered_at: r.confirmedAt,
+      const items = Array.isArray(raw)
+        ? raw
+        : (raw as any)?.data || (raw as any)?.items || (raw as any)?.participants || [];
+      return items.map((r: any): EventRegistrationDetail => ({
+        registration_id: r.registrationId ?? r.registration_id ?? r.id,
+        status: r.registrationStatus ?? r.status,
+        seat_count: r.seatCount ?? r.seat_count ?? 1,
+        registered_at: r.confirmedAt ?? r.confirmed_at ?? r.registered_at ?? r.createdAt ?? 0,
         participant: {
           id: r.attendee?.id ?? "",
           name: r.attendee?.name ?? "",
           email: r.attendee?.email ?? "",
           phone: r.attendee?.phone ?? null,
-          institution_name: r.attendee?.institutionName ?? null,
-          institution_id: r.attendee?.institutionId ?? null,
+          institution_name: r.attendee?.institutionName ?? r.attendee?.institution_name ?? null,
+          institution_id: r.attendee?.institutionId ?? r.attendee?.institution_id ?? null,
         },
         team: r.team ? { id: r.team.id, name: r.team.name } : null,
         ticket: r.ticket
           ? {
             id: r.ticket.id,
             status: r.ticket.status,
-            checked_in: !!r.ticket.checkedInAt,
-            checked_in_at: r.ticket.checkedInAt ?? null,
+            checked_in: !!(r.ticket.checkedInAt ?? r.ticket.checked_in_at),
+            checked_in_at: r.ticket.checkedInAt ?? r.ticket.checked_in_at ?? null,
           }
           : null,
-        form_responses: r.formResponses ?? null,
+        form_responses: r.formResponses ?? r.form_responses ?? null,
       }));
     },
 
