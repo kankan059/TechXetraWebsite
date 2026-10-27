@@ -108,6 +108,8 @@ export interface EventItem {
   slug: string;
   title: string;
   imageURL?: string | null;
+  imageUrl?: string | null;
+  rawMetadata?: unknown;
   category: EventCategory;
   shortDescription?: string | null;
   description: string | null;
@@ -771,7 +773,8 @@ export interface LeadUpdateEventBody {
   venue?: string | null;
   imageURL?: string | null;
   metadata?: string | null;
-  form_schema?: string | null;
+  form_schema?: string | FormFieldDefinition[] | null;
+  formSchema?: FormFieldDefinition[] | null;
   registration_closes_at?: number | null;
 }
 

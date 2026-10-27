@@ -21,7 +21,79 @@ import { staffApi } from "@/services/staff-api";
 import { participantApi } from "@/services/participant-api";
 import StaffEventNav from "@/components/staff/StaffEventNav";
 import FormSchemaBuilder from "@/components/staff/FormSchemaBuilder";
-import type { FormFieldDefinition, StaffEventDashboard, UserProfile } from "@/types/api";
+import type {
+  FormFieldDefinition,
+  FormFieldType,
+  StaffEventDashboard,
+  UserProfile,
+  EventItem,
+} from "@/types/api";
+
+const LEGACY_TYPE_MAP: Record<string, FormFieldType> = {
+  text: "shortText",
+  textarea: "longText",
+  tel: "phone",
+  url: "shortText",
+  select: "singleChoice",
+};
+
+function normalizeSchema(raw: any[]): FormFieldDefinition[] {
+  return raw
+    .filter((f) => f && typeof f === "object")
+    .map((f, idx) => {
+      const { description, options, type, ...rest } = f;
+      const fieldType: FormFieldType =
+        LEGACY_TYPE_MAP[type] ?? (type as FormFieldType) ?? "shortText";
+      return {
+        id: f.id || `field_${idx + 1}`,
+        label: f.label || "Question",
+        required: Boolean(f.required),
+        placeholder: f.placeholder || "",
+        ...rest,
+        type: fieldType,
+        ...(description || f.helperText ? { helperText: f.helperText ?? description } : {}),
+        ...(Array.isArray(options)
+          ? {
+              options: options.map((o: any) =>
+                typeof o === "string" ? o : String(o?.label ?? o?.value ?? "")
+              ),
+            }
+          : {}),
+      };
+    });
+}
+
+function parseFormSchema(rawSchema: unknown): FormFieldDefinition[] {
+  if (!rawSchema) return [];
+  if (Array.isArray(rawSchema)) {
+    return normalizeSchema(rawSchema);
+  }
+  if (typeof rawSchema === "object" && rawSchema !== null) {
+    const asObj = rawSchema as any;
+    if (Array.isArray(asObj.fields)) return normalizeSchema(asObj.fields);
+    if (Array.isArray(asObj.questions)) return normalizeSchema(asObj.questions);
+  }
+  if (typeof rawSchema === "string" && rawSchema.trim()) {
+    try {
+      const parsed = JSON.parse(rawSchema);
+      return parseFormSchema(parsed);
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function toDatetimeLocal(val: number | string | null | undefined): string {
+  if (!val) return "";
+  const num = typeof val === "string" ? Number(val) : val;
+  const ms = !isNaN(num) && num > 0 && num < 1e11 ? num * 1000 : val;
+  const d = new Date(ms);
+  if (isNaN(d.getTime())) return "";
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
+}
 
 export default function StaffEventSettingsPage({
   params,
@@ -61,13 +133,31 @@ export default function StaffEventSettingsPage({
       }
       setUser(currentUser);
 
-      // 2. Fetch dashboard to verify Lead or Super Admin permissions
-      const dash = await staffApi.events.getDashboard(id);
-      setDashboard(dash);
+      // 2. Fetch dashboard (for permissions & staff roster) AND canonical event details in parallel
+      const [dashResult, fullEventResult] = await Promise.allSettled([
+        staffApi.events.getDashboard(id),
+        participantApi.events.get(id),
+      ]);
 
+      const dash: StaffEventDashboard | null =
+        dashResult.status === "fulfilled" ? dashResult.value : null;
+      const fullEvt: EventItem | null =
+        fullEventResult.status === "fulfilled" ? fullEventResult.value : null;
+
+      if (!dash && !fullEvt) {
+        throw new Error(
+          dashResult.status === "rejected"
+            ? (dashResult.reason instanceof Error
+                ? dashResult.reason.message
+                : "Failed to load event details")
+            : "Event not found or unavailable."
+        );
+      }
+
+      // 3. Verify permissions: Only assigned Event Leads and Super Admins can configure settings
       const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
       const isLead =
-        dash.staff.some((s) => s.user_id === currentUser.id && s.role === "LEAD") ||
+        Boolean(dash?.staff.some((s) => s.user_id === currentUser.id && s.role === "LEAD")) ||
         currentUser.role === "LEAD";
 
       if (!isSuperAdmin && !isLead) {
@@ -76,34 +166,103 @@ export default function StaffEventSettingsPage({
         );
       }
 
-      // 3. Populate form fields from event
-      const evt = dash.event;
-      setVenue(evt.venue || "");
-      setImageURL(evt.imageURL || (evt as any).imageUrl || "");
-      setDescription(evt.description || "");
-      setMetadata(evt.metadata || "");
+      // 4. Merge canonical event data with dashboard event data (prefer canonical fullEvt)
+      const evt = {
+        ...(dash?.event || {}),
+        ...(fullEvt || {}),
+      } as any;
 
-      if (evt.registration_closes_at) {
-        const d = new Date(evt.registration_closes_at);
-        // Format to YYYY-MM-DDTHH:mm for datetime-local input
-        const localIso = new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-          .toISOString()
-          .slice(0, 16);
-        setRegistrationClosesAt(localIso);
+      if (dash) {
+        setDashboard({
+          ...dash,
+          event: {
+            ...dash.event,
+            ...evt,
+          },
+        });
       } else {
-        setRegistrationClosesAt("");
+        setDashboard({
+          event: evt,
+          metrics: {
+            confirmed_count: 0,
+            reserved_count: 0,
+            checked_in_count: 0,
+            pending_payments_count: 0,
+            seats_remaining: evt.seats_remaining ?? null,
+          },
+          staff: [],
+        });
       }
 
-      if (evt.form_schema) {
-        try {
-          const parsed = JSON.parse(evt.form_schema);
-          setFormSchema(Array.isArray(parsed) ? parsed : []);
-        } catch {
-          setFormSchema([]);
+      // 5. Populate form fields from the canonical event data
+      setVenue(evt.venue || evt.location || "");
+
+      const resolvedImage =
+        evt.imageURL ||
+        evt.imageUrl ||
+        evt.image_url ||
+        evt.image ||
+        evt.posterUrl ||
+        evt.poster_url ||
+        evt.bannerUrl ||
+        "";
+      setImageURL(resolvedImage);
+
+      setDescription(
+        evt.description ||
+        evt.shortDescription ||
+        evt.short_description ||
+        ""
+      );
+
+      // Handle metadata: Avoid populating with synthetic dummy boilerplate
+      let initialMetadata = "";
+      if (evt.rawMetadata !== undefined && evt.rawMetadata !== null) {
+        if (typeof evt.rawMetadata === "string") {
+          initialMetadata = evt.rawMetadata;
+        } else if (typeof evt.rawMetadata === "object") {
+          initialMetadata = JSON.stringify(evt.rawMetadata, null, 2);
         }
-      } else {
-        setFormSchema([]);
+      } else if (evt.metadata && typeof evt.metadata === "string") {
+        try {
+          const parsed = JSON.parse(evt.metadata);
+          const isSynthetic =
+            parsed &&
+            typeof parsed === "object" &&
+            "summary" in parsed &&
+            "rules" in parsed &&
+            "prizes" in parsed &&
+            "timeline" in parsed &&
+            (!parsed.rules || parsed.rules.length === 0) &&
+            (!parsed.prizes || parsed.prizes.length === 0) &&
+            (!parsed.timeline || parsed.timeline.length === 0) &&
+            !parsed.organizer &&
+            !parsed.eligibility;
+
+          if (!isSynthetic) {
+            initialMetadata = evt.metadata;
+          }
+        } catch {
+          initialMetadata = evt.metadata;
+        }
       }
+      setMetadata(initialMetadata);
+
+      // Registration deadline
+      const deadlineVal =
+        evt.registration_closes_at ??
+        evt.registrationClosesAt ??
+        evt.registrationCloseTime ??
+        null;
+      setRegistrationClosesAt(toDatetimeLocal(deadlineVal));
+
+      // Questionnaire schema
+      const rawSchema =
+        evt.form_schema ??
+        evt.formSchema ??
+        evt.formSchemaBuilder ??
+        evt.form_definitions;
+      setFormSchema(parseFormSchema(rawSchema));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load event settings");
     } finally {
@@ -122,12 +281,16 @@ export default function StaffEventSettingsPage({
     setSuccess(null);
 
     try {
-      const deadlineMs = registrationClosesAt
-        ? new Date(registrationClosesAt).getTime()
-        : null;
+      let deadlineMs: number | null = null;
+      if (registrationClosesAt.trim()) {
+        const parsedDate = new Date(registrationClosesAt);
+        if (!isNaN(parsedDate.getTime())) {
+          deadlineMs = parsedDate.getTime();
+        }
+      }
 
-      const jsonSchemaString =
-        formSchema.length > 0 ? JSON.stringify(formSchema) : null;
+      const schemaPayload =
+        formSchema.length > 0 ? formSchema : null;
 
       await staffApi.events.update(id, {
         venue: venue.trim() || null,
@@ -135,7 +298,7 @@ export default function StaffEventSettingsPage({
         description: description.trim() || null,
         metadata: metadata.trim() || null,
         registration_closes_at: deadlineMs,
-        form_schema: jsonSchemaString,
+        form_schema: schemaPayload,
       });
 
       setSuccess("Event settings & questionnaire updated successfully!");

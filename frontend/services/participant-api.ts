@@ -79,6 +79,9 @@ export function normalizeEventItem(raw: any): EventItem {
 
   return {
     ...raw,
+    rawMetadata: raw.metadata !== undefined ? raw.metadata : null,
+    imageURL: raw.imageURL ?? raw.imageUrl ?? raw.image_url ?? raw.image ?? null,
+    imageUrl: raw.imageUrl ?? raw.imageURL ?? raw.image_url ?? raw.image ?? null,
     // Day
     day_of_event: festDay,
     festDay: festDay,
@@ -149,12 +152,15 @@ export function normalizeEventItem(raw: any): EventItem {
     metadata: metadataString,
 
     form_schema:
-      raw.form_schema ??
-      (raw.formSchema
-        ? typeof raw.formSchema === "string"
-          ? raw.formSchema
-          : JSON.stringify(raw.formSchema)
-        : null),
+      raw.form_schema
+        ? typeof raw.form_schema === "string"
+          ? raw.form_schema
+          : JSON.stringify(raw.form_schema)
+        : raw.formSchema
+          ? typeof raw.formSchema === "string"
+            ? raw.formSchema
+            : JSON.stringify(raw.formSchema)
+          : null,
     formSchema: raw.formSchema ?? raw.form_schema ?? null,
   };
 }
