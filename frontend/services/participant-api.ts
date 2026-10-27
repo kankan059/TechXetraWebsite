@@ -350,6 +350,8 @@ export const participantApi = {
           eventId?: string;
           team_id?: string;
           teamId?: string;
+          form_response?: Record<string, any>;
+          formResponse?: Record<string, any>;
         }[];
         acknowledge_student_id_policy?: boolean;
         acknowledgeStudentIdPolicy?: boolean;

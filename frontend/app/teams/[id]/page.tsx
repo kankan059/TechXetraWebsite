@@ -221,7 +221,7 @@ export default function TeamWorkspacePage({
             itemType: "EVENT_PASS",
             eventId,
             teamId: team.id,
-            formResponses:
+            form_response:
               Object.keys(responses).length > 0 ? responses : undefined,
           } as any,
         ],

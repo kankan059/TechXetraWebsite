@@ -208,7 +208,7 @@ export default function EventDetailPage({
           {
             item_type: "EVENT_PASS",
             event_id: event.id,
-            form_responses:
+            form_response:
               Object.keys(responses).length > 0 ? responses : undefined,
           } as any,
         ],

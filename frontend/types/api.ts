@@ -256,6 +256,8 @@ export interface PurchaseItemInput {
   item_type: "GATE_PASS" | "EVENT_PASS";
   event_id?: string;
   team_id?: string;
+  form_response?: Record<string, any>;
+  formResponse?: Record<string, any>;
   form_responses?: Record<string, any>;
 }
 
