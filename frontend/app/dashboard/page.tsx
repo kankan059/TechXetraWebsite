@@ -551,23 +551,6 @@ export default function DashboardPage() {
           {purchases.length === 0 ? (
             <EmptyState title="No orders yet" description="When you make an order, its details and current status will appear here." href="/events" action="Browse events" />
           ) : (
-            // <<<<<<< HEAD
-            //             <div className="divide-y divide-white/[0.07]">
-            //               {purchases.map((purchase) => (
-            //                 <div key={purchase.id} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-            //                   <div className="min-w-0">
-            //                     <p className={`${heading} break-words text-sm`}>Order {purchase.id}</p>
-            //                     <p className="mt-1 text-sm text-white/50">{new Date(purchase.created_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}</p>
-            //                     {purchase.status === "AWAITING_PAYMENT" && <p className="mt-1 text-xs text-cyan-200">Your reservation is active while payment is pending.</p>}
-            //                   </div>
-            //                   <div className="flex items-center justify-between gap-4 sm:justify-end">
-            //                     <p className={`${heading} text-base tabular-nums`}>₹{(purchase.total_amount_paise / 100).toFixed(2)}</p>
-            //                     <StatusPill tone={purchaseTone(purchase.status)}>{purchaseStatusLabel(purchase.status)}</StatusPill>
-            //                   </div>
-            //                 </div>
-            //               ))}
-            // =======
-            // ```tsx
             <div className="divide-y divide-white/[0.07]">
               {purchases.map((purchase) => {
                 const p = purchase as any;
