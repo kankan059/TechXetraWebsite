@@ -317,27 +317,65 @@ export const adminApi = {
         .map((p) => {
           const b = (p.buyer ?? {}) as Record<string, unknown>;
           const status = String(p.status ?? "");
+          const purchaseObj = (p.purchase ?? {}) as Record<string, unknown>;
+          const itemsArr = (Array.isArray(p.items)
+            ? p.items
+            : Array.isArray(purchaseObj.items)
+            ? purchaseObj.items
+            : []) as Record<string, unknown>[];
+          const firstItem = itemsArr[0] || {};
+          const eventObj = (p.event ?? firstItem.event ?? purchaseObj.event ?? {}) as Record<string, unknown>;
+
+          const resolvedEventTitle =
+            p.eventTitle ||
+            p.event_title ||
+            p.eventName ||
+            p.event_name ||
+            eventObj.title ||
+            eventObj.name ||
+            firstItem.title ||
+            (firstItem.descriptionSnapshot as any)?.title ||
+            (firstItem.itemType === "GATE_PASS" ||
+            firstItem.item_type === "GATE_PASS" ||
+            p.itemType === "GATE_PASS" ||
+            p.item_type === "GATE_PASS"
+              ? "Gate Pass"
+              : null) ||
+            null;
+
+          const resolvedEventId =
+            p.eventId ||
+            p.event_id ||
+            firstItem.eventId ||
+            firstItem.event_id ||
+            eventObj.id ||
+            null;
+
           return {
+            ...p,
             id: String(p.id ?? ""),
-            purchase_id: String(p.purchaseId ?? ""),
-            expected_amount_paise: Number(p.amountPaise ?? 0),
-            transaction_id: p.transactionId ? String(p.transactionId) : null,
+            purchase_id: String(p.purchaseId ?? p.purchase_id ?? ""),
+            expected_amount_paise: Number(p.amountPaise ?? p.expected_amount_paise ?? 0),
+            transaction_id: p.transactionId ? String(p.transactionId) : (p.transaction_id ? String(p.transaction_id) : null),
             status: (uiStatus[status] ?? status) as AdminPayment["status"],
             reviewer_id: null,
             reviewed_at: null,
             rejection_reason: null,
             internal_note: null,
-            created_at: Number(p.createdAt ?? 0),
-            buyer_id: String(b.id ?? ""),
-            buyer_name: String(b.name ?? ""),
-            buyer_email: String(b.email ?? ""),
-            buyer_phone: b.phone ? String(b.phone) : null,
+            created_at: Number(p.createdAt ?? p.created_at ?? 0),
+            buyer_id: String(b.id ?? p.buyer_id ?? ""),
+            buyer_name: String(b.name ?? p.buyer_name ?? ""),
+            buyer_email: String(b.email ?? p.buyer_email ?? ""),
+            buyer_phone: b.phone ? String(b.phone) : (p.buyer_phone ? String(p.buyer_phone) : null),
+            event_title: resolvedEventTitle ? String(resolvedEventTitle) : null,
+            event_id: resolvedEventId ? String(resolvedEventId) : null,
+            purchase: p.purchase ?? null,
           } as AdminPayment;
         })
         .filter(
           (p) =>
             !search ||
-            [p.id, p.transaction_id, p.buyer_name, p.buyer_email].some((v) =>
+            [p.id, p.transaction_id, p.buyer_name, p.buyer_email, p.event_title].some((v) =>
               (v ?? "").toLowerCase().includes(search),
             ),
         )

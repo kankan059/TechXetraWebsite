@@ -652,6 +652,8 @@ export type AdminPayment = {
   buyer_phone?: string | null;
   buyer?: UserProfile;
   purchase?: PurchaseDetail;
+  event_title?: string | null;
+  event_id?: string | null;
 };
 
 export type AdminTicket = DigitalTicket & {

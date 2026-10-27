@@ -46,8 +46,66 @@ export default function AdminPaymentsPage() {
         params.search = searchQuery.trim();
       }
 
-      const res = await adminApi.payments.list(params);
-      setPayments(res.payments || []);
+      const [paymentsRes, eventsRes, purchasesRes] = await Promise.allSettled([
+        adminApi.payments.list(params),
+        adminApi.events.list({ limit: 100 }),
+        adminApi.purchases.list({ limit: 100 }),
+      ]);
+
+      const rawPayments =
+        paymentsRes.status === "fulfilled" ? paymentsRes.value.payments || [] : [];
+      const events =
+        eventsRes.status === "fulfilled" ? eventsRes.value.events || [] : [];
+      const purchases =
+        purchasesRes.status === "fulfilled" ? purchasesRes.value.purchases || [] : [];
+
+      // Build event lookup map: ID/Slug -> Title
+      const eventTitleById = new Map<string, string>();
+      events.forEach((evt) => {
+        if (evt.id) eventTitleById.set(evt.id, evt.title);
+        if (evt.slug) eventTitleById.set(evt.slug, evt.title);
+      });
+
+      // Build purchase lookup map: Purchase ID -> Event Title / Gate Pass
+      const purchaseEventMap = new Map<string, string>();
+      purchases.forEach((pur) => {
+        let title: string | null = null;
+        if (Array.isArray(pur.registrations) && pur.registrations.length > 0) {
+          const reg = pur.registrations[0];
+          title =
+            reg.event_title ||
+            (reg.event_id ? eventTitleById.get(reg.event_id) : null) ||
+            null;
+        }
+        if (!title && Array.isArray(pur.items) && pur.items.length > 0) {
+          const item = pur.items[0];
+          if (item.item_type === "GATE_PASS") {
+            title = "Festival Gate Pass";
+          } else if (item.event_id && eventTitleById.has(item.event_id)) {
+            title = eventTitleById.get(item.event_id)!;
+          } else if ((item as any).descriptionSnapshot?.title) {
+            title = (item as any).descriptionSnapshot.title;
+          }
+        }
+        if (title && pur.id) {
+          purchaseEventMap.set(pur.id, title);
+        }
+      });
+
+      // Enrich payments with resolved event titles
+      const enrichedPayments = rawPayments.map((p) => {
+        const title =
+          p.event_title ||
+          purchaseEventMap.get(p.purchase_id) ||
+          (p.event_id ? eventTitleById.get(p.event_id) : null) ||
+          null;
+        return {
+          ...p,
+          event_title: title,
+        };
+      });
+
+      setPayments(enrichedPayments);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load payment review queue");
     } finally {
@@ -226,6 +284,7 @@ export default function AdminPaymentsPage() {
               <thead>
                 <tr className="border-b border-white/[0.08] text-xs font-semibold uppercase text-slate-400">
                   <th className="px-5 py-4">Attendee</th>
+                  <th className="px-5 py-4">Event / Item</th>
                   <th className="px-5 py-4">Transaction UTR</th>
                   <th className="px-5 py-4">Amount</th>
                   <th className="px-5 py-4">Status</th>
@@ -243,6 +302,16 @@ export default function AdminPaymentsPage() {
                         <p className="text-xs text-slate-400">{p.buyer_email}</p>
                         {p.buyer_phone && (
                           <p className="text-[11px] text-slate-500">+91 {p.buyer_phone}</p>
+                        )}
+                      </td>
+
+                      <td className="px-5 py-4">
+                        {p.event_title ? (
+                          <span className="inline-flex items-center rounded-lg border border-purple-400/20 bg-purple-400/10 px-2.5 py-1 text-xs font-medium text-purple-200">
+                            {p.event_title}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-500">—</span>
                         )}
                       </td>
 
@@ -360,6 +429,9 @@ export default function AdminPaymentsPage() {
               Buyer: <span className="text-white">{selectedPayment.buyer_name}</span> (
               {selectedPayment.buyer_email}) · Amount: ₹
               {(selectedPayment.expected_amount_paise / 100).toFixed(2)}
+              {selectedPayment.event_title && (
+                <> · Event: <span className="font-medium text-purple-300">{selectedPayment.event_title}</span></>
+              )}
             </p>
 
             <div className="mt-4 space-y-4">
