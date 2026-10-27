@@ -134,9 +134,9 @@ export interface EventItem {
   maxTeamSize?: number;
   price_model: PriceModel;
   priceModel?: PriceModel;
-  price_paise: number;
+  price_paise?: number;
   pricePaise?: number;
-  student_price_paise: number | null;
+  student_price_paise?: number | null;
   studentPricePaise?: number | null;
   capacity: number | null;
   availableCapacity?: number | null;

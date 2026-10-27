@@ -346,7 +346,7 @@ export default function EventDetailPage({
                   <span className="text-xs font-semibold text-cyan-300">
                     {item.price_model === "FREE"
                       ? "FREE"
-                      : `₹${(item.price_paise / 100).toFixed(0)}`}
+                      : `₹${(item.pricePaise ? item.pricePaise / 100 : 0).toFixed(0)}`}
                   </span>
                   <Link
                     href={`/events/${item.slug || item.id}`}
@@ -379,7 +379,7 @@ export default function EventDetailPage({
   const priceFormatted =
     event.price_model === "FREE"
       ? "FREE"
-      : `₹${(event.price_paise / 100).toFixed(0)} (${event.price_model === "PER_PARTICIPANT" ? "Per Person" : "Per Team"
+      : `₹${(event.pricePaise ? event.pricePaise / 100 : 0).toFixed(0)} (${event.price_model === "PER_PARTICIPANT" ? "Per Person" : "Per Team"
       })`;
 
   // Extract rules
@@ -659,13 +659,13 @@ export default function EventDetailPage({
 
             {prizeBreakdown.length > 0 && (
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                  {prizeBreakdown.map((p, idx) => (
-                    <div
-                      key={idx}
-                      className="rounded-2xl border border-cyan-300/15 bg-transparent p-4 transition hover:border-cyan-300/40"
-                    >
-                      <div className="flex items-center gap-2 text-cyan-300">
-                        <span className="text-xs font-bold uppercase">{p.position || `Prize ${idx + 1}`}</span>
+                {prizeBreakdown.map((p, idx) => (
+                  <div
+                    key={idx}
+                    className="rounded-2xl border border-cyan-300/15 bg-transparent p-4 transition hover:border-cyan-300/40"
+                  >
+                    <div className="flex items-center gap-2 text-cyan-300">
+                      <span className="text-xs font-bold uppercase">{p.position || `Prize ${idx + 1}`}</span>
                     </div>
                     {p.prize_inr ? (
                       <p className="mt-2 text-2xl font-black text-white">

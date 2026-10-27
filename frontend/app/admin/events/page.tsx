@@ -339,10 +339,10 @@ export default function AdminEventsPage() {
     setEditMinTeam(evt.min_team_size || 1);
     setEditMaxTeam(evt.max_team_size || 1);
     setEditPriceModel(evt.price_model || "FREE");
-    setEditPriceRupees(evt.price_paise ? (evt.price_paise / 100).toString() : "0");
+    setEditPriceRupees(evt.pricePaise ? (evt.pricePaise / 100).toString() : "0");
     setEditStudentPriceRupees(
-      evt.student_price_paise !== null && evt.student_price_paise !== undefined
-        ? (evt.student_price_paise / 100).toString()
+      evt.studentPricePaise !== null && evt.studentPricePaise !== undefined
+        ? (evt.studentPricePaise / 100).toString()
         : ""
     );
     setEditCapacity(
