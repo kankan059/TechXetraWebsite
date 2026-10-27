@@ -42,6 +42,10 @@ const About = () => {
         ".section-title-eyebrow-line"
       );
 
+      const isMobile = window.matchMedia(
+        "(max-width: 767px)"
+      ).matches;
+
       const reducedMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)"
       ).matches;
@@ -55,7 +59,10 @@ const About = () => {
         );
 
         if (logoRef.current) {
-          gsap.set(logoRef.current, { autoAlpha: 1 });
+          gsap.set(logoRef.current, {
+            autoAlpha: 1,
+            scale: 1,
+          });
         }
 
         logoProgressRef.current.value = 1;
@@ -96,7 +103,7 @@ const About = () => {
 
       const textTimeline = gsap.timeline({
         scrollTrigger: {
-          id: "TECHXTRA-ABOUT-HEADING",
+          id: "TECHXETRA-ABOUT-HEADING",
           trigger: section,
           start: "top 82%",
           end: "top 28%",
@@ -165,48 +172,83 @@ const About = () => {
           transformOrigin: "center center",
         });
 
-        const logoTimeline = gsap.timeline({
-          scrollTrigger: {
-            id: "TECHXTRA-ABOUT-LOGO",
-            trigger: section,
-            start: "top 70%",
-            end: "bottom 20%",
-            scrub: 1,
-            invalidateOnRefresh: true,
-          },
-        });
+        if (isMobile) {
+          // On mobile, draw the logo once and keep it visible.
+          logoProgressRef.current.value = 0;
+          logoOpacityRef.current.value = 1;
 
-        logoTimeline
-          .to(
-            logoProgressRef.current,
-            { value: 1, duration: 2, ease: "none" },
-            0
-          )
-          .to(
-            logoOpacityRef.current,
-            { value: 1, duration: 1.5, ease: "none" },
-            0
-          )
-          .to(
-            logoProgressRef.current,
-            { value: 0, duration: 2, ease: "none" },
-            3
-          )
-          .to(
-            logoOpacityRef.current,
-            { value: 0, duration: 1.5, ease: "none" },
-            3.2
-          )
-          .to(
-            logo,
-            {
-              scale: 0.86,
-              autoAlpha: 0,
-              duration: 1,
-              ease: "none",
+          gsap.to(logoProgressRef.current, {
+            value: 1,
+            duration: 1.2,
+            ease: "power2.out",
+          });
+
+          gsap.to(logoOpacityRef.current, {
+            value: 1,
+            duration: 0.3,
+            ease: "none",
+          });
+        } else {
+          // Keep the original scroll animation on desktop.
+          const logoTimeline = gsap.timeline({
+            scrollTrigger: {
+              id: "TECHXETRA-ABOUT-LOGO",
+              trigger: section,
+              start: "top 70%",
+              end: "bottom 20%",
+              scrub: 1,
+              invalidateOnRefresh: true,
             },
-            3.3
-          );
+          });
+
+          logoTimeline
+            .to(
+              logoProgressRef.current,
+              {
+                value: 1,
+                duration: 2,
+                ease: "none",
+              },
+              0
+            )
+            .to(
+              logoOpacityRef.current,
+              {
+                value: 1,
+                duration: 1.5,
+                ease: "none",
+              },
+              0
+            )
+            .to(
+              logoProgressRef.current,
+              {
+                value: 0,
+                duration: 2,
+                ease: "none",
+              },
+              3
+            )
+            .to(
+              logoOpacityRef.current,
+              {
+                value: 0,
+                duration: 1.5,
+                ease: "none",
+              },
+              3.2
+            )
+            .to(
+              logo,
+              {
+                scale: 0.86,
+                autoAlpha: 0,
+                duration: 1,
+                ease: "none",
+              },
+              3.3
+            );
+        }
       }
     }, section);
 
