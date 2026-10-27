@@ -1,9 +1,10 @@
 export const navigation = [
+  { label: "Home", href: "/" },
   { label: "Events", href: "/events" },
   // { label: "Passes", href: "/checkout" },
   // { label: "Leaderboards", href: "/leaderboards" },
   { label: "Schedule", href: "/schedule" },
-  { label: "Sponsors", href: "/sponsors" },
+  // { label: "Sponsors", href: "/sponsors" },
   { label: "Gallery", href: "/gallery" },
   // { label: "Team", href: "/team" },
 ];
