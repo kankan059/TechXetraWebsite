@@ -172,6 +172,8 @@ export function normalizeEventItem(raw: any): EventItem {
             : JSON.stringify(raw.formSchema)
           : null,
     formSchema: raw.formSchema ?? raw.form_schema ?? null,
+    whatsappUrl: raw.whatsappUrl ?? raw.whatsapp_url ?? null,
+    whatsapp_url: raw.whatsapp_url ?? raw.whatsappUrl ?? null,
   };
 }
 

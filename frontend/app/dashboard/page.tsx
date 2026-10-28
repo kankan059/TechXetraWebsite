@@ -518,7 +518,19 @@ export default function DashboardPage() {
                     <p className="mt-3 text-xs leading-5 text-white/45">
                       Valid from {new Date(ticket.validity.valid_from).toLocaleDateString()} to {new Date(ticket.validity.valid_to).toLocaleDateString()}
                     </p>
-                    <Link href="/me/tickets" className="mt-4 inline-flex text-sm font-medium text-cyan-300 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">Open pass and QR code →</Link>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                      <Link href="/me/tickets" className="inline-flex text-sm font-medium text-cyan-300 hover:text-cyan-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300">Open pass and QR code →</Link>
+                      {(ticket.event?.whatsappUrl || (ticket.event as any)?.whatsapp_url) && (
+                        <a
+                          href={ticket.event?.whatsappUrl || (ticket.event as any)?.whatsapp_url || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-[#25D366]/20 px-3 py-1 text-xs font-semibold text-[#25D366] hover:bg-[#25D366]/30 transition"
+                        >
+                          Join WhatsApp Group ↗
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </article>
               ))}

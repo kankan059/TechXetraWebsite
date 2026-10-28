@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   RefreshCw,
   CheckCircle2,
+  MessageCircle,
 } from "lucide-react";
 import { participantApi } from "@/services/participant-api";
 import type { DigitalTicket } from "@/types/api";
@@ -167,6 +168,31 @@ export default function TicketDetailPage({
               <div className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-4 py-2.5 text-xs text-emerald-300">
                 <CheckCircle2 className="h-4 w-4" />
                 <span>Checked in on {new Date(ticket.event_checked_in_at).toLocaleString()}</span>
+              </div>
+            )}
+
+            {/* Official WhatsApp Group for Confirmed Attendees */}
+            {(ticket.event?.whatsappUrl || (ticket.event as any)?.whatsapp_url) && (
+              <div className="mt-5 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-300">
+                      Official Event WhatsApp Group
+                    </p>
+                    <p className="mt-0.5 text-[11px] text-white/70">
+                      Connect with coordinators and fellow participants.
+                    </p>
+                  </div>
+                  <a
+                    href={ticket.event?.whatsappUrl || (ticket.event as any)?.whatsapp_url || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-xs font-bold text-black transition hover:bg-[#20bd5a] hover:shadow-[0_0_20px_rgba(37,211,102,0.3)]"
+                  >
+                    <MessageCircle className="h-4 w-4 fill-current" />
+                    Join WhatsApp Group
+                  </a>
+                </div>
               </div>
             )}
 

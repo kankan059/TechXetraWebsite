@@ -92,6 +92,7 @@ export default function AdminEventsPage() {
   const [createPriceModel, setCreatePriceModel] = useState<PriceModel>("FREE");
   const [createPricePaise, setCreatePricePaise] = useState(0);
   const [createCapacity, setCreateCapacity] = useState("");
+  const [createWhatsappUrl, setCreateWhatsappUrl] = useState("");
   const [submittingCreate, setSubmittingCreate] = useState(false);
 
   // Assign Staff Modal State
@@ -132,6 +133,7 @@ export default function AdminEventsPage() {
   const [editStartsAt, setEditStartsAt] = useState("");
   const [editEndsAt, setEditEndsAt] = useState("");
   const [editRegistrationClosesAt, setEditRegistrationClosesAt] = useState("");
+  const [editWhatsappUrl, setEditWhatsappUrl] = useState("");
 
   // Edit Tab 2: Pricing & Team
   const [editIsTeam, setEditIsTeam] = useState(false);
@@ -202,6 +204,8 @@ export default function AdminEventsPage() {
         capacity_unit: createIsTeam ? "TEAMS" : "SEATS",
         scoring_enabled: createCategory === "E_SPORTS",
         scoring_status: createCategory === "E_SPORTS" ? "OPEN" : "NOT_APPLICABLE",
+        whatsappUrl: createWhatsappUrl.trim() || null,
+        whatsapp_url: createWhatsappUrl.trim() || null,
       });
 
       setSuccess(`Event "${createTitle}" created successfully!`);
@@ -209,6 +213,7 @@ export default function AdminEventsPage() {
       setCreateSlug("");
       setCreateTitle("");
       setCreateImageURL("");
+      setCreateWhatsappUrl("");
       void loadEvents();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to create event");
@@ -334,6 +339,11 @@ export default function AdminEventsPage() {
     setEditStartsAt(toDatetimeLocal(evt.starts_at));
     setEditEndsAt(toDatetimeLocal(evt.ends_at));
     setEditRegistrationClosesAt(toDatetimeLocal(evt.registration_closes_at));
+    setEditWhatsappUrl(
+      evt.whatsappUrl ||
+      (evt as any).whatsapp_url ||
+      ""
+    );
 
     setEditIsTeam(Boolean(evt.is_team_event));
     setEditMinTeam(evt.min_team_size || 1);
@@ -408,6 +418,8 @@ export default function AdminEventsPage() {
         capacity_unit: editCapacityUnit,
         scoring_enabled: editCategory === "E_SPORTS" ? editScoringEnabled : false,
         form_schema: editFormSchema.length > 0 ? editFormSchema : null,
+        whatsappUrl: editWhatsappUrl.trim() || null,
+        whatsapp_url: editWhatsappUrl.trim() || null,
       };
 
       if (editCategory === "E_SPORTS") {
@@ -674,6 +686,22 @@ export default function AdminEventsPage() {
                     <span className="text-xs text-slate-400">Image Preview</span>
                   </div>
                 )}
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-slate-300">
+                  Official WhatsApp Group Link (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={createWhatsappUrl}
+                  onChange={(e) => setCreateWhatsappUrl(e.target.value)}
+                  placeholder="https://chat.whatsapp.com/XXXXXX"
+                  className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Displayed exclusively to confirmed ticket holders.
+                </p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1171,6 +1199,22 @@ export default function AdminEventsPage() {
                         <span className="text-xs text-slate-400">Image Preview</span>
                       </div>
                     )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-slate-300">
+                      Official WhatsApp Group Link (Exclusive to Ticket Holders)
+                    </label>
+                    <input
+                      type="url"
+                      value={editWhatsappUrl}
+                      onChange={(e) => setEditWhatsappUrl(e.target.value)}
+                      placeholder="https://chat.whatsapp.com/XXXXXX"
+                      className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
+                    />
+                    <p className="mt-1 text-[11px] text-slate-500">
+                      Displayed exclusively to confirmed ticket holders on their digital pass.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">

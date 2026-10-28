@@ -14,6 +14,7 @@ import {
   ArrowRight,
   ArrowLeft,
   ShieldAlert,
+  MessageCircle,
 } from "lucide-react";
 import type { TeamDetail, UserProfile, EventItem, FormFieldDefinition } from "@/types/api";
 import DynamicQuestionnaireModal from "@/components/forms/DynamicQuestionnaireModal";
@@ -429,6 +430,34 @@ export default function TeamWorkspacePage({
             )}
           </div>
         </div>
+
+        {/* Official WhatsApp Group for Confirmed Team Leader */}
+        {isLeader && (event?.whatsappUrl || (event as any)?.whatsapp_url || (team.event as any)?.whatsappUrl || (team.event as any)?.whatsapp_url) && (
+          <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-5 sm:p-6 backdrop-blur-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <span className="rounded-full bg-emerald-400/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+                  Event Community
+                </span>
+                <h3 className="mt-1 text-lg font-bold text-white">
+                  Join Official Event WhatsApp Group
+                </h3>
+                <p className="mt-0.5 text-xs text-white/70">
+                  Stay updated on team schedules, announcements, and direct coordinator communication.
+                </p>
+              </div>
+              <a
+                href={event?.whatsappUrl || (event as any)?.whatsapp_url || (team.event as any)?.whatsappUrl || (team.event as any)?.whatsapp_url || "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-[#25D366] px-5 py-2.5 text-xs font-bold text-black transition hover:bg-[#20bd5a] hover:shadow-[0_0_20px_rgba(37,211,102,0.3)]"
+              >
+                <MessageCircle className="h-4 w-4 fill-current" />
+                Join WhatsApp Group
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Feedback Messages */}
         {error && (

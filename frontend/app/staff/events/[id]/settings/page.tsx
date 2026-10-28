@@ -16,6 +16,7 @@ import {
   ShieldAlert,
   Loader2,
   Image as ImageIcon,
+  MessageCircle,
 } from "lucide-react";
 import { staffApi } from "@/services/staff-api";
 import { participantApi } from "@/services/participant-api";
@@ -116,6 +117,7 @@ export default function StaffEventSettingsPage({
   const [description, setDescription] = useState("");
   const [metadata, setMetadata] = useState("");
   const [registrationClosesAt, setRegistrationClosesAt] = useState<string>("");
+  const [whatsappUrl, setWhatsappUrl] = useState("");
   const [formSchema, setFormSchema] = useState<FormFieldDefinition[]>([]);
 
   const loadData = useCallback(async () => {
@@ -256,6 +258,13 @@ export default function StaffEventSettingsPage({
         null;
       setRegistrationClosesAt(toDatetimeLocal(deadlineVal));
 
+      // WhatsApp group link
+      setWhatsappUrl(
+        evt.whatsappUrl ||
+        evt.whatsapp_url ||
+        ""
+      );
+
       // Questionnaire schema
       const rawSchema =
         evt.form_schema ??
@@ -299,6 +308,8 @@ export default function StaffEventSettingsPage({
         metadata: metadata.trim() || null,
         registration_closes_at: deadlineMs,
         form_schema: schemaPayload,
+        whatsapp_url: whatsappUrl.trim() || null,
+        whatsappUrl: whatsappUrl.trim() || null,
       });
 
       setSuccess("Event settings & questionnaire updated successfully!");
@@ -471,6 +482,26 @@ export default function StaffEventSettingsPage({
                   <span className="text-xs text-white/50">Poster Preview</span>
                 </div>
               )}
+            </div>
+
+            {/* WhatsApp Group Link */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-white/80">
+                Official WhatsApp Community / Group Link (Exclusive to Ticket Holders)
+              </label>
+              <div className="relative">
+                <MessageCircle className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400" />
+                <input
+                  type="url"
+                  value={whatsappUrl}
+                  onChange={(e) => setWhatsappUrl(e.target.value)}
+                  placeholder="https://chat.whatsapp.com/XXXXXX"
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] pl-10 pr-4 py-2.5 text-xs text-white placeholder-white/30 outline-none focus:border-emerald-400"
+                />
+              </div>
+              <p className="text-[11px] text-white/40">
+                Shown only to confirmed ticket holders on their digital pass to join coordinators and fellow participants.
+              </p>
             </div>
 
             {/* Description */}

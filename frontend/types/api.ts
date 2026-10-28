@@ -161,6 +161,8 @@ export interface EventItem {
   rules?: string | string[] | null;
   timeline?: unknown[];
   prizes?: unknown[];
+  whatsappUrl?: string | null;
+  whatsapp_url?: string | null;
 }
 
 export type TeamStatus = "DRAFT" | "LOCKED" | "CONFIRMED" | "CANCELLED";
@@ -208,6 +210,8 @@ export interface TeamDetail {
     price_model: PriceModel;
     price_paise: number;
     student_price_paise: number | null;
+    whatsappUrl?: string | null;
+    whatsapp_url?: string | null;
   };
 }
 
@@ -415,6 +419,8 @@ export interface DigitalTicket {
     day_of_event: number;
     starts_at: number;
     ends_at: number;
+    whatsappUrl?: string | null;
+    whatsapp_url?: string | null;
   } | null;
   student_id_warning: string | null;
   created_at: number;
@@ -780,6 +786,8 @@ export interface LeadUpdateEventBody {
   form_schema?: string | FormFieldDefinition[] | null;
   formSchema?: FormFieldDefinition[] | null;
   registration_closes_at?: number | null;
+  whatsappUrl?: string | null;
+  whatsapp_url?: string | null;
 }
 
 export interface AdminUserDetail {

@@ -16,6 +16,7 @@ import {
   Clock,
   ShieldCheck,
   ExternalLink,
+  MessageCircle,
 } from "lucide-react";
 import type { DigitalTicket, PreparingTicket } from "@/types/api";
 import { participantApi } from "@/services/participant-api";
@@ -280,6 +281,21 @@ export default function MyTicketsPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Official WhatsApp Group for Confirmed Attendees */}
+                    {(tkt.event?.whatsappUrl || (tkt.event as any)?.whatsapp_url) && (
+                      <div className="mt-4 pt-3 border-t border-white/10">
+                        <a
+                          href={tkt.event?.whatsappUrl || (tkt.event as any)?.whatsapp_url || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-xs font-bold text-black transition hover:bg-[#20bd5a] hover:shadow-[0_0_20px_rgba(37,211,102,0.3)]"
+                        >
+                          <MessageCircle className="h-4 w-4 fill-current" />
+                          Join Event WhatsApp Group
+                        </a>
+                      </div>
+                    )}
                   </div>
 
                   {/* High Contrast QR Code Presentation */}
