@@ -395,7 +395,7 @@ export default function Hero() {
           start: "top top",
           end: "bottom bottom",
           // Touch scrolling already has native momentum; extra smoothing only adds lag + extra frames on phones.
-          scrub: lite ? true : 0.5,
+          scrub: lite ? 0.7 : 0.5,
           invalidateOnRefresh: true,
         },
       });
@@ -564,7 +564,7 @@ export default function Hero() {
         ref={rootRef}
         id="hero"
         style={colorVariables}
-        className="relative h-[420svh] text-[#f3ead4]"
+        className={`relative ${lite ? "h-[650svh]" : "h-[420svh]"} text-[#f3ead4]`}
       >
         <div className="sticky top-0 h-[100svh] overflow-hidden bg-transparent">
           {/* Heavy background animation is desktop-only; phones/tablets skip it entirely. */}
