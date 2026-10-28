@@ -28,8 +28,17 @@ export default function RouteShell({
   const isAdmin = pathname === "/admin" || pathname.startsWith("/admin/");
   const isAuthPage = pathname === "/login" || pathname === "/signup";
 
-  if (isAdmin || isAuthPage) {
+  if (isAdmin) {
     return <>{children}</>;
+  }
+
+  if (isAuthPage) {
+    return (
+      <>
+        <Navbar />
+        <div className="relative z-10 flex-1">{children}</div>
+      </>
+    );
   }
 
   return (

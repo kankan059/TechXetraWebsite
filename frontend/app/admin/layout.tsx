@@ -1,30 +1,71 @@
-"use client";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
 
-import { useState } from "react";
-import AdminSidebar from "@/components/admin/AdminSidebar";
-import AdminTopbar from "@/components/admin/AdminTopbar";
+import AdminLayoutShell from "./AdminLayoutShell";
 
-export default function AdminLayout({
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isSuperAdminSession(value: unknown): boolean {
+  if (
+    !isRecord(value) ||
+    value.success !== true ||
+    !isRecord(value.data) ||
+    value.data.authenticated !== true ||
+    !isRecord(value.data.user)
+  ) {
+    return false;
+  }
+
+  return value.data.user.role === "SUPER_ADMIN";
+}
+
+export default async function AdminLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const requestHeaders = await headers();
+  const cookie = requestHeaders.get("cookie");
 
-  return (
-    <div className="min-h-screen bg-[#080B10] text-[#E8EDF4]">
-      <AdminSidebar
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-      />
+  if (!cookie) {
+    redirect("/login");
+  }
 
-      <div className="min-h-screen lg:pl-64">
-        <AdminTopbar onMenuClick={() => setMenuOpen(true)} />
+  const backendBaseUrl = (
+    process.env.BACKEND_API_URL ||
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    "https://techxetra-backend.onrender.com"
+  )
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/api\/v1$/, "")
+    .replace(/\/api$/, "");
 
-        <main className="min-h-[calc(100vh-5rem)] px-4 py-7 sm:px-6 sm:py-9 lg:px-9">
-          {children}
-        </main>
-      </div>
-    </div>
+  const response = await fetch(
+    `${backendBaseUrl}/api/v1/auth/session`,
+    {
+      headers: { cookie, accept: "application/json" },
+      cache: "no-store",
+    }
   );
+
+  if (response.status === 401 || response.status === 403) {
+    redirect("/login");
+  }
+
+  if (!response.ok) {
+    throw new Error(`Admin session check failed (${response.status})`);
+  }
+
+  const session: unknown = await response.json();
+
+  if (!isSuperAdminSession(session)) {
+    redirect("/login");
+  }
+
+  return <AdminLayoutShell>{children}</AdminLayoutShell>;
 }

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, type FormEvent } from "react";
@@ -6,8 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GoogleLogin } from "@react-oauth/google";
 
-import { participantApi } from "@/services/participant-api";
 import LogoStatic from "@/components/animations/LogoStatic";
+import { participantApi } from "@/services/participant-api";
 
 export default function Login() {
   const router = useRouter();
@@ -24,6 +23,7 @@ export default function Login() {
     try {
       const result = await participantApi.auth.google(idToken);
       const user = result.user;
+
       const isComplete = Boolean(
         user?.profileComplete ?? user?.profile_complete
       );
@@ -60,6 +60,7 @@ export default function Login() {
       });
 
       const user = result.user;
+
       const isComplete = Boolean(
         user?.profileComplete ?? user?.profile_complete
       );
@@ -77,30 +78,9 @@ export default function Login() {
   }
 
   return (
-    <main className="relative isolate min-h-dvh overflow-x-clip px-4 pb-8 pt-20 text-white sm:px-6 sm:pb-10 sm:pt-24 lg:px-10 lg:py-10 xl:px-16">
-      <Link
-        href="/"
-        className="group fixed left-4 top-4 z-50 inline-flex min-h-10 items-center gap-2 border border-white/10 bg-transparent px-3 py-2 text-xs text-white/70 backdrop-blur-md transition-colors hover:border-cyan-300/40 hover:text-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300 sm:left-6 sm:top-6 sm:px-4 sm:text-sm lg:left-8 lg:top-8"
-      >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          fill="none"
-          className="size-4 transition-transform duration-200 group-hover:-translate-x-1"
-        >
-          <path
-            d="M19 12H5M12 19l-7-7 7-7"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-
-        <span>Back to Home</span>
-      </Link>
-
+    <main className="relative isolate min-h-dvh overflow-x-clip px-4 pb-8 pt-20 text-white sm:px-6 sm:pb-10 sm:pt-24 lg:px-10 lg:pb-10 lg:pt-28 xl:px-16">
       <section className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-8 sm:gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-12 xl:gap-16">
+        {/* Left section */}
         <div className="order-2 flex min-w-0 flex-col items-center justify-center lg:order-1 lg:items-start">
           <div className="relative aspect-square w-full max-w-[19rem] sm:max-w-[23rem] lg:max-w-[27rem] xl:max-w-[31rem]">
             <LogoStatic />
@@ -125,6 +105,7 @@ export default function Login() {
           </div>
         </div>
 
+        {/* Right section: Login form */}
         <div className="order-1 mx-auto flex w-full max-w-md min-w-0 flex-col lg:order-2 lg:max-w-[27rem]">
           <div className="mb-6 lg:hidden">
             <p className="mb-2 font-autotech text-[10px] tracking-[0.17em] text-cyan-300 sm:text-xs">
@@ -225,7 +206,9 @@ export default function Login() {
                   <GoogleLogin
                     onSuccess={(credentialResponse) => {
                       if (credentialResponse.credential) {
-                        void handleGoogleLogin(credentialResponse.credential);
+                        void handleGoogleLogin(
+                          credentialResponse.credential
+                        );
                       } else {
                         setError("Google sign-in could not be completed.");
                       }

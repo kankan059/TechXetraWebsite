@@ -27,7 +27,7 @@ export default function LogoStatic({
       const context = canvas.getContext("2d");
       if (!context) return;
 
-      const size = 600;
+      const size = 420;
       canvas.width = size;
       canvas.height = size;
       image = new Image();
@@ -61,32 +61,28 @@ export default function LogoStatic({
 
         const pixels = source.getImageData(0, 0, size, size).data;
 
-        context.clearRect(0, 0, size, size);
-        context.save();
-        context.globalCompositeOperation = "lighter";
+        const cyanDots = new Path2D();
+        const whiteDots = new Path2D();
 
-        for (let y = 0; y < size; y += 5) {
-          for (let x = 0; x < size; x += 5) {
+        for (let y = 0; y < size; y += 4) {
+          for (let x = 0; x < size; x += 4) {
             const index = (y * size + x) * 4;
             if (pixels[index + 3] < 70) continue;
 
             const white = (x * 7 + y * 13) % 17 === 0;
-
-            context.fillStyle = white
-              ? "rgba(225,250,255,0.95)"
-              : "rgba(65,205,255,0.88)";
-
-            context.shadowColor = white ? "#B7F3FF" : "#16AFFF";
-            context.shadowBlur = white ? 7 : 5;
-
             const radius = white ? 1.65 : 1.35;
-
-            context.beginPath();
-            context.arc(x, y, radius, 0, Math.PI * 2);
-            context.fill();
+            (white ? whiteDots : cyanDots).moveTo(x + radius, y);
+            (white ? whiteDots : cyanDots).arc(x, y, radius, 0, Math.PI * 2);
           }
         }
 
+        context.clearRect(0, 0, size, size);
+        context.save();
+        context.globalCompositeOperation = "lighter";
+        context.fillStyle = "rgba(65,205,255,0.88)";
+        context.fill(cyanDots);
+        context.fillStyle = "rgba(225,250,255,0.95)";
+        context.fill(whiteDots);
         context.restore();
       };
 
@@ -124,6 +120,7 @@ export default function LogoStatic({
       ref={canvasRef}
       aria-hidden="true"
       className={`pointer-events-none block h-full w-full ${className}`}
+      style={{ filter: "drop-shadow(0 0 6px rgba(22,175,255,0.65))" }}
     />
   );
 }

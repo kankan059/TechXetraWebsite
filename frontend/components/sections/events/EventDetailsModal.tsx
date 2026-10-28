@@ -215,7 +215,7 @@ export default function EventDetailsModal({
   return (
     <div
       role="presentation"
-      className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden bg-black/80 backdrop-blur-md sm:items-center sm:p-5 lg:p-8"
+      className="fixed inset-0 z-50 flex touch-pan-y items-end justify-center overflow-hidden bg-black/80 backdrop-blur-md sm:items-start sm:px-5 sm:pb-5 sm:pt-24 lg:px-8 lg:pb-8 lg:pt-24"
       onMouseDown={(click) => {
         if (click.target === click.currentTarget) onClose();
       }}
@@ -224,7 +224,7 @@ export default function EventDetailsModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="event-details-title"
-        className="relative flex max-h-[96dvh] min-h-0 w-full max-w-[1040px] flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-[#0E1C23] text-[#F5F0DE] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)] sm:max-h-[90dvh] sm:rounded-2xl"
+        className="relative flex h-[96dvh] max-h-[96dvh] min-h-0 w-full max-w-[1040px] flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-[#0E1C23] text-[#F5F0DE] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)] sm:h-auto sm:max-h-[calc(100dvh-7rem)] sm:rounded-2xl"
       >
         {/* Accent glow line */}
         <div
@@ -269,7 +269,12 @@ export default function EventDetailsModal({
         </header>
 
         {/* Scrollable content */}
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-color:rgba(85,223,255,0.35)_transparent] [scrollbar-width:thin]">
+        <div
+          data-lenis-prevent
+          data-lenis-prevent-wheel
+          className="min-h-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain [scrollbar-color:rgba(85,223,255,0.35)_transparent] [scrollbar-width:thin]"
+          style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
+        >
           <div className="p-4 sm:p-7 lg:p-9">
             {/* Top: poster + title/description */}
             <div className="grid min-w-0 grid-cols-1 items-start gap-6 min-[640px]:grid-cols-[200px_minmax(0,1fr)] min-[640px]:gap-7 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-10">
@@ -406,7 +411,12 @@ export default function EventDetailsModal({
             <Link
               href={`/events/${event.slug || event.id}`}
               onClick={onClose}
-              className="group flex min-h-12 items-center justify-center gap-3 rounded-lg bg-[#55DFFF] px-6 py-3 text-sm text-[#09151B] shadow-lg shadow-[#55DFFF]/20 transition-all [font-family:var(--font-gotham-bold)] hover:bg-[#8BEAFF] hover:shadow-[#55DFFF]/35 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF] sm:min-w-[260px]"
+              className="group flex min-h-12 items-center justify-center gap-3 rounded-lg px-6 py-3 text-sm text-[#09151B] shadow-lg transition-all [font-family:var(--font-gotham-bold)] hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-4 sm:min-w-[260px]"
+              style={{
+                backgroundColor: accent,
+                boxShadow: `0 10px 28px -12px ${accent}80`,
+                outlineColor: accent,
+              }}
             >
               Register on TechXetra
               <span

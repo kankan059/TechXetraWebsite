@@ -99,29 +99,7 @@ export default function Signup() {
   }
 
   return (
-    <main className="relative isolate flex min-h-dvh items-center justify-center overflow-x-clip px-5 pb-8 pt-24 text-white sm:px-8 sm:py-12 lg:px-10 lg:py-8 xl:px-16">
-      <Link
-        href="/"
-        className="group fixed left-4 top-4 z-50 inline-flex min-h-10 items-center gap-2 border border-white/15 bg-transparent px-3 py-2 text-xs text-white/75 backdrop-blur-md transition-colors hover:border-cyan-300/50 hover:text-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300 sm:left-6 sm:top-6 sm:px-4 sm:text-sm lg:left-8 lg:top-8"
-      >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          fill="none"
-          className="size-4 transition-transform duration-200 group-hover:-translate-x-1"
-        >
-          <path
-            d="M19 12H5M12 19l-7-7 7-7"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-
-        <span>Back to Home</span>
-      </Link>
-
+    <main className="relative isolate flex min-h-dvh items-center justify-center overflow-x-clip px-5 pb-8 pt-24 text-white sm:px-8 sm:pb-12 sm:pt-28 lg:px-10 lg:pb-8 lg:pt-28 xl:px-16">
       <section className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-7 sm:gap-9 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 xl:gap-16">
         {/* Desktop branding */}
         <div className="hidden min-w-0 flex-col justify-center lg:flex">
