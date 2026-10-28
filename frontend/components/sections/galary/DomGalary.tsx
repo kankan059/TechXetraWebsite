@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import { useGesture } from '@use-gesture/react';
 import type { ImageItem } from '@/data/galary';
 type GalleryImage = string | { src: string; alt?: string };
@@ -66,11 +66,6 @@ function buildItems(pool: GalleryImage[], seg: number): ItemDef[] {
   const totalSlots = coords.length;
   if (pool.length === 0) {
     return coords.map(c => ({ ...c, src: '', alt: '' }));
-  }
-  if (pool.length > totalSlots) {
-    console.warn(
-      `[DomeGallery] Provided image count (${pool.length}) exceeds available tiles (${totalSlots}). Some images will not be shown.`
-    );
   }
 
   const normalizedImages = pool.map(image => {
@@ -154,6 +149,15 @@ export default function DomeGallery({
   const lastDragEndAt = useRef(0);
 
   const scrollLockedRef = useRef(false);
+    // --- SAFE CLIENT-SIDE SHUFFLE ---
+  const [displayImages, setDisplayImages] = useState<GalleryImage[]>(images);
+  
+  useEffect(() => {
+    // Shuffle images only after the component mounts in the browser
+    const shuffled = [...images].sort(() => Math.random() - 0.5);
+    setDisplayImages(shuffled);
+  }, [images]);
+  // --------------------------------
   const lockScroll = useCallback(() => {
     if (scrollLockedRef.current) return;
     scrollLockedRef.current = true;
@@ -166,7 +170,7 @@ export default function DomeGallery({
     document.body.classList.remove('dg-scroll-lock');
   }, []);
 
-  const items = useMemo(() => buildItems(images, segments), [images, segments]);
+const items = useMemo(() => buildItems(displayImages, segments), [displayImages, segments]);
 
   const applyTransform = (xDeg: number, yDeg: number) => {
     const el = sphereRef.current;

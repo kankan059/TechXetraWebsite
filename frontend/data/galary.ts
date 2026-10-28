@@ -1,37 +1,35 @@
-
-import { readdir } from "node:fs/promises";
-import path from "node:path";
+import galleryManifest from "./gallery-manifest.json";
 
 export type ImageItem = {
   src: string;
   alt: string;
 };
 
-const supportedImageExtensions = new Set([
-  ".avif",
-  ".gif",
-  ".jpeg",
-  ".jpg",
-  ".png",
-  ".webp",
-]);
+const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+
+if (!CLOUD_NAME) {
+  console.warn("⚠️ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME is not set. Cloudinary URLs will be invalid.");
+}
+
+const BASE_URL = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload`;
+
+// f_auto: automatic format (WebP/AVIF)
+// q_auto: automatic quality optimization
+// w_1200: limit max width to 1200px (adjust based on your dome gallery needs)
+// c_limit: limit dimensions without cropping
+const TRANSFORMATIONS = "f_auto,q_auto,w_1200,c_limit";
 
 export async function getDomGalleryImages(): Promise<ImageItem[]> {
-  const imagesDirectory = path.join(process.cwd(), "public", "Images");
-  const files = await readdir(imagesDirectory, { withFileTypes: true });
+  // Fail gracefully if the environment variable is missing
+  if (!CLOUD_NAME) {
+    return [];
+  }
 
-  const images = files
-    .filter(
-      (file) =>
-        file.isFile() &&
-        supportedImageExtensions.has(path.extname(file.name).toLowerCase()),
-    )
-    .map((file) => ({
-      src: `/Images/${encodeURIComponent(file.name)}`,
-      alt: path.parse(file.name).name.replace(/[-_]+/g, " "),
-      fileName: file.name,
-    }))
-    .sort((a, b) => a.fileName.localeCompare(b.fileName));
-
-  return images.map(({ src, alt }) => ({ src, alt }));
+  return galleryManifest
+    // Sort by publicId to maintain a deterministic order (replaces the old fileName sort)
+    .sort((a, b) => a.publicId.localeCompare(b.publicId))
+    .map((item) => ({
+      src: `${BASE_URL}/${TRANSFORMATIONS}/${item.publicId}`,
+      alt: item.alt || "TechXetra Gallery Image",
+    }));
 }
