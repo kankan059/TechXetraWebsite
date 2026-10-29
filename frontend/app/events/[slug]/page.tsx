@@ -768,37 +768,12 @@ export default function EventDetailPage({
         </div>
 
         {/* 2. Prize Pool & Awards Section (if present) */}
-        {(prizePoolDisplay || prizeBreakdown.length > 0) && (
+        {prizePoolDisplay && (
           <div className="rounded-3xl border border-cyan-300/20 bg-transparent p-6 sm:p-8">
-            <div>
-              <h2 className="text-xl font-bold text-white">Prize Pool & Awards</h2>
-              {prizePoolDisplay && (
-                <p className="text-sm font-bold text-cyan-300">Total: {prizePoolDisplay}</p>
-              )}
-            </div>
-
-            {prizeBreakdown.length > 0 && (
-              <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-                {prizeBreakdown.map((p, idx) => (
-                  <div
-                    key={idx}
-                    className="rounded-2xl border border-cyan-300/15 bg-transparent p-4 transition hover:border-cyan-300/40"
-                  >
-                    <div className="flex items-center gap-2 text-cyan-300">
-                      <span className="text-xs font-bold uppercase">{p.position || `Prize ${idx + 1}`}</span>
-                    </div>
-                    {p.prize_inr ? (
-                      <p className="mt-2 text-2xl font-black text-white">
-                        ₹{p.prize_inr.toLocaleString("en-IN")}
-                      </p>
-                    ) : null}
-                    {p.reward && <p className="mt-1 text-xs text-white/70">{p.reward}</p>}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {prizeNotes && <p className="mt-4 text-xs text-cyan-300/80 italic">{prizeNotes}</p>}
+            <h2 className="text-xl font-bold text-white">Prize Pool & Awards</h2>
+            <p className="mt-2 text-sm font-bold text-cyan-300">
+              Total: {prizePoolDisplay}
+            </p>
           </div>
         )}
 
