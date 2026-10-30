@@ -781,11 +781,21 @@ export interface ReviewStaffPaymentBody {
 export interface LeadUpdateEventBody {
   description?: string | null;
   venue?: string | null;
+  imageUrl?: string | null;
   imageURL?: string | null;
   metadata?: string | null;
   form_schema?: string | FormFieldDefinition[] | null;
   formSchema?: FormFieldDefinition[] | null;
   registration_closes_at?: number | null;
+  registrationClosesAt?: number | null;
+  capacity?: number | null;
+  rules?: string | string[] | null;
+  shortDescription?: string | null;
+  startsAt?: number | null;
+  endsAt?: number | null;
+  festDay?: number | null;
+  timeline?: unknown[];
+  prizes?: unknown[];
   whatsappUrl?: string | null;
   whatsapp_url?: string | null;
 }
