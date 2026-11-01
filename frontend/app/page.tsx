@@ -1,4 +1,5 @@
 import About from "@/components/sections/about/About";
+import ComingSoon from "@/components/sections/ComingSoon";
 import EventGlimpse from "@/components/sections/events/EventGlimpse";
 import ExodusHero from "@/components/sections/hero/ExodusHero";
 import Hero from "@/components/sections/hero/Hero";
@@ -9,11 +10,13 @@ export default function HomePage() {
   return (
     <div className="">
       <main>
-        <ExodusHero/>
+
+        <ComingSoon/>
+        {/* <ExodusHero/> */}
         {/* <Hero/> */}
-        <About />
-        <EventGlimpse />
-        <HeroQA questions={heroQuestions} />
+        {/* <About /> */}
+        {/* <EventGlimpse /> */}
+        {/* <HeroQA questions={heroQuestions} /> */}
       </main>
     </div>
   );
