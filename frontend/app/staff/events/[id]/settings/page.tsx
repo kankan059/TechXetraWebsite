@@ -303,10 +303,13 @@ export default function StaffEventSettingsPage({
 
       await staffApi.events.update(id, {
         venue: venue.trim() || null,
+        imageUrl: imageURL.trim() || null,
         imageURL: imageURL.trim() || null,
         description: description.trim() || null,
         metadata: metadata.trim() || null,
+        registrationClosesAt: deadlineMs,
         registration_closes_at: deadlineMs,
+        formSchema: schemaPayload,
         form_schema: schemaPayload,
         whatsapp_url: whatsappUrl.trim() || null,
         whatsappUrl: whatsappUrl.trim() || null,

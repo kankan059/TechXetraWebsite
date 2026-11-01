@@ -59,17 +59,48 @@ const LEGACY_TYPE_MAP: Record<string, FormFieldType> = {
 };
 
 function normalizeSchema(raw: any[]): FormFieldDefinition[] {
-  return raw.map((f) => {
-    const { description, options, type, ...rest } = f;
-    return {
-      ...rest,
-      type: LEGACY_TYPE_MAP[type] ?? type,
-      ...(description || f.helperText ? { helperText: f.helperText ?? description } : {}),
-      ...(Array.isArray(options)
-        ? { options: options.map((o: any) => (typeof o === "string" ? o : o.label ?? o.value)) }
-        : {}),
-    };
-  });
+  return raw
+    .filter((f) => f && typeof f === "object")
+    .map((f, idx) => {
+      const { description, options, type, ...rest } = f;
+      return {
+        id: f.id || `field_${idx + 1}`,
+        label: f.label || "Question",
+        required: Boolean(f.required),
+        placeholder: f.placeholder || "",
+        ...rest,
+        type: LEGACY_TYPE_MAP[type] ?? (type as FormFieldType) ?? "shortText",
+        ...(description || f.helperText ? { helperText: f.helperText ?? description } : {}),
+        ...(Array.isArray(options)
+          ? {
+              options: options.map((o: any) =>
+                typeof o === "string" ? o : String(o?.label ?? o?.value ?? "")
+              ),
+            }
+          : {}),
+      };
+    });
+}
+
+function parseFormSchema(rawSchema: unknown): FormFieldDefinition[] {
+  if (!rawSchema) return [];
+  if (Array.isArray(rawSchema)) {
+    return normalizeSchema(rawSchema);
+  }
+  if (typeof rawSchema === "object" && rawSchema !== null) {
+    const asObj = rawSchema as any;
+    if (Array.isArray(asObj.fields)) return normalizeSchema(asObj.fields);
+    if (Array.isArray(asObj.questions)) return normalizeSchema(asObj.questions);
+  }
+  if (typeof rawSchema === "string" && rawSchema.trim()) {
+    try {
+      const parsed = JSON.parse(rawSchema);
+      return parseFormSchema(parsed);
+    } catch {
+      return [];
+    }
+  }
+  return [];
 }
 
 export default function AdminEventsPage() {
@@ -189,20 +220,32 @@ export default function AdminEventsPage() {
       await adminApi.events.create({
         slug: createSlug.trim().toLowerCase(),
         title: createTitle.trim(),
+        imageUrl: createImageURL.trim() || null,
         imageURL: createImageURL.trim() || null,
         category: createCategory,
+        festDay: Number(createDay),
         day_of_event: Number(createDay),
+        startsAt: now + 86400000,
         starts_at: now + 86400000,
+        endsAt: now + 86400000 * 2,
         ends_at: now + 86400000 * 2,
         status: "OPEN",
+        isTeam: createIsTeam,
         is_team_event: createIsTeam,
+        minTeamSize: createIsTeam ? Number(createMinTeam) : 1,
         min_team_size: createIsTeam ? Number(createMinTeam) : 1,
+        maxTeamSize: createIsTeam ? Number(createMaxTeam) : 1,
         max_team_size: createIsTeam ? Number(createMaxTeam) : 1,
+        priceModel: createPriceModel,
         price_model: createPriceModel,
+        pricePaise: Number(createPricePaise),
         price_paise: Number(createPricePaise),
         capacity: createCapacity ? Number(createCapacity) : null,
+        capacityUnit: createIsTeam ? "TEAMS" : "SEATS",
         capacity_unit: createIsTeam ? "TEAMS" : "SEATS",
+        scoringEnabled: createCategory === "E_SPORTS",
         scoring_enabled: createCategory === "E_SPORTS",
+        scoringStatus: createCategory === "E_SPORTS" ? "OPEN" : "NOT_APPLICABLE",
         scoring_status: createCategory === "E_SPORTS" ? "OPEN" : "NOT_APPLICABLE",
         whatsappUrl: createWhatsappUrl.trim() || null,
         whatsapp_url: createWhatsappUrl.trim() || null,
@@ -322,12 +365,18 @@ export default function AdminEventsPage() {
     setEditTab("BASIC");
     setEditTitle(evt.title);
     setEditSlug(evt.slug);
-    setEditImageURL(evt.imageURL || (evt as any).imageUrl || (evt as any).image || "");
+    setEditImageURL(
+      evt.imageUrl ||
+      evt.imageURL ||
+      (evt as any).image_url ||
+      (evt as any).image ||
+      ""
+    );
     setEditCategory(evt.category);
-    setEditDay(evt.day_of_event || (evt as any).festDay || 1);
+    setEditDay(evt.festDay || evt.day_of_event || 1);
     setEditVenue(evt.venue || "");
     setEditDescription(evt.description || "");
-    const eventRules = (evt as any).rules;
+    const eventRules = evt.rules ?? (evt as any).rules;
     setEditRules(
       Array.isArray(eventRules)
         ? eventRules.join("\n")
@@ -336,49 +385,55 @@ export default function AdminEventsPage() {
           : ""
     );
     setEditStatus(evt.status);
-    setEditStartsAt(toDatetimeLocal(evt.starts_at));
-    setEditEndsAt(toDatetimeLocal(evt.ends_at));
-    setEditRegistrationClosesAt(toDatetimeLocal(evt.registration_closes_at));
+    setEditStartsAt(toDatetimeLocal(evt.startsAt ?? evt.starts_at));
+    setEditEndsAt(toDatetimeLocal(evt.endsAt ?? evt.ends_at));
+    setEditRegistrationClosesAt(
+      toDatetimeLocal(evt.registrationClosesAt ?? evt.registration_closes_at)
+    );
     setEditWhatsappUrl(
       evt.whatsappUrl ||
       (evt as any).whatsapp_url ||
       ""
     );
 
-    setEditIsTeam(Boolean(evt.is_team_event));
-    setEditMinTeam(evt.min_team_size || 1);
-    setEditMaxTeam(evt.max_team_size || 1);
-    setEditPriceModel(evt.price_model || "FREE");
-    setEditPriceRupees(evt.pricePaise ? (evt.pricePaise / 100).toString() : "0");
+    const isTeam = Boolean(evt.isTeam ?? evt.is_team_event);
+    setEditIsTeam(isTeam);
+    setEditMinTeam(evt.minTeamSize ?? evt.min_team_size ?? (isTeam ? 2 : 1));
+    setEditMaxTeam(evt.maxTeamSize ?? evt.max_team_size ?? (isTeam ? 4 : 1));
+    setEditPriceModel(evt.priceModel ?? evt.price_model ?? "FREE");
+    const rawPricePaise = evt.pricePaise ?? evt.price_paise;
+    setEditPriceRupees(rawPricePaise ? (rawPricePaise / 100).toString() : "0");
+    const rawStudentPaise = evt.studentPricePaise ?? evt.student_price_paise;
     setEditStudentPriceRupees(
-      evt.studentPricePaise !== null && evt.studentPricePaise !== undefined
-        ? (evt.studentPricePaise / 100).toString()
+      rawStudentPaise !== null && rawStudentPaise !== undefined
+        ? (rawStudentPaise / 100).toString()
         : ""
     );
     setEditCapacity(
       evt.capacity !== null && evt.capacity !== undefined ? evt.capacity.toString() : ""
     );
-    setEditCapacityUnit(evt.capacity_unit || (evt.is_team_event ? "TEAMS" : "SEATS"));
+    setEditCapacityUnit(
+      evt.capacityUnit ?? evt.capacity_unit ?? (isTeam ? "TEAMS" : "SEATS")
+    );
 
-    setEditScoringEnabled(Boolean(evt.scoring_enabled));
+    setEditScoringEnabled(Boolean(evt.scoringEnabled ?? evt.scoring_enabled));
     setEditScoringStatus(
+      (evt as any).scoringStatus ||
       (evt as any).scoring_status ||
       (evt.category === "E_SPORTS" ? "OPEN" : "NOT_APPLICABLE")
     );
-    setEditMaxRounds((evt as any).max_rounds || 1);
-    setEditVolunteersCanScore((evt as any).volunteers_can_score !== false);
-    setEditLeaderboardPublic(evt.leaderboard_public !== false);
+    setEditMaxRounds((evt as any).maxRounds || (evt as any).max_rounds || 1);
+    setEditVolunteersCanScore(
+      (evt as any).volunteersCanScore !== false &&
+      (evt as any).volunteers_can_score !== false
+    );
+    setEditLeaderboardPublic(
+      (evt as any).leaderboardPublic !== false &&
+      evt.leaderboard_public !== false
+    );
 
-    if (evt.form_schema) {
-      try {
-        const parsed = JSON.parse(evt.form_schema);
-        setEditFormSchema(Array.isArray(parsed) ? normalizeSchema(parsed) : []);
-      } catch {
-        setEditFormSchema([]);
-      }
-    } else {
-      setEditFormSchema([]);
-    }
+    const rawSchema = evt.formSchema ?? evt.form_schema ?? (evt as any).form_definitions;
+    setEditFormSchema(parseFormSchema(rawSchema));
   };
 
   const handleEditEventSubmit = async (e: React.FormEvent) => {
@@ -395,37 +450,65 @@ export default function AdminEventsPage() {
         ? Math.round(parseFloat(editStudentPriceRupees) * 100)
         : null;
 
+      const rulesArray = editRules
+        .split("\n")
+        .map((r) => r.trim())
+        .filter(Boolean);
+
+      const startsAtVal = fromDatetimeLocal(editStartsAt);
+      const endsAtVal = fromDatetimeLocal(editEndsAt);
+      const regCloseVal = fromDatetimeLocal(editRegistrationClosesAt);
+      const schemaPayload = editFormSchema.length > 0 ? editFormSchema : null;
+
       const payload: Record<string, any> = {
         title: editTitle.trim(),
         slug: editSlug.trim().toLowerCase(),
+        imageUrl: editImageURL.trim() || null,
         imageURL: editImageURL.trim() || null,
         category: editCategory,
+        festDay: Number(editDay),
         day_of_event: Number(editDay),
         venue: editVenue.trim() || null,
         description: editDescription.trim() || null,
-        rules: editRules.trim(),
+        rules: rulesArray.length > 0 ? rulesArray : (editRules.trim() || null),
         status: editStatus,
-        starts_at: fromDatetimeLocal(editStartsAt),
-        ends_at: fromDatetimeLocal(editEndsAt),
-        registration_closes_at: fromDatetimeLocal(editRegistrationClosesAt),
+        startsAt: startsAtVal,
+        starts_at: startsAtVal,
+        endsAt: endsAtVal,
+        ends_at: endsAtVal,
+        registrationClosesAt: regCloseVal,
+        registration_closes_at: regCloseVal,
+        isTeam: editIsTeam,
         is_team_event: editIsTeam,
+        minTeamSize: editIsTeam ? Number(editMinTeam) : 1,
         min_team_size: editIsTeam ? Number(editMinTeam) : 1,
+        maxTeamSize: editIsTeam ? Number(editMaxTeam) : 1,
         max_team_size: editIsTeam ? Number(editMaxTeam) : 1,
+        priceModel: editPriceModel,
         price_model: editPriceModel,
+        pricePaise: pricePaise,
         price_paise: pricePaise,
+        studentPricePaise: studentPricePaise,
         student_price_paise: studentPricePaise,
         capacity: editCapacity ? Number(editCapacity) : null,
+        capacityUnit: editCapacityUnit,
         capacity_unit: editCapacityUnit,
+        scoringEnabled: editCategory === "E_SPORTS" ? editScoringEnabled : false,
         scoring_enabled: editCategory === "E_SPORTS" ? editScoringEnabled : false,
-        form_schema: editFormSchema.length > 0 ? editFormSchema : null,
+        formSchema: schemaPayload,
+        form_schema: schemaPayload,
         whatsappUrl: editWhatsappUrl.trim() || null,
         whatsapp_url: editWhatsappUrl.trim() || null,
       };
 
       if (editCategory === "E_SPORTS") {
+        payload.scoringStatus = editScoringStatus;
         payload.scoring_status = editScoringStatus;
+        payload.maxRounds = Number(editMaxRounds);
         payload.max_rounds = Number(editMaxRounds);
+        payload.volunteersCanScore = editVolunteersCanScore;
         payload.volunteers_can_score = editVolunteersCanScore;
+        payload.leaderboardPublic = editLeaderboardPublic;
         payload.leaderboard_public = editLeaderboardPublic;
       }
 
