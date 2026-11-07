@@ -77,7 +77,7 @@ export default function HeroQA({ questions }: HeroQAProps) {
             FAQ
           </p>
 
-          <h2 className="font-hero text-[clamp(2.5rem,7vw,6rem)] uppercase leading-[0.92] tracking-tight text-white">
+          <h2 className="font-roboto text-[clamp(2.5rem,7vw,6rem)] uppercase leading-[0.92] tracking-tight text-white">
             Got questions
             <span className="text-cyan-300">?</span>
           </h2>

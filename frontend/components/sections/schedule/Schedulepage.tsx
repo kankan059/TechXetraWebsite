@@ -248,7 +248,7 @@ export default function SchedulePage() {
                           : "md:col-start-1"
                         }`}
                     >
-                      <p className="schedule-content font-autotech text-xs uppercase tracking-[0.14em] text-[#55DFFF] sm:text-sm">
+                      <p className="schedule-content font-heading text-xs uppercase tracking-[0.14em] text-[#55DFFF] sm:text-sm">
                         {event.category}
                       </p>
 

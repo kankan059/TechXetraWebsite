@@ -31,7 +31,7 @@ export const sponsors: Sponsor[] = [
   },
   {
     tier: "Community Partners",
-    name: "Better Together",
+    name: "pepsi",
     description:
       "Celebrating the people and communities that help ideas grow.",
     image: "https://images.unsplash.com/photo-1601158935942-52255782d322?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"

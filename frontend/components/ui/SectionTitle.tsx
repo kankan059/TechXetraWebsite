@@ -35,7 +35,7 @@ export default function SectionTitle({
 
       <h2
         ref={titleRef}
-        className="section-title-heading font-autotech text-[clamp(2.3rem,6vw,6rem)] uppercase leading-[0.95] text-white"
+        className="section-title-heading font-roboto text-[clamp(2.3rem,6vw,6rem)] uppercase leading-[0.95] text-white"
       >
         <span className="sr-only">{title}.</span>
 
