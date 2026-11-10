@@ -73,11 +73,27 @@ const WORLDS = [
   },
 ];
 
-const SECTION_VARS = [
-  { "--accent": "#B79CFF", "--soft": "rgba(139,92,246,0.38)", "--g1": "#EFE6FF", "--g2": "#A78BFA" },
-  { "--accent": "#FFD166", "--soft": "rgba(250,204,21,0.30)", "--g1": "#FFE08A", "--g2": "#6EE7A8" },
-] as React.CSSProperties[];
+type SectionStyles = React.CSSProperties & {
+  "--accent": string;
+  "--soft": string;
+  "--g1": string;
+  "--g2": string;
+};
 
+const SECTION_VARS: SectionStyles[] = [
+  {
+    "--accent": "#B79CFF",
+    "--soft": "rgba(139,92,246,0.38)",
+    "--g1": "#EFE6FF",
+    "--g2": "#A78BFA",
+  },
+  {
+    "--accent": "#FFD166",
+    "--soft": "rgba(250,204,21,0.30)",
+    "--g1": "#FFE08A",
+    "--g2": "#6EE7A8",
+  },
+];
 /* -------------------------------------------------------------------------- */
 /*  Constellation helpers                                                      */
 /* -------------------------------------------------------------------------- */
