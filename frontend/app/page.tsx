@@ -17,7 +17,7 @@ export default function HomePage() {
         {/* <Hero/> */}
         <About />
         <EventGlimpse />
-        <SponserGlimpse />
+        {/* <SponserGlimpse /> */}
         <HeroQA questions={heroQuestions} />
       </main>
     </div>

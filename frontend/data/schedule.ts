@@ -36,11 +36,11 @@ export const schedule: ScheduleDay[] = [
   {
     id: "day-1",
     label: "Day One",
-    date: "29 JAN 2026",
+    date: "29 JAN 2027",
     theme: "The Beginning",
     events: [
-      createEvent("northrun", "NORTHRUN", "A long-distance run to kick off TechXetra 2026.", "Recreational"),
-      createEvent("inaugural-ceremony", "Inaugural Ceremony", "The opening ceremony of TechXetra 2026.", "Ceremony"),
+      createEvent("northrun", "NORTHRUN", "A long-distance run to kick off TechXetra 2027.", "Recreational"),
+      createEvent("inaugural-ceremony", "Inaugural Ceremony", "The opening ceremony of TechXetra 2027.", "Ceremony"),
       createEvent("army-exhibition", "Army Exhibition", "An exhibition by the Indian Army.", "Exhibition"),
       createEvent("algo-maze", "Algo Maze", "A robotics challenge focused on algorithmic maze solving.", "Technical"),
       createEvent("robo-drift", "Robo Drift", "A high-speed robotics challenge where engineering meets racing.", "Technical"),
@@ -57,7 +57,7 @@ export const schedule: ScheduleDay[] = [
   {
     id: "day-2",
     label: "Day Two",
-    date: "30 JAN 2026",
+    date: "30 JAN 2027",
     theme: "Create & Compete",
     events: [
       createEvent("algo-maze", "Algo Maze", "A robotics challenge focused on algorithmic maze solving.", "Technical"),
@@ -83,7 +83,7 @@ export const schedule: ScheduleDay[] = [
   {
     id: "day-3",
     label: "Day Three",
-    date: "31 JAN 2026",
+    date: "31 JAN 2027",
     theme: "The Grand Finale",
     events: [
       createEvent("conxetra", "ConXetra", "A cosplay showcase celebrating character craftsmanship and stage presentation.", "Interactive"),

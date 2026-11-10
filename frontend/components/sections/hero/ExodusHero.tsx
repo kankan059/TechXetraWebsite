@@ -33,7 +33,7 @@ const LITE_QUERY = "(max-width: 1023px), (pointer: coarse)";
 const FONT = {
   display: "font-roboto",
   mono: "font-pixel",
-  body: "font-cta",
+  body: "font-pixel",
 } as const;
 
 const COPY = {

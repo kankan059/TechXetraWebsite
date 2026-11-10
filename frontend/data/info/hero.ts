@@ -1,7 +1,7 @@
 export const heroData = {
   title: "TECHXTRA",
 
-  year: "2026",
+  year: "2027",
 
   conceptualTheme: "EXODUS",
 

@@ -4,7 +4,7 @@ export const navigation = [
   // { label: "Passes", href: "/checkout" },
   // { label: "Leaderboards", href: "/leaderboards" },
   { label: "Schedule", href: "/schedule" },
-  // { label: "Sponsors", href: "/sponsors" },
+  { label: "Sponsors", href: "/sponsors" },
   { label: "Gallery", href: "/gallery" },
   // { label: "Team", href: "/team" },
 ];
