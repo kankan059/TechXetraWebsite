@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import gsap from "gsap";
+import Lenis from "lenis";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 import { schedule } from "@/data/schedule";
@@ -291,6 +292,7 @@ export default function SchedulePage() {
   const timelineRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const switched = useRef(false);
+  const lenisRef = useRef<Lenis | null>(null);
 
   const dayIndex = Math.max(
     0,
@@ -298,6 +300,39 @@ export default function SchedulePage() {
   );
   const currentDay = schedule[dayIndex] ?? schedule[0];
   const theme = DAY_THEMES[dayIndex % DAY_THEMES.length];
+
+  useLayoutEffect(() => {
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduceMotion) return;
+
+    const lenis = new Lenis({
+      duration: 1.45,
+      easing: (t: number) => 1 - Math.pow(1 - t, 4),
+      smoothWheel: true,
+      wheelMultiplier: 0.65,
+      touchMultiplier: 0.9,
+      syncTouch: false,
+      anchors: true,
+    });
+
+    lenisRef.current = lenis;
+    lenis.on("scroll", ScrollTrigger.update);
+
+    const update = (time: number) => {
+      lenis.raf(time * 1000);
+    };
+
+    gsap.ticker.add(update);
+    gsap.ticker.lagSmoothing(0);
+
+    return () => {
+      gsap.ticker.remove(update);
+      lenis.off("scroll", ScrollTrigger.update);
+      lenis.destroy();
+      lenisRef.current = null;
+      gsap.ticker.lagSmoothing(500, 33);
+    };
+  }, []);
 
   const selectDay = (id: string) => {
     if (id === activeDay) return;
@@ -469,7 +504,12 @@ export default function SchedulePage() {
       if (head) {
         const rect = head.getBoundingClientRect();
         if (rect.top < 0) {
-          window.scrollTo({ top: rect.top + window.scrollY - 96, behavior: "auto" });
+          const targetY = rect.top + window.scrollY - 96;
+          if (lenisRef.current) {
+            lenisRef.current.scrollTo(targetY, { duration: 1.25, force: true });
+          } else {
+            window.scrollTo({ top: targetY, behavior: "auto" });
+          }
         }
       }
     }
@@ -733,10 +773,18 @@ export default function SchedulePage() {
     if (!row) return;
     const rect = row.getBoundingClientRect();
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({
-      top: rect.top + window.scrollY + rect.height / 2 - window.innerHeight / 2,
-      behavior: reduced ? "auto" : "smooth",
-    });
+    const targetY =
+      rect.top + window.scrollY + rect.height / 2 - window.innerHeight / 2;
+
+    if (!reduced && lenisRef.current) {
+      lenisRef.current.scrollTo(targetY, {
+        duration: 1.35,
+        easing: (t: number) => 1 - Math.pow(1 - t, 4),
+        force: true,
+      });
+    } else {
+      window.scrollTo({ top: targetY, behavior: "auto" });
+    }
   };
 
   const rootStyle = {
@@ -798,7 +846,7 @@ export default function SchedulePage() {
       </div>
 
       {/* Side wheel */}
-      <nav aria-label="Schedule position" className="pointer-events-none absolute inset-0 z-20">
+      <nav aria-label="Schedule position" className="sch-side-wheel pointer-events-none absolute inset-0 z-20">
         <div className="sticky top-0 h-svh w-full overflow-hidden">
           <div
             ref={railRef}
@@ -954,7 +1002,7 @@ export default function SchedulePage() {
         {/* Days and timeline */}
         <div
           data-days
-          className="mx-auto w-full max-w-[1320px] pb-16 pl-[60px] pr-4 pt-10 min-[600px]:pl-[104px] min-[600px]:pr-8 min-[1000px]:pl-[176px] min-[1000px]:pr-12 sm:pt-16"
+          className="mx-auto w-full max-w-[1320px] pb-16 pl-[64px] pr-4 pt-10 min-[600px]:pl-[104px] min-[600px]:pr-8 min-[768px]:pl-[132px] min-[1000px]:pl-[176px] min-[1000px]:pr-12 sm:pt-16"
         >
           <div data-intro className="mb-10 sm:mb-14">
             <p className="flex items-center gap-3 font-pixel text-[9px] tracking-[0.24em] text-[var(--accent)] sm:text-[10px]">

@@ -1,54 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
 import Events from "@/components/sections/events/Events";
 import EventsDirectory from "@/components/sections/events/EventsDirectory";
-
-export default function EventsPage() {
-  const [activeView, setActiveView] = useState<"events" | "directory">(
-    "events"
-  );
-
-  const switchView = (view: "events" | "directory") => {
-    setActiveView(view);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
+function EventsContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const isDirectory = searchParams.get("view") === "directory";
 
   return (
-    <main className="min-h-screen">
-      {activeView === "events" ? (
-        <>
-          <Events />
+    <div className="relative min-h-screen">
+      {/* Floating View Switcher */}
+      <div className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2">
+        <div className="flex items-center gap-1 rounded-full border border-white/20 bg-[#0d131f]/80 p-1.5 shadow-2xl backdrop-blur-xl">
+          <button
+            type="button"
+            onClick={() => router.push("/events")}
+            className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
+              !isDirectory
+                ? "bg-cyan-300 text-black shadow-lg"
+                : "text-white/70 hover:text-white"
+            }`}
+          >
+            Featured Tracks
+          </button>
 
-          <div className="flex justify-center px-4 pb-16 pt-6">
-            <button
-              onClick={() => switchView("directory")}
-              className="group flex cursor-pointer items-center gap-2 text-[11px] tracking-wider text-white/45 transition-colors duration-300 hover:text-[#55DFFF]"
-            >
-              <span>Explore Event Directory</span>
-              <span className="transition-transform duration-300 group-hover:translate-x-1">
-                →
-              </span>
-            </button>
-          </div>
-        </>
+          <button
+            type="button"
+            onClick={() => router.push("/events?view=directory")}
+            className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition ${
+              isDirectory
+                ? "bg-cyan-300 text-black shadow-lg"
+                : "text-white/70 hover:text-white"
+            }`}
+          >
+            All Events
+          </button>
+        </div>
+      </div>
+
+      {isDirectory ? (
+        <EventsDirectory />
       ) : (
-        <>
-          <EventsDirectory />
-
-          <div className="flex justify-center px-4 pb-16 pt-6">
-            <button
-              onClick={() => switchView("events")}
-              className="group flex cursor-pointer items-center gap-2 text-[11px] tracking-wider text-white/45 transition-colors duration-300 hover:text-[#55DFFF]"
-            >
-              <span className="transition-transform duration-300 group-hover:-translate-x-1">
-                ←
-              </span>
-              <span>Back to Events</span>
-            </button>
-          </div>
-        </>
+        <div className="relative">
+          <Events />
+        </div>
       )}
-    </main>
+    </div>
+  );
+}
+
+export default function EventsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#07090e]" />}>
+      <EventsContent />
+    </Suspense>
   );
 }

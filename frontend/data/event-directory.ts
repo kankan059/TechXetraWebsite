@@ -34,7 +34,7 @@ export const DIRECTORY_COPY = {
   passPriceLabel: "Pass pricing",
   passButton: "Reserve pass",
   eyebrow: "Discover / Participate / Compete",
-  title: "Events directory",
+  title: "All Events",
   description:
     "Explore technical challenges, cultural contests, gaming tournaments, sports and workshops across TechXetra.",
   leaderboardLink: "Tournament leaderboards",

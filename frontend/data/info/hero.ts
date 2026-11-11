@@ -1,7 +1,7 @@
 export const heroData = {
   title: "TECHXTRA",
 
-  year: "2027",
+  year: "12th Edition",
 
   conceptualTheme: "EXODUS",
 
@@ -31,7 +31,7 @@ export const heroData = {
 
 export const siteConfig = {
   name: "TECHXTRA",
-  year: "2026",
+  year: "12th Edition",
   theme: "EXODUS × ZODIAC",
   dates: "NOV 12-14, 2026",
   location: "TEZPUR UNIVERSITY, ASSAM",

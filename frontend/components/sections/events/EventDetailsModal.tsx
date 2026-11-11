@@ -215,7 +215,7 @@ export default function EventDetailsModal({
   return (
     <div
       role="presentation"
-      className="fixed inset-0 z-50 flex touch-pan-y items-end justify-center overflow-hidden bg-black/80 backdrop-blur-md sm:items-start sm:px-5 sm:pb-5 sm:pt-24 lg:px-8 lg:pb-8 lg:pt-24"
+      className="fixed inset-0 z-[100] flex touch-pan-y items-center justify-center overflow-hidden bg-black/65 p-3 backdrop-blur-md sm:p-5 lg:p-8"
       onMouseDown={(click) => {
         if (click.target === click.currentTarget) onClose();
       }}
@@ -224,7 +224,7 @@ export default function EventDetailsModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="event-details-title"
-        className="relative flex h-[96dvh] max-h-[96dvh] min-h-0 w-full max-w-[1040px] flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-[#0E1C23] text-[#F5F0DE] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)] sm:h-auto sm:max-h-[calc(100dvh-7rem)] sm:rounded-2xl"
+        className="relative flex h-[min(88dvh,760px)] max-h-full min-h-0 w-full max-w-[1040px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0E1C23] text-[#F5F0DE] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)] sm:h-auto sm:max-h-[calc(100dvh-2.5rem)]"
       >
         {/* Accent glow line */}
         <div

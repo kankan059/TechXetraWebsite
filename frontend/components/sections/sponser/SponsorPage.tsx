@@ -4,8 +4,8 @@ import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import Image from "next/image";
 import gsap from "gsap";
+import Lenis from "lenis";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-
 import Button from "@/components/ui/Button";
 import { sponsors } from "@/data/sponser";
 import LogoStatic from "@/components/animations/LogoStatic";
@@ -622,6 +622,28 @@ export default function SponsorPage({
     if (!root) return;
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Lenis provides the page-level wheel smoothing; ScrollTrigger follows its scroll updates.
+    const lenis = reducedMotion
+      ? null
+      : new Lenis({
+          duration: 1.35,
+          easing: (t: number) => 1 - Math.pow(1 - t, 4),
+          smoothWheel: true,
+          wheelMultiplier: 0.65,
+          touchMultiplier: 1,
+          syncTouch: false,
+        });
+
+    const lenisTicker = lenis
+      ? (time: number) => lenis.raf(time * 1000)
+      : null;
+
+    if (lenis && lenisTicker) {
+      lenis.on("scroll", ScrollTrigger.update);
+      gsap.ticker.add(lenisTicker);
+    }
+
     const tierSections = Array.from(root.querySelectorAll<HTMLElement>("[data-tier-section]"));
     const worldEls = Array.from(root.querySelectorAll<HTMLElement>("[data-tier-world]"));
 
@@ -885,6 +907,11 @@ export default function SponsorPage({
       sizeObserver.disconnect();
       window.removeEventListener("resize", onResize);
       gsap.ticker.remove(tick);
+      if (lenisTicker) gsap.ticker.remove(lenisTicker);
+      if (lenis) {
+        lenis.off("scroll", ScrollTrigger.update);
+        lenis.destroy();
+      }
       media.revert();
     };
   }, [groups]);

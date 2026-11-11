@@ -3,24 +3,88 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import {
   Ticket,
-  GraduationCap,
   RefreshCw,
   AlertTriangle,
   ArrowLeft,
+  ArrowUpRight,
   CheckCircle2,
-  Calendar,
-  MapPin,
-  Clock,
-  ShieldCheck,
-  ExternalLink,
+  GraduationCap,
   MessageCircle,
 } from "lucide-react";
 import type { DigitalTicket, PreparingTicket } from "@/types/api";
 import { participantApi } from "@/services/participant-api";
 import { ApiError } from "@/lib/api-client";
+import ParticipantPass from "@/components/sections/tickets/ParticipantPass";
+import TicketsBackdrop from "@/components/sections/tickets/TicketsBackdrop";
+
+/* ------------------------------------------------------------------ */
+/* Mapping helpers: the API shape is read defensively, so a renamed    */
+/* field never crashes the page. Adjust the key lists to your payload. */
+/* ------------------------------------------------------------------ */
+
+function pick(obj: unknown, keys: string[]): string {
+  if (!obj || typeof obj !== "object") return "";
+  const rec = obj as Record<string, unknown>;
+  for (const key of keys) {
+    const v = rec[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
+}
+
+function eventNames(tkt: DigitalTicket): string[] {
+  const rec = tkt as unknown as Record<string, unknown>;
+  const list = rec.events ?? rec.registered_events ?? rec.registeredEvents;
+  if (Array.isArray(list)) {
+    const names = list
+      .map((e) => (typeof e === "string" ? e : pick(e, ["title", "name"])))
+      .filter(Boolean);
+    if (names.length) return names;
+  }
+  const title = tkt.event?.title;
+  return title ? [title] : [];
+}
+
+function toPassProps(tkt: DigitalTicket) {
+  const rec = tkt as unknown as Record<string, unknown>;
+  const type = String(tkt.ticketType || tkt.ticket_type || "").toUpperCase();
+  const tier = String(tkt.tier || "");
+  const base = type.includes("DELEGATE") ? "Delegate" : "Participant";
+  const tierLabel = tier ? tier.charAt(0) + tier.slice(1).toLowerCase() : "";
+
+  return {
+    name:
+      pick(tkt, ["participant_name", "participantName", "holder_name", "holderName", "user_name", "full_name", "name"]) ||
+      pick(rec.user, ["full_name", "fullName", "name"]) ||
+      pick(rec.participant, ["full_name", "fullName", "name"]) ||
+      "TechXetra Participant",
+    techxetraId:
+      pick(tkt, ["participant_id", "participantId", "techxetra_id", "techxetraId", "user_code", "userCode"]) ||
+      pick(rec.user, ["techxetra_id", "techxetraId", "participant_id", "participantId"]) ||
+      tkt.id,
+    category: tierLabel ? `${base} · ${tierLabel}` : base,
+    events: eventNames(tkt),
+    venue: tkt.event?.venue || undefined,
+    qrValue: tkt.qrToken || tkt.qr_token || "",
+    ticketNumber: tkt.id,
+  };
+}
+
+function whatsappLink(tkt: DigitalTicket): string {
+  const url = pick(tkt.event, ["whatsappUrl", "whatsapp_url"]);
+  return /^https:\/\//i.test(url) ? url : "";
+}
+
+const STATE_STYLE: Record<string, string> = {
+  VALID: "border-emerald-400/30 bg-emerald-400/10 text-emerald-300",
+  UPCOMING: "border-sky-400/30 bg-sky-400/10 text-sky-300",
+};
+
+/* ------------------------------------------------------------------ */
+/* Page                                                                */
+/* ------------------------------------------------------------------ */
 
 export default function MyTicketsPage() {
   const router = useRouter();
@@ -38,14 +102,18 @@ export default function MyTicketsPage() {
       setError(null);
 
       const data = await participantApi.tickets.myTickets();
-      setTickets(data?.tickets || []);
+      setTickets(
+        (data?.tickets || []).filter(
+          (ticket) => (ticket.ticketType || ticket.ticket_type) !== "GATE_PASS"
+        )
+      );
       setPreparingTickets(data?.preparing_tickets || []);
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 401) {
         router.push("/login?redirect=/me/tickets");
         return;
       }
-      setError(err instanceof Error ? err.message : "Error loading passes");
+      setError(err instanceof Error ? err.message : "Could not load your passes. Try refreshing.");
     } finally {
       setLoading(false);
     }
@@ -62,276 +130,200 @@ export default function MyTicketsPage() {
 
     try {
       await participantApi.purchases.retryFulfillment(purchaseId);
-      setSuccess("Pass generation initiated! Refreshing tickets...");
+      setSuccess("Pass generation started. Refreshing your tickets...");
       void fetchTickets();
     } catch (err: unknown) {
       setError(
         err instanceof Error
           ? err.message
-          : "Fulfillment retry requires administrator approval. Please contact support."
+          : "Retrying needs administrator approval. Please contact support."
       );
     } finally {
       setRetryingId(null);
     }
   };
 
+  const hasContent = tickets.length > 0 || preparingTickets.length > 0;
+
   return (
-    <main className="relative z-10 min-h-screen px-4 pb-24 pt-32 text-white sm:px-8">
-      <div className="mx-auto max-w-5xl space-y-8">
-        <Link
-          href="/dashboard"
-          className="inline-flex items-center gap-2 text-xs text-white/60 transition hover:text-white"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </Link>
+    <>
+      <TicketsBackdrop />
 
-        {/* Header */}
-        <div className="flex flex-col justify-between gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-center">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-cyan-300">
-              ADMISSION & VERIFICATION
-            </span>
-            <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Digital Tickets & Passes
-            </h1>
-            <p className="mt-2 text-sm text-white/60">
-              Present your signed QR token at fest gates and event venues for contactless check-in.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => void fetchTickets()}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-2 text-xs text-slate-300 transition hover:border-cyan-300/40 hover:text-cyan-300"
+      <main className="relative z-10 min-h-screen px-4 pb-24 pt-28 text-white sm:px-8 sm:pt-32">
+        <div className="mx-auto max-w-[1120px] space-y-8">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-xs text-white/60 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300"
           >
-            <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh Passes
-          </button>
-        </div>
+            <ArrowLeft className="h-4 w-4" />
+            Back to dashboard
+          </Link>
 
-        {/* Status Alerts */}
-        {error && (
-          <div className="flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-xs text-red-200">
-            <AlertTriangle className="h-4 w-4 shrink-0 text-red-400" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {success && (
-          <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs text-emerald-200">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
-            <span>{success}</span>
-          </div>
-        )}
-
-        {/* Preparing Tickets Section */}
-        {preparingTickets.length > 0 && (
-          <section className="rounded-2xl border border-blue-400/30 bg-blue-500/10 p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <RefreshCw className="h-5 w-5 text-blue-300" />
-              <h2 className="text-lg font-semibold text-white">Tickets Preparing in Background</h2>
+          {/* Header */}
+          <div className="flex flex-col justify-between gap-5 border-b border-white/10 pb-6 sm:flex-row sm:items-end">
+            <div>
+              <h1 className="text-3xl tracking-tight text-white font-roboto sm:text-5xl">
+                Your passes
+              </h1>
+              <p className="mt-3 max-w-[56ch] text-sm leading-relaxed text-white/60">
+                Show the QR on the right of your pass at the venue gate. Turn your screen brightness up
+                before scanning.
+              </p>
             </div>
 
-            <div className="space-y-3">
-              {preparingTickets.map((prep) => (
-                <div
-                  key={prep.purchase_id}
-                  className="flex flex-col justify-between gap-4 rounded-xl border border-white/10 bg-black/30 p-4 sm:flex-row sm:items-center"
-                >
-                  <div>
-                    <p className="font-semibold text-white">Order {prep.purchase_id}</p>
-                    <p className="text-xs text-white/70">{prep.message}</p>
-                    {prep.last_error && (
-                      <p className="mt-1 text-[11px] text-red-300">
-                        Error: {prep.last_error}
-                      </p>
+            <button
+              type="button"
+              onClick={() => void fetchTickets()}
+              disabled={loading}
+              className="inline-flex shrink-0 items-center gap-2 self-start rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs text-slate-200 transition-colors hover:border-cyan-300/40 hover:text-cyan-200 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-cyan-300 disabled:opacity-60 sm:self-auto"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+          </div>
+
+          {/* Alerts */}
+          {error && (
+            <div
+              role="alert"
+              className="flex items-center gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-xs text-red-200"
+            >
+              <AlertTriangle className="h-4 w-4 shrink-0 text-red-400" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {success && (
+            <div
+              role="status"
+              className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-xs text-emerald-200"
+            >
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+              <span>{success}</span>
+            </div>
+          )}
+
+          {/* Passes still being generated */}
+          {preparingTickets.length > 0 && (
+            <section className="rounded-2xl border border-blue-400/25 bg-blue-500/[0.07] p-5 sm:p-6">
+              <div className="mb-4 flex items-center gap-2">
+                <RefreshCw className="h-4 w-4 text-blue-300" />
+                <h2 className="text-base text-white font-roboto">
+                  Passes being prepared
+                </h2>
+              </div>
+
+              <div className="space-y-3">
+                {preparingTickets.map((prep) => (
+                  <div
+                    key={prep.purchase_id}
+                    className="flex flex-col justify-between gap-4 rounded-xl border border-white/10 bg-black/30 p-4 sm:flex-row sm:items-center"
+                  >
+                    <div className="min-w-0">
+                      <p className="break-all text-sm font-semibold text-white">Order {prep.purchase_id}</p>
+                      <p className="text-xs text-white/70">{prep.message}</p>
+                      {prep.last_error && (
+                        <p className="mt-1 text-[11px] text-red-300">Error: {prep.last_error}</p>
+                      )}
+                    </div>
+
+                    {prep.can_retry && (
+                      <button
+                        type="button"
+                        disabled={retryingId === prep.purchase_id}
+                        onClick={() => void handleRetryFulfillment(prep.purchase_id)}
+                        className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-blue-400 px-4 py-2 text-xs font-semibold text-black transition-colors hover:bg-blue-300 disabled:opacity-50"
+                      >
+                        <RefreshCw
+                          className={`h-3.5 w-3.5 ${retryingId === prep.purchase_id ? "animate-spin" : ""}`}
+                        />
+                        Retry pass generation
+                      </button>
                     )}
                   </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-                  {prep.can_retry && (
-                    <button
-                      type="button"
-                      disabled={retryingId === prep.purchase_id}
-                      onClick={() => handleRetryFulfillment(prep.purchase_id)}
-                      className="inline-flex items-center gap-2 rounded-xl bg-blue-400 px-4 py-2 text-xs font-semibold text-black transition hover:bg-blue-300 disabled:opacity-50"
-                    >
-                      <RefreshCw
-                        className={`h-3.5 w-3.5 ${retryingId === prep.purchase_id ? "animate-spin" : ""}`}
-                      />
-                      Retry Pass Fulfillment
-                    </button>
-                  )}
-                </div>
-              ))}
+          {/* Passes */}
+          {loading && tickets.length === 0 ? (
+            <div aria-busy="true" aria-label="Loading passes" className="space-y-10">
+              <div className="h-[420px] animate-pulse rounded-3xl border border-white/10 bg-white/[0.03] max-[760px]:h-[620px]" />
             </div>
-          </section>
-        )}
-
-        {/* Pass Presentation Grid */}
-        {loading ? (
-          <div className="py-24 text-center text-sm text-white/40">
-            <RefreshCw className="mx-auto mb-3 h-6 w-6 animate-spin text-cyan-300" />
-            Loading passes and cryptographic QR tokens...
-          </div>
-        ) : tickets.length === 0 && preparingTickets.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-white/10 py-20 text-center text-white/40">
-            <Ticket className="mx-auto mb-4 h-12 w-12 text-white/20" />
-            <h3 className="text-lg font-semibold text-white">No active passes found</h3>
-            <p className="mt-1 text-xs text-white/50">
-              You haven&apos;t completed any pass purchases or event registrations yet.
-            </p>
-            <div className="mt-6 flex flex-wrap justify-center gap-4">
-              <Link
-                href="/checkout"
-                className="rounded-xl bg-cyan-300 px-5 py-2.5 text-xs font-semibold text-black transition hover:bg-cyan-200"
-              >
-                Get Festival Gate Pass
-              </Link>
+          ) : !hasContent ? (
+            <div className="rounded-3xl border border-dashed border-white/10 py-20 text-center">
+              <Ticket className="mx-auto mb-4 h-12 w-12 text-white/20" />
+              <h3 className="text-lg text-white font-roboto">No passes yet</h3>
+              <p className="mx-auto mt-1 max-w-[40ch] text-xs text-white/50">
+                Register for an event and your pass will appear here.
+              </p>
               <Link
                 href="/events"
-                className="rounded-xl border border-white/10 bg-white/[0.04] px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-white/10"
+                className="mt-6 inline-block rounded-full border border-white/10 bg-white/[0.05] px-5 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-white/10"
               >
-                Browse Events
+                Browse events
               </Link>
             </div>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-            {tickets.map((tkt) => {
-              const tokenValue = tkt.qrToken || tkt.qr_token || "";
-              const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=10&data=${encodeURIComponent(
-                tokenValue,
-              )}`;
+          ) : (
+            <div className="space-y-12">
+              {tickets.map((tkt) => {
+                const wa = whatsappLink(tkt);
+                const state = tkt.validity?.state || "VALID";
+                const eventTitle = tkt.event?.title || "Event pass";
 
-              const isGatePass = (tkt.ticketType || tkt.ticket_type) === "GATE_PASS";
-
-              return (
-                <div
-                  key={tkt.id}
-                  className="flex flex-col justify-between overflow-hidden rounded-3xl border border-white/15 bg-gradient-to-b from-white/[0.06] to-white/[0.01] shadow-2xl backdrop-blur-xl"
-                >
-                  {/* Pass Header */}
-                  <div className="p-6 sm:p-7">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="rounded-full bg-cyan-400/10 px-2.5 py-0.5 text-[10px] font-bold tracking-wider text-cyan-300">
-                            {tkt.ticketType || tkt.ticket_type}
+                return (
+                  <section key={tkt.id} aria-label={eventTitle}>
+                    {/* Above the pass: WhatsApp group + validity */}
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1">
+                      {wa ? (
+                        <a
+                          href={wa}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Join the WhatsApp group for ${eventTitle}`}
+                          className="group inline-flex items-center gap-3 rounded-full border border-[#25D366]/30 bg-[#25D366]/[0.08] py-1.5 pl-1.5 pr-4 text-xs text-[#d4f8e1] transition-colors hover:border-[#25D366]/70 hover:bg-[#25D366]/[0.16] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#25D366]"
+                        >
+                          <span className="grid h-7 w-7 place-items-center rounded-full bg-[#25D366] text-black">
+                            <MessageCircle className="h-4 w-4" />
                           </span>
-                          <span className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-0.5 text-[10px] font-medium text-white/70">
-                            {tkt.tier} TIER
-                          </span>
-                        </div>
-
-                        <h2 className="mt-3 text-xl font-extrabold text-white sm:text-2xl">
-                          {tkt.event?.title || (isGatePass ? "TechXetra Gate Pass" : "Event Pass")}
-                        </h2>
-                        <p className="mt-1 text-xs text-white/50">Pass ID: {tkt.id}</p>
-                      </div>
+                          <span className="font-roboto">Join the WhatsApp group</span>
+                          <ArrowUpRight className="h-3.5 w-3.5 opacity-60 transition group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:opacity-100" />
+                        </a>
+                      ) : (
+                        <p className="text-xs text-white/50">{eventTitle}</p>
+                      )}
 
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          tkt.validity?.state === "VALID"
-                            ? "bg-emerald-400/15 text-emerald-300"
-                            : tkt.validity?.state === "UPCOMING"
-                            ? "bg-blue-400/15 text-blue-300"
-                            : "bg-red-400/15 text-red-300"
+                        className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${
+                          STATE_STYLE[state] ?? "border-red-400/30 bg-red-400/10 text-red-300"
                         }`}
                       >
-                        {tkt.validity?.state || "VALID"}
+                        {state.charAt(0) + state.slice(1).toLowerCase()}
                       </span>
                     </div>
 
-                    {/* Student Verification Badge */}
+                    <ParticipantPass {...toPassProps(tkt)} />
+
                     {tkt.tier === "STUDENT" && (
-                      <div className="mt-5 flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-3.5 text-xs text-amber-200">
+                      <div className="mt-3 flex items-start gap-3 rounded-2xl border border-amber-400/25 bg-amber-400/[0.07] p-3.5 text-xs text-amber-200">
                         <GraduationCap className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
                         <div>
-                          <p className="font-semibold text-amber-100">Student ID Verification Required</p>
+                          <p className="font-semibold text-amber-100">Carry your student ID</p>
                           <p className="mt-0.5 text-[11px] text-amber-200/80">
                             {tkt.student_id_warning ||
-                              "Physical college institution ID card must be presented at scan admission."}
+                              "Your college ID card must be shown at the gate along with this pass."}
                           </p>
                         </div>
                       </div>
                     )}
-
-                    {/* Venue & Timing */}
-                    <div className="mt-5 space-y-2 border-t border-white/10 pt-4 text-xs text-white/60">
-                      {tkt.event?.venue && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-3.5 w-3.5 text-white/40" />
-                          <span>Venue: {tkt.event.venue}</span>
-                        </div>
-                      )}
-                      {(tkt.event?.day_of_event || (tkt.event as any)?.festDay) && (
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-3.5 w-3.5 text-white/40" />
-                          <span>Day {tkt.event?.day_of_event || (tkt.event as any)?.festDay} of TechXetra 2026</span>
-                        </div>
-                      )}
-                      {tkt.validity?.valid_from && (
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-3.5 w-3.5 text-white/40" />
-                          <span>
-                            Valid: {new Date(tkt.validity.valid_from).toLocaleDateString()} –{" "}
-                            {new Date(tkt.validity.valid_to).toLocaleDateString()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Official WhatsApp Group for Confirmed Attendees */}
-                    {(tkt.event?.whatsappUrl || (tkt.event as any)?.whatsapp_url) && (
-                      <div className="mt-4 pt-3 border-t border-white/10">
-                        <a
-                          href={tkt.event?.whatsappUrl || (tkt.event as any)?.whatsapp_url || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-xs font-bold text-black transition hover:bg-[#20bd5a] hover:shadow-[0_0_20px_rgba(37,211,102,0.3)]"
-                        >
-                          <MessageCircle className="h-4 w-4 fill-current" />
-                          Join Event WhatsApp Group
-                        </a>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* High Contrast QR Code Presentation */}
-                  <div className="border-t border-white/10 bg-black/40 p-6 sm:p-7 text-center">
-                    <p className="text-[11px] font-semibold uppercase tracking-wider text-cyan-300">
-                      Physical Gate & Venue Scanner QR
-                    </p>
-                    <p className="mt-0.5 text-[10px] text-white/40">
-                      Hold screen under volunteer scanner with full brightness
-                    </p>
-
-                    <div className="mx-auto mt-4 flex w-fit items-center justify-center rounded-2xl bg-white p-4 shadow-xl">
-                      {/* High-contrast QR image */}
-                      <Image
-                        src={qrImageUrl}
-                        alt={`QR Pass for ${tkt.id}`}
-                        width={200}
-                        height={200}
-                        unoptimized
-                        className="h-48 w-48 object-contain"
-                      />
-                    </div>
-
-                    <div className="mt-4 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-left">
-                      <p className="text-[10px] font-mono uppercase text-white/40">HMAC QR Signature</p>
-                      <p className="mt-0.5 break-all font-mono text-[11px] text-cyan-200/90">
-                        {tokenValue}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </main>
+                  </section>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </main>
+    </>
   );
 }

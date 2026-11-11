@@ -5,13 +5,14 @@ import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import type { CSSProperties } from "react";
 import gsap from "gsap";
+import Lenis from "lenis";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { events } from "@/data/info/event";
 
 gsap.registerPlugin(ScrollTrigger);
 
 /* Angle between neighbouring items on the side wheel. */
-const STEP = 15;
+const STEP = 25;
 
 /* ------------------------------------------------------------------ */
 /* Static helpers                                                      */
@@ -74,7 +75,8 @@ function ConstellationField() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches || isMobile;
     const finePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
     let w = 0;
@@ -244,6 +246,7 @@ function ConstellationField() {
 /* ------------------------------------------------------------------ */
 
 const css = `
+@media (max-width:767px){.evx-side-wheel{display:none!important}.evx-orbit{display:none!important}.evx-float{animation:none!important}}
 .evx-rail{--R:230px;--rail-x:34px;--item:38px}
 @media (min-width:600px){.evx-rail{--R:330px;--rail-x:50px;--item:52px}}
 @media (min-width:1000px){.evx-rail{--R:430px;--rail-x:72px;--item:64px}}
@@ -282,6 +285,17 @@ const css = `
 }
 `;
 
+function getEventCategoryLabel(value: string) {
+  const normalized = value.toLowerCase().replace(/[\\s_-]+/g, "");
+  if (normalized.includes("nontechnical") || normalized.includes("nontech")) {
+    return { label: "NON-TECHNICAL", kind: "non-technical" as const };
+  }
+  if (normalized.includes("technical")) {
+    return { label: "TECHNICAL", kind: "technical" as const };
+  }
+  return { label: value, kind: "other" as const };
+}
+
 /* ------------------------------------------------------------------ */
 /* Component                                                           */
 /* ------------------------------------------------------------------ */
@@ -290,6 +304,36 @@ export default function Events() {
   const rootRef = useRef<HTMLElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
   const wheelRef = useRef<HTMLDivElement>(null);
+  const lenisRef = useRef<Lenis | null>(null);
+
+  useLayoutEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce) return;
+
+    const lenis = new Lenis({
+      duration: 1.45,
+      easing: (t: number) => 1 - Math.pow(1 - t, 4),
+      smoothWheel: true,
+      wheelMultiplier: 0.65,
+      touchMultiplier: 0.9,
+      syncTouch: false,
+      anchors: true,
+    });
+
+    lenisRef.current = lenis;
+    lenis.on("scroll", ScrollTrigger.update);
+    const update = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(update);
+    gsap.ticker.lagSmoothing(0);
+
+    return () => {
+      gsap.ticker.remove(update);
+      lenis.off("scroll", ScrollTrigger.update);
+      lenis.destroy();
+      lenisRef.current = null;
+      gsap.ticker.lagSmoothing(500, 33);
+    };
+  }, []);
 
   const figures = useMemo(() => events.map((_, index) => makeFigure(index)), []);
 
@@ -297,9 +341,10 @@ export default function Events() {
     const root = rootRef.current;
     const rail = railRef.current;
     const wheel = wheelRef.current;
-    if (!root || !rail || !wheel) return;
+    if (!root || !rail) return;
 
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const mobile = window.matchMedia("(max-width: 767px)").matches;
     const eventSections = Array.from(root.querySelectorAll<HTMLElement>("[data-event-section]"));
     const worldEls = Array.from(root.querySelectorAll<HTMLElement>("[data-event-world]"));
     const itemEls = Array.from(root.querySelectorAll<HTMLElement>("[data-rail-item]"));
@@ -355,12 +400,12 @@ export default function Events() {
 
       const position = Math.max(total - 1, 0);
 
-      if (!(Math.abs(position - lastRotation) < 0.0005)) {
+      if (!mobile && wheel && !(Math.abs(position - lastRotation) < 0.0005)) {
         lastRotation = position;
         wheel.style.setProperty("--rot", `${(-position * STEP).toFixed(3)}deg`);
       }
 
-      if (Math.abs(first - lastRail) > 0.003) {
+      if (!mobile && Math.abs(first - lastRail) > 0.003) {
         lastRail = first;
         rail.style.setProperty("--rail", first.toFixed(3));
         rail.style.visibility = first < 0.02 ? "hidden" : "visible";
@@ -604,10 +649,12 @@ export default function Events() {
     const target = rootRef.current?.querySelector<HTMLElement>(`#${CSS.escape(id)}`);
     if (!target) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({
-      top: target.getBoundingClientRect().top + window.scrollY,
-      behavior: reduced ? "auto" : "smooth",
-    });
+    const targetY = target.getBoundingClientRect().top + window.scrollY;
+    if (!reduced && lenisRef.current) {
+      lenisRef.current.scrollTo(targetY, { duration: 1.25, force: true });
+    } else {
+      window.scrollTo({ top: targetY, behavior: "auto" });
+    }
   };
 
   const rootStyle = { "--accent": events[0]?.accent ?? "#A9C9F5" } as CSSProperties;
@@ -666,7 +713,7 @@ export default function Events() {
       {/* Side wheel: rotates with scroll, active item sits on the right edge of the arc */}
       <nav
         aria-label="Event navigator"
-        className="pointer-events-none absolute inset-0 z-20"
+        className="evx-side-wheel pointer-events-none absolute inset-0 z-20"
       >
         <div className="sticky top-0 h-svh w-full overflow-hidden">
           <div
@@ -838,25 +885,43 @@ export default function Events() {
               id={event.id}
               data-event-section
               aria-labelledby={`${event.id}-title`}
-              className="relative flex min-h-svh flex-col pb-[calc(88px+env(safe-area-inset-bottom))] pl-[76px] pr-5 pt-28 min-[600px]:pl-[116px] min-[600px]:pr-8 min-[900px]:justify-center min-[900px]:pb-12 min-[900px]:pr-12 min-[1000px]:pl-[156px] min-[1200px]:pr-16"
+              className="relative flex min-h-svh flex-col items-start pb-[calc(64px+env(safe-area-inset-bottom))] pl-5 pr-5 pt-24 min-[600px]:pl-[116px] min-[600px]:pr-8 min-[900px]:justify-center min-[900px]:pb-12 min-[900px]:pr-12 min-[1000px]:pl-[156px] min-[1200px]:pr-16"
               style={{ color: event.foreground }}
             >
-              <div className="mx-auto flex w-full max-w-[620px] flex-1 flex-col gap-8 min-[900px]:grid min-[900px]:max-w-[1280px] min-[900px]:flex-none min-[900px]:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] min-[900px]:items-center min-[900px]:gap-[clamp(40px,7vw,112px)]">
+              <div className="mx-0 flex w-full max-w-[620px] flex-1 flex-col items-start gap-8 min-[900px]:mx-auto min-[900px]:grid min-[900px]:max-w-[1280px] min-[900px]:flex-none min-[900px]:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] min-[900px]:items-center min-[900px]:gap-[clamp(40px,7vw,112px)]">
                 <div data-event-copy className="min-w-0 shrink-0">
-                  <p
-                    className="mb-5 flex items-center gap-3 text-[8px] leading-relaxed tracking-[0.2em] [font-family:var(--font-pixel)] min-[900px]:mb-7 min-[900px]:text-[10px]"
-                    style={{ color: event.accent }}
-                  >
-                    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-3 w-3 shrink-0" fill="currentColor">
-                      <path d="M12 0l2.4 9.6L24 12l-9.6 2.4L12 24l-2.4-9.6L0 12l9.6-2.4z" />
-                    </svg>
-                    <span>{event.categoryLabel.toUpperCase()}</span>
-                    <span
-                      aria-hidden="true"
-                      className="h-px w-10 min-[900px]:w-16"
-                      style={{ background: `linear-gradient(90deg, ${event.accent}, transparent)` }}
-                    />
-                  </p>
+                  {(() => {
+                    const category = getEventCategoryLabel(event.categoryLabel);
+                    const isTechnical = category.kind === "technical";
+                    const isNonTechnical = category.kind === "non-technical";
+                    const categoryColor = isTechnical
+                      ? "#70D8FF"
+                      : isNonTechnical
+                        ? "#FF9B86"
+                        : event.accent;
+
+                    return (
+                      <div className="mb-5 flex flex-wrap items-center gap-3 min-[900px]:mb-7">
+                        <span
+                          className="inline-flex min-h-8 items-center gap-2 rounded-full border px-3 py-1.5 text-[9px] font-semibold tracking-[0.16em] [font-family:var(--font-pixel)] min-[900px]:min-h-9 min-[900px]:px-4 min-[900px]:text-[10px]"
+                          style={{
+                            color: categoryColor,
+                            borderColor: `${categoryColor}66`,
+                            background: `${categoryColor}12`,
+                            boxShadow: `inset 0 0 18px ${categoryColor}0D`,
+                          }}
+                        >
+                          <span
+                            aria-hidden="true"
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ backgroundColor: categoryColor, boxShadow: `0 0 9px ${categoryColor}` }}
+                          />
+                          {category.label.toUpperCase()}
+                        </span>
+                        
+                      </div>
+                    );
+                  })()}
 
                   <h2
                     id={`${event.id}-title`}
@@ -903,7 +968,7 @@ export default function Events() {
 
                 <figure
                   data-event-poster
-                  className="m-0 mt-auto w-[86%] max-w-[350px] shrink-0 self-center min-[900px]:mt-0 min-[900px]:w-full min-[900px]:max-w-[min(430px,52svh)] min-[900px]:justify-self-end"
+                  className="m-0 mt-8 w-full max-w-[350px] shrink-0 self-start min-[900px]:mt-0 min-[900px]:w-full min-[900px]:max-w-[min(430px,52svh)] min-[900px]:justify-self-end"
                 >
                   <div className="evx-float relative">
                     <svg
