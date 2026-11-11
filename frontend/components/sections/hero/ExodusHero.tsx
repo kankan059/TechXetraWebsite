@@ -354,7 +354,7 @@ export default function Hero() {
         }
 
         img.addEventListener("load", finish, { once: true });
-        img.addEventListener("error", resolve, { once: true });
+        img.addEventListener("error", () => resolve(), { once: true });
       });
 
     const minLoaderTime = new Promise<void>((resolve) => {
