@@ -4,6 +4,7 @@ export type TeamMember = {
   image: string;
   phone?: string;
   email?: string;
+  insta?: string;
 };
 
 export type TeamGroup = {
@@ -25,6 +26,7 @@ export const teamGroups: TeamGroup[] = [
         image: "https://plus.unsplash.com/premium_photo-1791899716302-19784a62a0e2?q=80&w=715&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D",
         phone: "100",
         email: "X@gmail.com",
+        insta : "kongkon_ray_"
       },
       {
         name: "Aarohi Borah",

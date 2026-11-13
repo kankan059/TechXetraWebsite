@@ -2,7 +2,9 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import type { EventItem } from "@/types/api";
+import type { EventTheme } from "@/data/info/event";
 
 type EventMetadata = {
   image?: string;
@@ -15,6 +17,7 @@ type EventCardProps = {
   event: EventItem;
   index?: number;
   onSelect: (event: EventItem, trigger: HTMLButtonElement) => void;
+  theme?: EventTheme;
 };
 
 function getMetadata(event: EventItem): EventMetadata {
@@ -154,10 +157,18 @@ export default function EventCard({
   event,
   index = 0,
   onSelect,
+  theme,
 }: EventCardProps) {
+  const [imageFailed, setImageFailed] = useState(false);
   const metadata = getMetadata(event);
   const image = event.imageURL || metadata.image || metadata.image_url || metadata.poster;
-  const tone = getCategoryTone(event.category);
+  const tone = theme
+    ? {
+        accent: theme.accent,
+        poster: theme.accentSoft,
+        border: "hover:border-white/40",
+      }
+    : getCategoryTone(event.category);
 
   const categoryLabel = event.category
     .replaceAll("_", " ")
@@ -172,6 +183,9 @@ export default function EventCard({
       style={{
         clipPath:
           "polygon(0 0, calc(100% - 24px) 0, 100% 24px, 100% 100%, 24px 100%, 0 calc(100% - 24px))",
+        borderColor: `${tone.accent}40`,
+        backgroundColor: theme?.background,
+        color: theme?.foreground,
       }}
     >
       <button
@@ -179,12 +193,17 @@ export default function EventCard({
         onClick={(click) => onSelect(event, click.currentTarget)}
         aria-label={`View ${event.title} details`}
         className="block w-full text-left focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-[#55DFFF]"
+        style={{ outlineColor: tone.accent }}
       >
-        <div className="relative aspect-[16/10] overflow-hidden bg-[#101F26]">
-          {image ? (
+        <div
+          className="relative aspect-[16/10] overflow-hidden bg-[#101F26]"
+          style={{ backgroundColor: theme?.background }}
+        >
+          {image && !imageFailed ? (
             <Image
               src={image}
               alt={`${event.title} event artwork`}
+              onError={() => setImageFailed(true)}
               fill
               unoptimized
               priority={index < 3}
@@ -196,11 +215,11 @@ export default function EventCard({
               className="absolute inset-0 flex flex-col justify-between p-6 min-[900px]:p-7"
               style={{ backgroundColor: tone.poster }}
             >
-              <span className="text-[8px] tracking-[0.18em] text-[#F5F0DE]/55 [font-family:var(--font-pixel)]">
+              <span className="text-[8px] tracking-[0.18em] text-white/55 [font-family:var(--font-pixel)]">
                 TECHXETRA 2026
               </span>
 
-              <span className="max-w-[12ch] text-[clamp(1.8rem,3vw,2.7rem)] leading-[1.05] tracking-[-0.035em] text-[#F5F0DE] [font-family:var(--font-gotham-bold)]">
+              <span className="max-w-[12ch] text-[clamp(1.8rem,3vw,2.7rem)] leading-[1.05] tracking-[-0.035em] [font-family:var(--font-gotham-bold)]">
                 {event.title}
               </span>
 
@@ -227,7 +246,7 @@ export default function EventCard({
           {event.title}
         </h2>
 
-        <p className="mt-3 line-clamp-3 text-[13px] leading-[1.8] text-[#F5F0DE]/70">
+        <p         className="mt-3 line-clamp-3 text-[13px] leading-[1.8] text-white/70">
           {metadata.summary ||
             event.description ||
             event.shortDescription ||
@@ -236,17 +255,17 @@ export default function EventCard({
 
         <div className="mt-5 grid grid-cols-2 gap-4 border-y border-white/10 py-4">
           <div className="min-w-0">
-            <p className="text-[8px] uppercase tracking-[0.12em] text-[#F5F0DE]/45 [font-family:var(--font-pixel)]">
+            <p className="text-[8px] uppercase tracking-[0.12em] text-white/45 [font-family:var(--font-pixel)]">
               Participation
             </p>
 
-            <p className="mt-2 break-words text-[12px] leading-relaxed text-[#F5F0DE]/90">
+            <p className="mt-2 break-words text-[12px] leading-relaxed text-white/90">
               {getParticipation(event)}
             </p>
           </div>
 
           <div className="min-w-0">
-            <p className="text-[8px] uppercase tracking-[0.12em] text-[#F5F0DE]/45 [font-family:var(--font-pixel)]">
+            <p className="text-[8px] uppercase tracking-[0.12em] text-white/45 [font-family:var(--font-pixel)]">
               Entry fee
             </p>
 
@@ -270,6 +289,7 @@ export default function EventCard({
             type="button"
             onClick={(click) => onSelect(event, click.currentTarget)}
             className="flex min-h-12 w-full items-center justify-between gap-4 border-t border-white/15 pt-4 text-xs [font-family:var(--font-gotham-bold)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#55DFFF]"
+            style={{ outlineColor: tone.accent }}
           >
             <span>View event</span>
             <ArrowIcon />

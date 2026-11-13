@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import type { EventItem } from "@/types/api";
+import type { EventTheme } from "@/data/info/event";
 
 type EventDetailsModalProps = {
   event: EventItem;
   onClose: () => void;
+  theme?: EventTheme;
 };
 
 type EventMetadata = {
@@ -158,10 +161,12 @@ function Icon({ name }: { name: string }) {
 export default function EventDetailsModal({
   event,
   onClose,
+  theme,
 }: EventDetailsModalProps) {
+  const [imageFailed, setImageFailed] = useState(false);
   const metadata = getMetadata(event);
   const category = event.category.replaceAll("_", " ");
-  const accent = getCategoryColor(event.category);
+  const accent = theme?.accent ?? getCategoryColor(event.category);
 
   const image =
     event.imageURL || metadata.image || metadata.image_url || metadata.poster;
@@ -212,10 +217,39 @@ export default function EventDetailsModal({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  return (
-    <div
-      role="presentation"
-      className="fixed inset-0 z-[100] flex touch-pan-y items-center justify-center overflow-hidden bg-black/65 p-3 backdrop-blur-md sm:p-5 lg:p-8"
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
+    <>
+      <style jsx global>{`
+        .event-details-scroll {
+          scrollbar-gutter: stable;
+          scrollbar-width: thin;
+          scrollbar-color: var(--modal-accent) rgba(255, 255, 255, 0.06);
+        }
+
+        .event-details-scroll::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .event-details-scroll::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.06);
+          border-radius: 999px;
+        }
+
+        .event-details-scroll::-webkit-scrollbar-thumb {
+          background: var(--modal-accent);
+          border: 2px solid var(--modal-background);
+          border-radius: 999px;
+        }
+
+        .event-details-scroll::-webkit-scrollbar-thumb:hover {
+          filter: brightness(1.15);
+        }
+      `}</style>
+      <div
+        role="presentation"
+      className="fixed inset-0 z-[9999] flex touch-pan-y items-center justify-center overflow-hidden bg-black/70 px-3 pt-[108px] pb-[88px] backdrop-blur-[12px] sm:px-5 sm:pt-[108px] sm:pb-[52px] lg:px-8"
       onMouseDown={(click) => {
         if (click.target === click.currentTarget) onClose();
       }}
@@ -224,7 +258,13 @@ export default function EventDetailsModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="event-details-title"
-        className="relative flex h-[min(88dvh,760px)] max-h-full min-h-0 w-full max-w-[1040px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0E1C23] text-[#F5F0DE] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)] sm:h-auto sm:max-h-[calc(100dvh-2.5rem)]"
+        className="relative flex h-full max-h-full min-h-0 w-full max-w-[1040px] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0E1C23] text-[#F5F0DE] shadow-[0_30px_80px_-20px_rgba(0,0,0,0.8)]"
+        style={{
+          backgroundColor: theme?.background,
+          color: theme?.foreground,
+          "--modal-accent": accent,
+          "--modal-background": theme?.background ?? "#0E1C23",
+        } as CSSProperties}
       >
         {/* Accent glow line */}
         <div
@@ -272,7 +312,7 @@ export default function EventDetailsModal({
         <div
           data-lenis-prevent
           data-lenis-prevent-wheel
-          className="min-h-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-auto overscroll-y-contain [scrollbar-color:rgba(85,223,255,0.35)_transparent] [scrollbar-width:thin]"
+          className="event-details-scroll min-h-0 flex-1 touch-pan-y overflow-x-hidden overflow-y-scroll overscroll-y-contain pr-1 [scrollbar-width:thin]"
           style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
         >
           <div className="p-4 sm:p-7 lg:p-9">
@@ -284,12 +324,13 @@ export default function EventDetailsModal({
                   className="overflow-hidden rounded-xl border bg-[#09151B] p-1.5 shadow-xl shadow-black/30"
                   style={{ borderColor: `${accent}40` }}
                 >
-                  {image ? (
+                  {image && !imageFailed ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={image}
                       alt={`${event.title} event artwork`}
                       loading="lazy"
+                      onError={() => setImageFailed(true)}
                       className="block h-auto max-h-[44dvh] w-full rounded-lg object-contain min-[640px]:max-h-[52dvh]"
                     />
                   ) : (
@@ -429,6 +470,8 @@ export default function EventDetailsModal({
           </div>
         </footer>
       </section>
-    </div>
+      </div>
+    </>,
+    document.body
   );
 }

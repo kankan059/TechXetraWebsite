@@ -1,7 +1,6 @@
-
 "use client";
 
-import { memo, useEffect, useRef, type CSSProperties } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 type Palette = "dark" | "light";
 
@@ -13,6 +12,9 @@ interface TeamCardProps {
     title?: string;
     handle?: string;
     email?: string;
+    instagram?: string; // handle or full URL (optional)
+    phone?: string; // optional
+    showIcons?: boolean; // icon tiles for email / instagram / call (default true)
     status?: string;
     statusColor?: string;
     contactText?: string;
@@ -29,6 +31,7 @@ interface TeamCardProps {
     enableMobileTilt?: boolean;
     mobileTiltSensitivity?: number;
     intro?: boolean;
+    priority?: boolean;
     className?: string;
 }
 
@@ -42,268 +45,313 @@ type OrientationPermission = {
     requestPermission?: () => Promise<PermissionState>;
 };
 
-const THEMES: Record<Palette, Record<string, string>> = {
-    dark: {
-        "--pc-frame": "rgba(38, 35, 46, 0.66)",
-        "--pc-frame-edge": "rgba(255, 255, 255, 0.08)",
-        "--pc-frame-highlight": "rgba(255, 255, 255, 0.07)",
-        "--pc-frame-shadow":
-            "0 22px 44px -20px rgba(0, 0, 0, 0.8), 0 6px 16px -8px rgba(0, 0, 0, 0.5)",
-        "--pc-tile": "linear-gradient(180deg, #3a3644 0%, #27242f 100%)",
-        "--pc-tile-edge": "rgba(255, 255, 255, 0.07)",
-        "--pc-tile-highlight": "rgba(255, 255, 255, 0.12)",
-        "--pc-tile-shadow": "0 4px 10px -4px rgba(0, 0, 0, 0.7)",
-        "--pc-ink": "#f4f4f5",
-        "--pc-muted": "rgba(244, 244, 245, 0.6)",
-        "--pc-hover": "brightness(1.12)",
-        "--pc-press": "brightness(0.8)",
-        "--pc-shade": "rgba(0, 0, 0, 0.4)",
-    },
-    light: {
-        "--pc-frame": "rgba(240, 240, 243, 0.8)",
-        "--pc-frame-edge": "rgba(24, 24, 27, 0.07)",
-        "--pc-frame-highlight": "rgba(255, 255, 255, 0.95)",
-        "--pc-frame-shadow":
-            "0 22px 44px -22px rgba(24, 24, 27, 0.3), 0 6px 16px -10px rgba(24, 24, 27, 0.16)",
-        "--pc-tile": "linear-gradient(180deg, #ffffff 0%, #f6f6f8 100%)",
-        "--pc-tile-edge": "rgba(24, 24, 27, 0.08)",
-        "--pc-tile-highlight": "rgba(255, 255, 255, 1)",
-        "--pc-tile-shadow": "0 4px 10px -5px rgba(24, 24, 27, 0.25)",
-        "--pc-ink": "#27272a",
-        "--pc-muted": "rgba(39, 39, 42, 0.6)",
-        "--pc-hover": "brightness(0.97)",
-        "--pc-press": "brightness(0.92)",
-        "--pc-shade": "rgba(24, 24, 27, 0.14)",
-    },
-};
+const clamp = (value: number, min: number, max: number) =>
+    Math.min(max, Math.max(min, value));
 
-const FOILS: Record<Palette, Record<string, string>> = {
-    dark: {
-        "--pc-blend": "color-dodge",
-        "--pc-holo-filter": "hue-rotate(0deg)",
-        "--pc-sheen": "rgba(255, 255, 255, 0.16)",
-    },
-    light: {
-        "--pc-blend": "multiply",
-        "--pc-holo-filter": "invert(1) hue-rotate(180deg)",
-        "--pc-sheen": "rgba(255, 255, 255, 0)",
-    },
-};
+/* ------------------------------------------------------------------ */
+/* Constellation figure: lives on the frame, behind the photo          */
+/* ------------------------------------------------------------------ */
 
-const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(
-    "<svg xmlns='http://www.w3.org/2000/svg' width='500' height='500'><filter id='g' x='0' y='0' width='100%' height='100%' color-interpolation-filters='sRGB'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0.55 0 0 0 -0.24 0.55 0 0 0 -0.24 0.55 0 0 0 -0.24 0 0 0 0 1'/></filter><rect width='100%' height='100%' filter='url(#g)'/></svg>"
-)}")`;
+function figureFor(seedText: string) {
+    let seed = 2166136261;
+    for (let i = 0; i < seedText.length; i += 1) {
+        seed ^= seedText.charCodeAt(i);
+        seed = Math.imul(seed, 16777619);
+    }
 
-const SPECTRUM =
-    "repeating-linear-gradient(0deg, hsl(2, 100%, 73%) 5%, hsl(53, 100%, 69%) 10%, hsl(93, 100%, 69%) 15%, hsl(176, 100%, 76%) 20%, hsl(228, 100%, 74%) 25%, hsl(260, 100%, 76%) 30%, hsl(2, 100%, 73%) 35%)";
+    const rnd = () => {
+        seed = (seed + 0x6d2b79f5) >>> 0;
+        let t = seed;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
 
-const BARS =
-    "repeating-linear-gradient(-45deg, #0e152e 0%, hsl(180, 10%, 60%) 3.8%, hsl(180, 29%, 66%) 4.5%, hsl(180, 10%, 60%) 5.2%, #0e152e 10%, #0e152e 12%)";
+    const round = (n: number) => Number(n.toFixed(1));
 
-const FALLOFF =
-    "radial-gradient(farthest-corner circle at var(--pc-pointer-x) var(--pc-pointer-y), hsla(0, 0%, 0%, 0.1) 12%, hsla(0, 0%, 0%, 0.15) 20%, hsla(0, 0%, 0%, 0.25) 120%)";
+    /* Lower panel region (viewBox is 100 by 140) */
+    const panel = Array.from({ length: 9 }, () => ({
+        x: round(8 + rnd() * 84),
+        y: round(104 + rnd() * 30),
+        r: Number((0.45 + rnd() * 0.75).toFixed(2)),
+    })).sort((a, b) => a.x - b.x);
 
-const PATTERN_POSITION =
-    "calc(50% - var(--pc-shift-x) * 1.5) calc(65% - var(--pc-shift-y) * 1.5)";
+    /* Thin edge rails on both sides */
+    const left = Array.from({ length: 4 }, (_, i) => ({
+        x: round(2.2 + rnd() * 0.5),
+        y: round(18 + i * 22 + rnd() * 8),
+        r: 0.5,
+    }));
+    const right = Array.from({ length: 4 }, (_, i) => ({
+        x: round(97.3 + rnd() * 0.5),
+        y: round(24 + i * 22 + rnd() * 8),
+        r: 0.5,
+    }));
+
+    const toPath = (pts: { x: number; y: number }[]) =>
+        pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x} ${p.y}`).join(" ");
+
+    const chords = [
+        `M${panel[0].x} ${panel[0].y} L${panel[4].x} ${panel[4].y}`,
+        `M${panel[2].x} ${panel[2].y} L${panel[7].x} ${panel[7].y}`,
+    ].join(" ");
+
+    return {
+        points: [...panel, ...left, ...right],
+        paths: [toPath(panel), toPath(left), toPath(right), chords],
+    };
+}
+
+/* ------------------------------------------------------------------ */
+/* Styles                                                              */
+/* ------------------------------------------------------------------ */
 
 const ROOT_VARS = {
     "--pc-light-x": "50%",
     "--pc-light-y": "50%",
-    "--pc-pointer-x": "50%",
-    "--pc-pointer-y": "50%",
-    "--pc-band-x": "50%",
-    "--pc-band-y": "50%",
-    "--pc-reach": 0,
-    "--pc-rotate-x": "0deg",
-    "--pc-rotate-y": "0deg",
-    "--pc-shift-x": "0px",
-    "--pc-shift-y": "0px",
-    "--pc-tilt": 0,
     "--pc-active": 0,
 };
 
-const SHEEN_STYLE: CSSProperties = {
-    background:
-        "radial-gradient(farthest-corner circle at calc(var(--pc-light-x) - 10px) calc(var(--pc-light-y) - 10px), var(--pc-sheen) 0%, transparent 55%)",
-    opacity: "calc(var(--pc-holo) * var(--pc-active))",
-};
+const CSS = `
+.tc-root{
+  position:relative;width:100%;max-width:320px;margin-inline:auto;
+  container-type:inline-size;perspective:1200px;touch-action:pan-y;
+  -webkit-tap-highlight-color:transparent;
+  font-family:var(--font-roboto,system-ui,sans-serif);
+}
 
-const HOLO_STYLE: CSSProperties = {
-    backgroundImage: `${SPECTRUM}, ${BARS}, ${FALLOFF}`,
-    backgroundPosition:
-        "0 var(--pc-band-y), var(--pc-band-x) var(--pc-band-y), center",
-    backgroundSize: "500% 500%, 300% 300%, 200% 200%",
-    backgroundBlendMode: "color, hard-light",
-    filter:
-        "brightness(calc(0.66 + 0.19 * var(--pc-active))) contrast(calc(1.33 + 0.17 * var(--pc-active))) saturate(calc(0.33 + 0.17 * var(--pc-active))) var(--pc-holo-filter)",
-    opacity:
-        "calc(var(--pc-holo) * var(--pc-holo-gain) * (0.5 + 0.5 * var(--pc-active)))",
-    WebkitMaskImage: "var(--pc-pattern)",
-    WebkitMaskSize: "var(--pc-pattern-size)",
-    WebkitMaskPosition: PATTERN_POSITION,
-    WebkitMaskRepeat: "repeat",
-    maskImage: "var(--pc-pattern)",
-    maskSize: "var(--pc-pattern-size)",
-    maskPosition: PATTERN_POSITION,
-    maskRepeat: "repeat",
-};
+.tc-glow{
+  position:absolute;inset:-6%;pointer-events:none;border-radius:8cqw;
+  background:radial-gradient(circle at var(--pc-light-x) var(--pc-light-y),var(--tc-glow),transparent 62%);
+  opacity:calc(.3 + .6 * var(--pc-active));
+}
 
-const GLOW_STYLE: CSSProperties = {
-    backgroundImage:
-        "linear-gradient(45deg, hsl(176, 100%, 76%), hsl(228, 100%, 74%), hsl(260, 100%, 76%), hsl(2, 100%, 73%), hsl(53, 100%, 69%), hsl(93, 100%, 69%)), radial-gradient(circle at var(--pc-pointer-x) var(--pc-pointer-y), hsl(0, 0%, 70%) 0%, hsla(0, 0%, 30%, 0.2) 90%), var(--pc-grain)",
-    backgroundSize: "250% 250%, 100% 100%, 220px 220px",
-    backgroundPosition:
-        "var(--pc-pointer-x) var(--pc-pointer-y), center, 0 0",
-    backgroundBlendMode: "color-dodge",
-    filter:
-        "brightness(calc(2 - var(--pc-reach))) contrast(calc(var(--pc-reach) + 2)) saturate(calc(0.5 + var(--pc-reach)))",
-    mixBlendMode: "luminosity",
-    opacity: "calc(var(--pc-active) * var(--pc-holo-detail))",
-};
+.tc-tilt{
+  position:relative;width:100%;aspect-ratio:5/7;
+  transform-style:preserve-3d;will-change:transform;
+}
 
-const SHIFT_STYLE: CSSProperties = {
-    backgroundImage: `${SPECTRUM}, ${BARS}, ${FALLOFF}`,
-    backgroundPosition:
-        "0 var(--pc-band-y), calc(var(--pc-band-x) * 0.4) calc(var(--pc-band-y) * 0.5), center",
-    backgroundSize: "200% 300%, 700% 700%, 100% 100%",
-    backgroundBlendMode: "color, hard-light",
-    mixBlendMode: "difference",
-    filter: "brightness(0.8) contrast(1.5)",
-    opacity: "calc(var(--pc-active) * var(--pc-holo-detail))",
-};
+/* Frame: angled outer shell with an edge gradient and a constellation inside */
+.tc-frame,.tc-frame-fill{
+  clip-path:polygon(0 var(--c1),var(--c1) 0,calc(100% - var(--c2)) 0,100% var(--c2),100% calc(100% - var(--c1)),calc(100% - var(--c1)) 100%,var(--c2) 100%,0 calc(100% - var(--c2)));
+}
+.tc-frame{position:absolute;inset:0;--c1:7cqw;--c2:3.4cqw;background:var(--tc-edge)}
+.tc-frame-fill{position:absolute;inset:.7cqw;--c1:6.3cqw;--c2:2.7cqw;background:var(--tc-frame-bg);overflow:hidden}
+.tc-frame-fill svg{position:absolute;inset:0;width:100%;height:100%}
 
-const PHOTO_STYLE: CSSProperties = {
-    inset: "calc(var(--pc-parallax) * -1)",
-    width: "calc(100% + var(--pc-parallax) * 2)",
-    height: "calc(100% + var(--pc-parallax) * 2)",
-    transform: "translate3d(var(--pc-shift-x), var(--pc-shift-y), 0)",
-};
+.tc-content{
+  position:absolute;inset:0;padding:3.6cqw;display:flex;flex-direction:column;gap:2.2cqw;
+  transform-style:preserve-3d;
+}
 
+/* Name plaque */
+.tc-title{flex:none;display:flex;padding:.6cqw;min-height:11cqw;background:var(--tc-edge);transform:translateZ(18px)}
+.tc-hex{--c:3.6cqw;clip-path:polygon(var(--c) 0,calc(100% - var(--c)) 0,100% 50%,calc(100% - var(--c)) 100%,var(--c) 100%,0 50%)}
+.tc-title-fill{
+  --c:3.1cqw;flex:1;min-width:0;display:flex;align-items:center;justify-content:center;
+  padding:1.4cqw 6cqw;background:var(--tc-plaque);position:relative;
+}
+.tc-ticks{position:absolute;top:50%;display:flex;gap:.7cqw;transform:translateY(-50%)}
+.tc-ticks.l{left:4.2cqw}.tc-ticks.r{right:4.2cqw;flex-direction:row-reverse}
+.tc-ticks i{display:block;width:.7cqw;height:3.4cqw;background:var(--tc-accent);opacity:.9}
+.tc-ticks i:nth-child(2){height:2.4cqw;opacity:.6}
+.tc-ticks i:nth-child(3){height:1.4cqw;opacity:.35}
+.tc-name{
+  margin:0;text-align:center;text-wrap:balance;word-break:break-word;
+  font-family:var(--font-roboto,system-ui,sans-serif);font-weight:700;
+  font-size:max(15px,5.5cqw);line-height:1.12;letter-spacing:-.01em;
+  background:linear-gradient(180deg,var(--tc-text) 30%,var(--tc-accent) 160%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
 
-const SCRIM_STYLE: CSSProperties = {
-    background:
-        "linear-gradient(to bottom, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.55) 12%, rgba(0, 0, 0, 0.18) 30%, transparent 45%), linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.35) 18%, transparent 52%)",
-};
+/* Art window */
+.tc-art{flex:1 1 0;min-height:0;display:flex;padding:.6cqw;background:var(--tc-edge);transform:translateZ(10px)}
+.tc-cutart{--c:6.4cqw;clip-path:polygon(0 var(--c),var(--c) 0,100% 0,100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,0 100%)}
+.tc-art-fill{--c:5.9cqw;flex:1;position:relative;min-width:0;background:var(--tc-art-bg)}
+.tc-abs{position:absolute;inset:0;pointer-events:none}
+.tc-neb{background:radial-gradient(ellipse at 50% -10%,var(--tc-glow) 0%,transparent 70%)}
+.tc-photo{
+  position:absolute;object-fit:cover;object-position:top center;user-select:none;pointer-events:none;
+  opacity:0;transition:opacity .5s cubic-bezier(.16,1,.3,1);will-change:transform;
+}
+.tc-art-fill[data-loaded="1"] .tc-photo{opacity:1}
+.tc-initials{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-gotham-bold,system-ui,sans-serif);font-size:20cqw;letter-spacing:-.03em;
+  color:var(--tc-sub);opacity:.35;
+}
+.tc-shim{background:var(--tc-art-bg);overflow:hidden}
+.tc-shim::after{
+  content:"";position:absolute;inset:0;
+  background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.1) 50%,transparent 70%);
+  animation:tc-shim 1.6s ease-in-out infinite;
+}
+.tc-art-fill[data-loaded="1"] .tc-shim{display:none}
+.tc-brk{position:absolute;width:5cqw;height:5cqw;border:0 solid var(--tc-accent);opacity:.85;pointer-events:none}
+.tc-brk.tr{top:1.6cqw;right:1.6cqw;border-top-width:.45cqw;border-right-width:.45cqw}
+.tc-brk.bl{bottom:1.6cqw;left:1.6cqw;border-bottom-width:.45cqw;border-left-width:.45cqw}
 
-const GLARE_STYLE: CSSProperties = {
-    background:
-        "radial-gradient(farthest-corner circle at var(--pc-light-x) var(--pc-light-y), rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.36) 20%, rgba(255, 255, 255, 0) 60%)",
-    opacity: "calc(var(--pc-glare) * var(--pc-active))",
-};
+/* Role bar */
+.tc-type{flex:none;display:flex;padding:.5cqw;background:var(--tc-edge);transform:translateZ(16px)}
+.tc-cutsm{--c:2.2cqw;clip-path:polygon(0 0,calc(100% - var(--c)) 0,100% var(--c),100% 100%,var(--c) 100%,0 calc(100% - var(--c)))}
+.tc-type-fill{--c:1.8cqw;flex:1;min-width:0;display:flex;align-items:center;gap:2.2cqw;padding:1.2cqw 3.4cqw 1.2cqw 1.4cqw;background:var(--tc-plaque)}
+.tc-tag{
+  flex:none;max-width:42%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  padding:.9cqw 2.2cqw;background:var(--tc-tag-bg);color:var(--tc-tag-text);
+  clip-path:polygon(0 0,calc(100% - 1.2cqw) 0,100% 100%,0 100%);padding-right:3cqw;
+  font-family:var(--font-pixel,ui-monospace,monospace);font-size:max(8px,2.4cqw);letter-spacing:.12em;text-transform:uppercase;font-weight:700;
+}
+.tc-role{
+  min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:max(9px,2.9cqw);letter-spacing:.16em;text-transform:uppercase;color:var(--tc-sub);
+}
+.tc-bars{flex:none;display:flex;align-items:flex-end;gap:.6cqw}
+.tc-bars i{display:block;width:.8cqw;background:var(--tc-accent2)}
+.tc-bars i:nth-child(1){height:1.6cqw;opacity:.5}
+.tc-bars i:nth-child(2){height:2.6cqw;opacity:.75}
+.tc-bars i:nth-child(3){height:3.6cqw}
 
-const SHADE_STYLE: CSSProperties = {
-    background:
-        "radial-gradient(farthest-corner circle at var(--pc-light-x) var(--pc-light-y), transparent 30%, var(--pc-shade) 100%)",
-    opacity: "calc(var(--pc-glare) * var(--pc-tilt))",
-};
+/* Contact panel */
+.tc-box{flex:none;display:flex;min-height:19cqw;padding:.5cqw;background:var(--tc-edge);transform:translateZ(8px)}
+.tc-cutbox{--c:3.4cqw;clip-path:polygon(0 0,100% 0,100% calc(100% - var(--c)),calc(100% - var(--c)) 100%,var(--c) 100%,0 calc(100% - var(--c)))}
+.tc-box-fill{--c:3cqw;flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1.4cqw;padding:2.4cqw 21.5cqw 2.4cqw 2.8cqw;background:var(--tc-box-bg)}
+.tc-row{
+  display:flex;align-items:center;gap:2.2cqw;min-width:0;text-decoration:none;color:var(--tc-text);
+  transition:transform .25s cubic-bezier(.16,1,.3,1),color .2s ease;
+}
+.tc-row:hover{transform:translateX(.8cqw);color:var(--tc-accent)}
+.tc-row:focus-visible{outline:2px solid var(--tc-accent);outline-offset:2px}
+.tc-ico{
+  flex:none;display:inline-flex;align-items:center;justify-content:center;width:6.6cqw;height:6.6cqw;
+  border:1px solid var(--tc-line);color:var(--tc-accent);
+  background:linear-gradient(160deg,color-mix(in srgb,var(--tc-accent) 16%,transparent),transparent);
+  clip-path:polygon(25% 0,100% 0,100% 75%,75% 100%,0 100%,0 25%);
+}
+.tc-ico svg{width:56%;height:56%}
+.tc-lab{
+  flex:none;font-family:var(--font-pixel,ui-monospace,monospace);font-size:max(8px,2.3cqw);
+  letter-spacing:.14em;text-transform:uppercase;color:var(--tc-accent);
+}
+.tc-val{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:max(10px,3.4cqw);letter-spacing:.01em}
+.tc-idle{font-size:max(10px,3.2cqw);letter-spacing:.14em;text-transform:uppercase;color:var(--tc-sub)}
 
-const ROOT =
-    "relative w-[320px] max-w-full touch-pan-y [perspective:1000px]";
+/* Corner badge (logo) */
+.tc-corner{
+  position:absolute;right:2.8cqw;bottom:2.8cqw;width:19cqw;height:13cqw;padding:.6cqw;
+  background:var(--tc-edge);transform:translateZ(28px);
+}
+.tc-cutcorner{--c:4.2cqw;clip-path:polygon(var(--c) 0,100% 0,100% 100%,0 100%,0 var(--c))}
+.tc-corner-fill{--c:3.7cqw;position:relative;flex:1;display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:var(--tc-corner-bg)}
+.tc-corner img{position:relative;width:62%;height:68%;object-fit:contain;user-select:none}
+.tc-mono{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-gotham-bold,system-ui,sans-serif);font-size:5.4cqw;letter-spacing:.04em;
+  background:linear-gradient(135deg,var(--tc-accent),var(--tc-accent2));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
 
-const BODY =
-    "relative flex flex-col gap-3 border border-[#55DFFF]/75 bg-[#050B12] p-2.5 shadow-[0_0_25px_rgba(85,223,255,0.12)] transition-all duration-300 hover:border-[#55DFFF] hover:shadow-[0_0_32px_rgba(85,223,255,0.28)] [clip-path:polygon(0_0,calc(100%_-_48px)_0,100%_48px,100%_100%,48px_100%,0_calc(100%_-_48px))] [transform:rotateX(var(--pc-rotate-x))_rotateY(var(--pc-rotate-y))]";
+/* Light that follows the pointer, shaped to the frame */
+.tc-sheen{
+  position:absolute;inset:0;pointer-events:none;transform:translateZ(34px);
+  --c1:7cqw;--c2:3.4cqw;
+  clip-path:polygon(0 var(--c1),var(--c1) 0,calc(100% - var(--c2)) 0,100% var(--c2),100% calc(100% - var(--c1)),calc(100% - var(--c1)) 100%,var(--c2) 100%,0 calc(100% - var(--c2)));
+  background:
+    radial-gradient(circle 46cqw at var(--pc-light-x) var(--pc-light-y),rgba(255,255,255,calc(.16 * var(--pc-glare))),transparent 70%),
+    radial-gradient(circle 70cqw at var(--pc-light-x) var(--pc-light-y),var(--tc-glow),transparent 75%);
+  opacity:var(--pc-active);
+}
 
-const TILE =
-    "relative isolate aspect-[4/5] overflow-hidden border border-[#55DFFF]/45 bg-[#07121D] [clip-path:polygon(0_0,calc(100%_-_32px)_0,100%_32px,100%_100%,32px_100%,0_calc(100%_-_32px))]";
+@keyframes tc-shim{0%{transform:translate3d(-100%,0,0)}100%{transform:translate3d(100%,0,0)}}
+@media (prefers-reduced-motion:reduce){.tc-shim::after{animation:none}.tc-row{transition:none}}
+`;
 
-const FOOTER =
-    "flex min-w-0 items-center gap-3 border-t border-[#00E5FF]/20 px-3 pb-1 pt-3";
+/* ------------------------------------------------------------------ */
+/* Icons                                                               */
+/* ------------------------------------------------------------------ */
 
-const HANDLE =
-    "overflow-hidden text-ellipsis whitespace-nowrap text-sm font-semibold text-white";
+const MailIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="2" y="4" width="20" height="16" rx="2" />
+        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+    </svg>
+);
 
-const STATUS =
-    "flex items-center gap-1.5 whitespace-nowrap text-xs text-white/50 before:h-1.5 before:w-1.5 before:flex-none before:rounded-full before:bg-[#00E5FF] before:shadow-[0_0_8px_#00E5FF] before:content-['']";
+const InstaIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="2" y="2" width="20" height="20" rx="5" />
+        <circle cx="12" cy="12" r="4" />
+        <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+);
 
-const CONTACT =
-    "flex h-9 flex-none cursor-pointer items-center gap-2 rounded-md border border-[#00E5FF]/50 bg-[#00E5FF]/10 px-3.5 text-xs font-semibold uppercase tracking-wider text-[#8AF5FF] transition-all duration-200 hover:bg-[#00E5FF] hover:text-[#02070D] hover:shadow-[0_0_18px_rgba(0,229,255,0.35)] active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8AF5FF]";
+const CallIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+    </svg>
+);
 
-const LAYER = "pointer-events-none absolute inset-0";
-const RIM = `${LAYER} box-border border-[3px] border-[#55DFFF] shadow-[0_0_12px_rgba(85,223,255,0.45)] [clip-path:polygon(0_0,calc(100%_-_48px)_0,100%_48px,100%_100%,48px_100%,0_calc(100%_-_48px))]`;
-const HOLO = `${LAYER} [mix-blend-mode:var(--pc-blend)]`;
-const HOLO_LAYER = "absolute inset-0";
-const PHOTO = "pointer-events-none absolute select-none object-cover object-bottom";
-const TILE_RIM = `${LAYER} [box-shadow:inset_0_0_0_1px_var(--pc-tile-edge),inset_0_1px_0_var(--pc-tile-highlight)]`;
-
-const AVATAR =
-    "relative h-9 w-9 flex-none overflow-hidden rounded-full [background:var(--pc-tile)] after:absolute after:inset-0 after:rounded-[inherit] after:content-[''] after:[box-shadow:inset_0_0_0_1px_var(--pc-tile-edge)]";
-
-const AVATAR_IMAGE = "block h-full w-full object-cover object-top";
-const META = "flex min-w-0 flex-1 flex-col gap-[3px]";
-const GLARE = `${LAYER} mix-blend-overlay`;
-
-const clamp = (value: number, min: number, max: number) =>
-    Math.min(max, Math.max(min, value));
-
-const isDark = (color: string): boolean | null => {
-    const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(color).trim());
-
-    if (!match) return null;
-
-    const hex =
-        match[1].length === 3
-            ? match[1].replace(/./g, (digit) => digit + digit)
-            : match[1];
-
-    const [r, g, b] = [0, 2, 4].map(
-        (index) => parseInt(hex.slice(index, index + 2), 16) / 255
-    );
-
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b < 0.5;
-};
+/* ------------------------------------------------------------------ */
+/* Component                                                           */
+/* ------------------------------------------------------------------ */
 
 const TeamCard = ({
     avatarUrl = "",
     iconUrl,
-    miniAvatarUrl,
     name = "",
     title = "",
-    handle = "",
     email = "",
+    instagram = "",
+    phone = "",
+    showIcons = true,
     status = "",
-    statusColor = "#22c55e",
-    contactText = "Email",
+    statusColor,
     showUserInfo = true,
-    onContactClick,
     theme = "dark",
     backdropColor,
-    radius = 16,
+    radius = 20,
     holo = 0.8,
     glare = 0.5,
     enableTilt = true,
-    tiltStrength = 12,
-    parallax = 8,
+    tiltStrength = 10,
+    parallax = 6,
     enableMobileTilt = false,
     mobileTiltSensitivity = 5,
     intro = true,
+    priority = false,
     className = "",
 }: TeamCardProps) => {
     const rootRef = useRef<HTMLDivElement>(null);
+    const tiltRef = useRef<HTMLElement>(null);
+    const photoRef = useRef<HTMLImageElement>(null);
     const engineRef = useRef<Engine | null>(null);
+    const [logoFailed, setLogoFailed] = useState(false);
 
-    const settings = {
+    const settingsRef = useRef({
         enableTilt,
         tiltStrength,
         parallax,
         mobileTiltSensitivity,
         intro,
-    };
-
-    const settingsRef = useRef(settings);
+    });
 
     useEffect(() => {
-        settingsRef.current = settings;
+        settingsRef.current = {
+            enableTilt,
+            tiltStrength,
+            parallax,
+            mobileTiltSensitivity,
+            intro,
+        };
     }, [enableTilt, tiltStrength, parallax, mobileTiltSensitivity, intro]);
 
+    /* Spring driven tilt engine */
     useEffect(() => {
         const root = rootRef.current;
-        if (!root) return;
+        const tilt = tiltRef.current;
+        if (!root || !tilt) return;
 
-        const reduced = window.matchMedia(
-            "(prefers-reduced-motion: reduce)"
-        ).matches;
+        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-        const size = { width: root.offsetWidth, height: root.offsetHeight };
         const x = { p: 0, v: 0, target: 0 };
         const y = { p: 0, v: 0, target: 0 };
         const light = { p: 0, target: 0 };
@@ -321,34 +369,19 @@ const TeamCard = ({
             } = settingsRef.current;
 
             const angle = tiltOn && !reduced ? strength : 0;
-            const tilt = Math.min(1, Math.hypot(x.p, y.p));
-            const style = root.style;
+            const d = reduced ? 0 : depth;
 
-            style.setProperty(
-                "--pc-light-x",
-                `${(((x.p + 1) * 0.5 * size.width)).toFixed(1)}px`
-            );
-            style.setProperty(
-                "--pc-light-y",
-                `${(((y.p + 1) * 0.5 * size.height)).toFixed(1)}px`
-            );
-            style.setProperty("--pc-pointer-x", `${((x.p + 1) * 50).toFixed(2)}%`);
-            style.setProperty("--pc-pointer-y", `${((y.p + 1) * 50).toFixed(2)}%`);
-            style.setProperty("--pc-band-x", `${(50 + x.p * 15).toFixed(2)}%`);
-            style.setProperty("--pc-band-y", `${(50 + y.p * 15).toFixed(2)}%`);
-            style.setProperty("--pc-rotate-x", `${(y.p * angle).toFixed(3)}deg`);
-            style.setProperty("--pc-rotate-y", `${(-x.p * angle).toFixed(3)}deg`);
-            style.setProperty(
-                "--pc-shift-x",
-                `${(x.p * (reduced ? 0 : depth)).toFixed(2)}px`
-            );
-            style.setProperty(
-                "--pc-shift-y",
-                `${(y.p * (reduced ? 0 : depth)).toFixed(2)}px`
-            );
-            style.setProperty("--pc-reach", tilt.toFixed(4));
-            style.setProperty("--pc-tilt", (tilt * light.p).toFixed(4));
-            style.setProperty("--pc-active", light.p.toFixed(4));
+            tilt.style.transform = `rotateX(${(y.p * angle).toFixed(3)}deg) rotateY(${(-x.p * angle).toFixed(3)}deg)`;
+
+            const photo = photoRef.current;
+            if (photo) {
+                photo.style.transform = `translate3d(${(x.p * d).toFixed(2)}px, ${(y.p * d).toFixed(2)}px, 0) scale(1.04)`;
+            }
+
+            const s = root.style;
+            s.setProperty("--pc-light-x", `${((x.p + 1) * 50).toFixed(1)}%`);
+            s.setProperty("--pc-light-y", `${((y.p + 1) * 50).toFixed(1)}%`);
+            s.setProperty("--pc-active", light.p.toFixed(3));
         };
 
         const frame = (now: number) => {
@@ -405,65 +438,56 @@ const TeamCard = ({
             wake();
         };
 
+        const release = () => aim(0, 0, false);
+
         const aimAt = (event: PointerEvent) => {
             const rect = root.getBoundingClientRect();
             if (!rect.width || !rect.height) return;
-
             aim(
                 ((event.clientX - rect.left) / rect.width) * 2 - 1,
                 ((event.clientY - rect.top) / rect.height) * 2 - 1
             );
         };
 
-        const release = () => aim(0, 0, false);
-
-        const onEnter = (event: PointerEvent) => {
-            if (event.pointerType === "mouse") aimAt(event);
+        const onEnter = (e: PointerEvent) => {
+            if (e.pointerType === "mouse") aimAt(e);
         };
 
-        const onMove = (event: PointerEvent) => {
-            if (event.pointerType === "mouse" || event.pointerId === touchId) {
-                aimAt(event);
-            }
+        const onMove = (e: PointerEvent) => {
+            if (e.pointerType === "mouse" || e.pointerId === touchId) aimAt(e);
         };
 
-        const onLeave = (event: PointerEvent) => {
-            if (event.pointerType === "mouse") release();
+        const onLeave = (e: PointerEvent) => {
+            if (e.pointerType === "mouse") release();
         };
 
-        const onDown = (event: PointerEvent) => {
-            if (event.pointerType === "mouse") return;
-            touchId = event.pointerId;
-            aimAt(event);
+        const onDown = (e: PointerEvent) => {
+            if (e.pointerType === "mouse") return;
+            touchId = e.pointerId;
+            aimAt(e);
         };
 
-        const onUp = (event: PointerEvent) => {
-            if (event.pointerId !== touchId) return;
+        const onUp = (e: PointerEvent) => {
+            if (e.pointerId !== touchId) return;
             touchId = null;
             release();
         };
 
-        root.addEventListener("pointerenter", onEnter);
-        root.addEventListener("pointermove", onMove);
-        root.addEventListener("pointerleave", onLeave);
-        root.addEventListener("pointerdown", onDown);
-        root.addEventListener("pointerup", onUp);
-        root.addEventListener("pointercancel", onUp);
+        const opts = { passive: true } as const;
+        root.addEventListener("pointerenter", onEnter, opts);
+        root.addEventListener("pointermove", onMove, opts);
+        root.addEventListener("pointerleave", onLeave, opts);
+        root.addEventListener("pointerdown", onDown, opts);
+        root.addEventListener("pointerup", onUp, opts);
+        root.addEventListener("pointercancel", onUp, opts);
 
-        const observer = new ResizeObserver(() => {
-            size.width = root.offsetWidth;
-            size.height = root.offsetHeight;
-            write();
-        });
-
-        observer.observe(root);
         engineRef.current = { aim, release, write };
 
         if (settingsRef.current.intro && !reduced) {
-            x.p = 0.62;
-            y.p = -0.55;
+            x.p = 0.5;
+            y.p = -0.4;
             light.p = 1;
-            slowUntil = performance.now() + 1400;
+            slowUntil = performance.now() + 1200;
             write();
             wake();
         } else {
@@ -472,7 +496,6 @@ const TeamCard = ({
 
         return () => {
             cancelAnimationFrame(raf);
-            observer.disconnect();
             root.removeEventListener("pointerenter", onEnter);
             root.removeEventListener("pointermove", onMove);
             root.removeEventListener("pointerleave", onLeave);
@@ -487,6 +510,7 @@ const TeamCard = ({
         engineRef.current?.write();
     }, [enableTilt, tiltStrength, parallax]);
 
+    /* Mobile gyroscope tilt */
     useEffect(() => {
         const root = rootRef.current;
         if (!root || !enableMobileTilt) return;
@@ -495,12 +519,10 @@ const TeamCard = ({
 
         const onOrientation = (event: DeviceOrientationEvent) => {
             if (event.beta == null || event.gamma == null) return;
-
-            const sensitivity = settingsRef.current.mobileTiltSensitivity;
-
+            const s = settingsRef.current.mobileTiltSensitivity;
             engineRef.current?.aim(
-                (event.gamma * sensitivity) / 150,
-                ((event.beta - 20) * sensitivity) / 150
+                (event.gamma * s) / 150,
+                ((event.beta - 20) * s) / 150
             );
         };
 
@@ -520,7 +542,7 @@ const TeamCard = ({
                     .then((state) => {
                         if (state === "granted") listen();
                     })
-                    .catch(() => { });
+                    .catch(() => {});
             } else {
                 listen();
             }
@@ -534,102 +556,247 @@ const TeamCard = ({
         };
     }, [enableMobileTilt]);
 
-    const palette: Palette = theme === "light" ? "light" : "dark";
+    const isLight = theme === "light";
 
-    const foil: Palette = backdropColor
-        ? (isDark(backdropColor) ?? palette === "dark")
-            ? "dark"
-            : "light"
-        : palette;
+    const initials = useMemo(
+        () =>
+            name
+                .split(/\s+/)
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((part) => part[0]?.toUpperCase())
+                .join(""),
+        [name]
+    );
 
-    const backdrop = backdropColor
-        ? `linear-gradient(180deg, color-mix(in srgb, ${backdropColor}, #ffffff 12%) 0%, color-mix(in srgb, ${backdropColor}, #000000 18%) 100%)`
-        : "var(--pc-tile)";
+    const figure = useMemo(() => figureFor(name || "member"), [name]);
+
+    const instaHref = instagram
+        ? /^https?:\/\//i.test(instagram)
+            ? instagram
+            : `https://instagram.com/${instagram.replace(/^@/, "")}`
+        : "";
+
+    const instaLabel = instagram
+        ? /^https?:\/\//i.test(instagram)
+            ? instagram.replace(/^https?:\/\/(www\.)?instagram\.com\//i, "@").replace(/\/$/, "")
+            : `@${instagram.replace(/^@/, "")}`
+        : "";
+
+    const telHref = phone ? `tel:${phone.replace(/[^\d+]/g, "")}` : "";
+
+    const palette = isLight
+        ? {
+            "--tc-edge": "linear-gradient(135deg,#2a5cff 0%,#6a4dff 55%,#00a6d6 100%)",
+            "--tc-frame-bg": backdropColor || "linear-gradient(160deg,#f6f8ff 0%,#e1e8f9 60%,#cfd9f2 100%)",
+            "--tc-plaque": "linear-gradient(180deg,#ffffff,#e9effc)",
+            "--tc-art-bg": "#cfd9f2",
+            "--tc-box-bg": "rgba(255,255,255,0.62)",
+            "--tc-text": "#0d1633",
+            "--tc-sub": "rgba(13,22,51,0.72)",
+            "--tc-accent": "#2a5cff",
+            "--tc-accent2": "#6a4dff",
+            "--tc-glow": "rgba(42,92,255,0.22)",
+            "--tc-line": "rgba(42,92,255,0.4)",
+            "--tc-dot": "#2a5cff",
+            "--tc-corner-bg": "#0d1633",
+            "--tc-tag-bg": statusColor || "#2a5cff",
+            "--tc-tag-text": "#ffffff",
+        }
+        : {
+            "--tc-edge": "linear-gradient(135deg,#55DFFF 0%,#6C7BFF 52%,#B3A4FF 100%)",
+            "--tc-frame-bg": backdropColor || "linear-gradient(160deg,#111b3e 0%,#080d22 55%,#050816 100%)",
+            "--tc-plaque": "linear-gradient(180deg,#0c1332,#060a1b)",
+            "--tc-art-bg": "#070c1d",
+            "--tc-box-bg": "rgba(6,10,26,0.7)",
+            "--tc-text": "#f4f7ff",
+            "--tc-sub": "rgba(214,226,255,0.74)",
+            "--tc-accent": "#55DFFF",
+            "--tc-accent2": "#B3A4FF",
+            "--tc-glow": "rgba(85,223,255,0.28)",
+            "--tc-line": "rgba(143,216,255,0.4)",
+            "--tc-dot": "#EAF4FF",
+            "--tc-corner-bg": "#02040c",
+            "--tc-tag-bg": statusColor || "#55DFFF",
+            "--tc-tag-text": "#03101a",
+        };
+
+    const markLoaded = (img: HTMLImageElement) => {
+        const parent = img.parentElement;
+        if (parent) parent.dataset.loaded = "1";
+    };
+
+    const hasContact = showUserInfo && (email || instagram || phone);
+    const stroke = isLight ? "#2a5cff" : "#8FD8FF";
+    const dot = isLight ? "#2a5cff" : "#EAF4FF";
 
     return (
         <div
             ref={rootRef}
-            className={`${ROOT} ${className}`.trim()}
+            className={`tc-root ${className}`.trim()}
             style={
                 {
                     ...ROOT_VARS,
-                    ...THEMES[palette],
-                    ...FOILS[foil],
+                    ...palette,
                     "--pc-radius": `${Math.max(0, radius)}px`,
-                    "--pc-backdrop": backdrop,
                     "--pc-holo": clamp(holo, 0, 1),
                     "--pc-glare": clamp(glare, 0, 1),
                     "--pc-parallax": `${Math.max(0, parallax)}px`,
-                    "--pc-status": statusColor,
-                    "--pc-grain": GRAIN,
-                    "--pc-pattern": iconUrl
-                        ? `url("${iconUrl}")`
-                        : "linear-gradient(#000, #000)",
-                    "--pc-pattern-size": iconUrl ? "180% auto" : "100% 100%",
-                    "--pc-holo-gain": iconUrl ? 1.25 : 0.75,
-                    "--pc-holo-detail": iconUrl && foil === "dark" ? 1 : 0,
                 } as CSSProperties
             }
         >
-            <div className={BODY}>
-                <div className={TILE}>
-                    <span className={LAYER} style={SHEEN_STYLE} />
+            <style dangerouslySetInnerHTML={{ __html: CSS }} />
 
-                    <span className={HOLO} style={HOLO_STYLE}>
-                        <span className={HOLO_LAYER} style={GLOW_STYLE} />
-                        <span className={HOLO_LAYER} style={SHIFT_STYLE} />
-                    </span>
+            <span aria-hidden="true" className="tc-glow" />
 
-                    {avatarUrl && (
-                        <img
-                            className={PHOTO}
-                            style={PHOTO_STYLE}
-                            src={avatarUrl}
-                            alt={name || ""}
-                            loading="lazy"
-                            draggable={false}
-                        />
-                    )}
-
-                    {(name || title) && (
-                        <>
-                            <span className={LAYER} style={SCRIM_STYLE} />
-
-                            <div className="absolute left-3 right-3 top-3 z-10 text-center">
-                                {name && (
-                                    <h3 className="break-words font-autotech text-xl uppercase leading-tight tracking-wider text-cyan-300 drop-shadow-[0_0_10px_rgba(0,229,255,0.65)] sm:text-2xl">
-                                        {name}
-                                    </h3>
-                                )}
-
-                                {title && (
-                                    <p className="mt-1 font-heading text-[10px] uppercase tracking-[0.2em] text-white/80">
-                                        {title}
-                                    </p>
-                                )}
-                            </div>
-                        </>
-                    )}
-
-                    <span className={TILE_RIM} />
+            <article ref={tiltRef} className="tc-tilt" aria-label={name || "Team member"}>
+                {/* Frame with its own constellation, kept behind the photo */}
+                <div className="tc-frame">
+                    <div className="tc-frame-fill">
+                        <svg viewBox="0 0 100 140" preserveAspectRatio="xMidYMid slice" fill="none" aria-hidden="true">
+                            {figure.paths.map((d, i) => (
+                                <path key={i} d={d} stroke={stroke} strokeOpacity="0.38" strokeWidth="0.28" />
+                            ))}
+                            {figure.points.map((p, i) => (
+                                <circle key={i} cx={p.x} cy={p.y} r={p.r} fill={dot} fillOpacity="0.85" />
+                            ))}
+                        </svg>
+                    </div>
                 </div>
 
-                {showUserInfo && email && (
-                    <div className={`${FOOTER} justify-center text-center`}>
-                        <a
-                            href={`mailto:${email}`}
-                            className="min-w-0 max-w-full break-all text-center text-xs font-medium tracking-wide text-[#55DFFF] transition-colors duration-200 hover:text-white"
-                            aria-label={`Email ${name || email}`}
-                        >
-                            {email}
-                        </a>
-                    </div>
-                )}
+                <div className="tc-content">
+                    {/* Name plaque */}
+                    <header className="tc-title tc-hex">
+                        <div className="tc-title-fill tc-hex">
+                            <span aria-hidden="true" className="tc-ticks l"><i /><i /><i /></span>
+                            <span aria-hidden="true" className="tc-ticks r"><i /><i /><i /></span>
+                            {name && <h3 className="tc-name">{name}</h3>}
+                        </div>
+                    </header>
 
-                <span className={GLARE} style={GLARE_STYLE} />
-                <span className={LAYER} style={SHADE_STYLE} />
-                <span className={RIM} />
-            </div>
+                    {/* Photo window */}
+                    <div className="tc-art tc-cutart">
+                        <div className="tc-art-fill tc-cutart">
+                            <span aria-hidden="true" className="tc-abs tc-neb" />
+
+                            {avatarUrl ? (
+                                <>
+                                    <span aria-hidden="true" className="tc-abs tc-shim" />
+                                    <img
+                                        ref={(el) => {
+                                            photoRef.current = el;
+                                            if (el && el.complete && el.naturalWidth) markLoaded(el);
+                                        }}
+                                        className="tc-photo"
+                                        style={{
+                                            inset: "calc(var(--pc-parallax) * -1)",
+                                            width: "calc(100% + var(--pc-parallax) * 2)",
+                                            height: "calc(100% + var(--pc-parallax) * 2)",
+                                        }}
+                                        src={avatarUrl}
+                                        alt={name || ""}
+                                        loading={priority ? "eager" : "lazy"}
+                                        decoding="async"
+                                        draggable={false}
+                                        onLoad={(e) => markLoaded(e.currentTarget)}
+                                        onError={(e) => markLoaded(e.currentTarget)}
+                                    />
+                                </>
+                            ) : (
+                                <span aria-hidden="true" className="tc-initials">{initials}</span>
+                            )}
+
+                            <span aria-hidden="true" className="tc-brk tr" />
+                            <span aria-hidden="true" className="tc-brk bl" />
+                        </div>
+                    </div>
+
+                    {/* Role bar */}
+                    <div className="tc-type tc-cutsm">
+                        <div className="tc-type-fill tc-cutsm">
+                            <span className="tc-tag">{status || "TechXetra"}</span>
+                            <span className="tc-role">{title || "Team member"}</span>
+                            <span aria-hidden="true" className="tc-bars"><i /><i /><i /></span>
+                        </div>
+                    </div>
+
+                    {/* Contact panel */}
+                    <div className="tc-box tc-cutbox">
+                        <div className="tc-box-fill tc-cutbox">
+                            {hasContact ? (
+                                <>
+                                    {email && (
+                                        <a
+                                            href={`mailto:${email}`}
+                                            className="tc-row"
+                                            title={email}
+                                            aria-label={`Email ${name || email}`}
+                                        >
+                                            {showIcons ? (
+                                                <span className="tc-ico"><MailIcon /></span>
+                                            ) : (
+                                                <span className="tc-lab">Mail</span>
+                                            )}
+                                            <span className="tc-val">{email}</span>
+                                        </a>
+                                    )}
+                                    {instagram && (
+                                        <a
+                                            href={instaHref}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="tc-row"
+                                            title={instaLabel}
+                                            aria-label={`${name || "Member"} on Instagram`}
+                                        >
+                                            {showIcons ? (
+                                                <span className="tc-ico"><InstaIcon /></span>
+                                            ) : (
+                                                <span className="tc-lab">Insta</span>
+                                            )}
+                                            <span className="tc-val">{instaLabel}</span>
+                                        </a>
+                                    )}
+                                    {phone && (
+                                        <a
+                                            href={telHref}
+                                            className="tc-row"
+                                            title={phone}
+                                            aria-label={`Call ${name || phone}`}
+                                        >
+                                            {showIcons ? (
+                                                <span className="tc-ico"><CallIcon /></span>
+                                            ) : (
+                                                <span className="tc-lab">Call</span>
+                                            )}
+                                            <span className="tc-val">{phone}</span>
+                                        </a>
+                                    )}
+                                </>
+                            ) : (
+                                <span className="tc-idle">TechXetra 2026</span>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Corner badge */}
+                    <div className="tc-corner tc-cutcorner" aria-hidden="true">
+                        <div className="tc-corner-fill tc-cutcorner">
+                            {iconUrl && !logoFailed && (
+                                <img
+                                    src={iconUrl}
+                                    alt=""
+                                    draggable={false}
+                                    decoding="async"
+                                    onError={() => setLogoFailed(true)}
+                                />
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <span aria-hidden="true" className="tc-sheen" />
+            </article>
         </div>
     );
 };

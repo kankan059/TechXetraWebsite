@@ -970,7 +970,7 @@ export default function SchedulePage() {
               >
                 SCHEDULE
               </span>
-              <h1 className="relative m-0 bg-gradient-to-b from-[#FFFFFF] via-[#D4D5DE] to-[#5E6272] bg-clip-text text-[clamp(3.4rem,16vw,14rem)] font-normal leading-[0.8] tracking-[-0.085em] text-transparent [font-family:var(--font-gotham-bold)]">
+              <h1 className="relative m-0 bg-gradient-to-b from-[#FFFFFF] via-[#D4D5DE] to-[#5E6272] bg-clip-text text-[clamp(3.4rem,16vw,14rem)] font-normal leading-[0.8] tracking-[-0.085em] text-transparent [font-family:var(--font-roboto)]">
                 SCHEDULE
               </h1>
             </div>
@@ -1038,7 +1038,7 @@ export default function SchedulePage() {
                     <span className="block font-pixel text-[10px] uppercase tracking-[0.16em] sm:text-xs">
                       {day.date}
                     </span>
-                    <span className="mt-2 block text-base text-white [font-family:var(--font-gotham-bold)] sm:text-lg lg:text-xl">
+                    <span className="mt-2 block text-base text-white [font-family:var(--font-roboto)] sm:text-lg lg:text-xl">
                       {day.label}
                     </span>
                     <span
@@ -1059,7 +1059,7 @@ export default function SchedulePage() {
                 {currentDay.date}
               </p>
               <h2
-                className="mt-4 max-w-[18ch] text-balance text-[clamp(2.2rem,8vw,4.6rem)] font-normal leading-[1.04] tracking-[-0.035em] text-white [font-family:var(--font-gotham-bold)]"
+                className="mt-4 max-w-[18ch] text-balance text-[clamp(2.2rem,8vw,4.6rem)] font-normal leading-[1.04] tracking-[-0.035em] text-white [font-family:var(--font-roboto)]"
                 style={{ textShadow: "0 0 70px var(--accent-soft)" }}
               >
                 {currentDay.theme}

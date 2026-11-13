@@ -663,7 +663,7 @@ export default function Events() {
     <main
       ref={rootRef}
       style={rootStyle}
-      className="relative isolate min-h-svh overflow-x-clip bg-black text-[#F5F0DE] [font-family:var(--font-gotham-book)]"
+      className="relative isolate min-h-svh overflow-x-clip bg-black text-[#F5F0DE] [font-family:var(--font-roboto)]"
     >
       <style>{css}</style>
 
@@ -925,7 +925,7 @@ export default function Events() {
 
                   <h2
                     id={`${event.id}-title`}
-                    className="m-0 text-[clamp(2.2rem,10vw,3.6rem)] font-normal leading-[1.02] tracking-[-0.04em] text-balance [font-family:var(--font-gotham-bold)] [overflow-wrap:anywhere] min-[900px]:text-[clamp(3rem,5.6vw,5.6rem)]"
+                    className="m-0 text-[clamp(2.2rem,10vw,3.6rem)] font-normal leading-[1.02] tracking-[-0.04em] text-balance [font-family:var(--font-roboto)] [overflow-wrap:anywhere] min-[900px]:text-[clamp(3rem,5.6vw,5.6rem)]"
                     style={{ textShadow: `0 0 70px ${event.accentSoft}` }}
                   >
                     {event.name}
