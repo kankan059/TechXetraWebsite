@@ -149,9 +149,10 @@ function PinkBackdrop() {
 /* Helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-function formatDate(value: string) {
+function formatDate(value: string | number) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "Unknown date";
+
   return d.toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
@@ -159,14 +160,17 @@ function formatDate(value: string) {
   });
 }
 
-function timeAgo(value: string) {
+function timeAgo(value: string | number) {
   const t = new Date(value).getTime();
   if (Number.isNaN(t)) return "";
+
   const min = Math.floor((Date.now() - t) / 60000);
   if (min < 1) return "just now";
   if (min < 60) return `${min} min ago`;
+
   const hr = Math.floor(min / 60);
   if (hr < 24) return `${hr} hr ago`;
+
   const day = Math.floor(hr / 24);
   return day < 30 ? `${day} day${day > 1 ? "s" : ""} ago` : "";
 }
