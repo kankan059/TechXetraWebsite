@@ -245,7 +245,7 @@ function createScene(canvas: HTMLCanvasElement, lite: boolean, full: boolean, st
   const camAt = (u: number) => CAM_END * clamp((u - INTRO_HOLD) / (END_TIME - INTRO_HOLD));
 
   // Tunnel stars.
-  const N = lite ? 380 : 900;
+  const N = lite ? 320 : 860;
   const SX = new Float32Array(N);
   const SY = new Float32Array(N);
   const SZ = new Float32Array(N);
@@ -339,8 +339,8 @@ function createScene(canvas: HTMLCanvasElement, lite: boolean, full: boolean, st
     w = Math.round(r.width);
     h = Math.round(r.height);
     if (!w || !h) return;
-    dpr = Math.min(window.devicePixelRatio || 1, lite ? 1.5 : 2);
-    const maxPx = lite ? 1.4e6 : 3.4e6;
+    dpr = Math.min(window.devicePixelRatio || 1, lite ? 1.35 : 2);
+    const maxPx = lite ? 1.2e6 : 3.2e6;
     dpr = Math.max(1, Math.min(dpr, Math.sqrt(maxPx / (w * h))));
     canvas.width = Math.round(w * dpr);
     canvas.height = Math.round(h * dpr);
@@ -358,12 +358,14 @@ function createScene(canvas: HTMLCanvasElement, lite: boolean, full: boolean, st
     if (!w || !h) return;
     const u = st.t;
     const camZ = camAt(u);
-    sp = sp * 0.8 + Math.abs(camZ - lastCam) * 0.2;
+    const dCam = Math.abs(camZ - lastCam);
+    // A big jump means the scroll teleported (fast scroll back to the top), so never turn it into streaks.
+    sp = dCam > 400 ? 0 : sp * 0.8 + Math.min(dCam, 80) * 0.2;
     lastCam = camZ;
 
     const burst = st.burst;
     const launch = sm(u, CH[LAST], CH[LAST] + 0.55);
-    const warp = full ? Math.min(sp * 7 + burst * 700 + launch * 420, 1100) : 0;
+    const warp = full ? Math.min(sp * 5 + burst * 600 + launch * 380, 800) : 0;
     const fov = f * (1 + burst * 0.1 + launch * 0.05);
     px += (tx - px) * 0.06;
     py += (ty - py) * 0.06;
@@ -413,7 +415,7 @@ function createScene(canvas: HTMLCanvasElement, lite: boolean, full: boolean, st
       ctx.stroke();
     }
 
-    /* ---- The known world, held inside its limit ring, then reborn ---- */
+    /* ---- The known world, alone in the dark, then reborn ---- */
     const gIn = sm(u, INTRO_HOLD + 0.2, INTRO_HOLD + 0.7);
     const rec = sm(u, CH[2], CH[2] + 0.8);
     const aG = gIn * (1 - rec);
@@ -473,7 +475,7 @@ function createScene(canvas: HTMLCanvasElement, lite: boolean, full: boolean, st
 
     }
 
-    /* ---- A star chart grid, the route to the North Star, then the orbits it becomes ---- */
+    /* ---- The route to the North Star, then the orbits it becomes ---- */
     const cA = sm(u, CH[2] + 0.5, CH[3] + 0.25);
     if (cA > 0.01) {
       const U = Math.min(portrait ? w * 0.46 : s * 0.3, h * 0.3);
@@ -530,8 +532,8 @@ function createScene(canvas: HTMLCanvasElement, lite: boolean, full: boolean, st
       const more = sm(u, CH[5], CH[5] + 0.7); // every star swells
       const fin = launch; // the final bloom
       const lineFade = 1 - clamp(morph * 2.2);
-      const spin = full ? now * 0.00022 : u * 0.7;
-      const tm = full ? now * 0.0003 : u * 2;
+      const spin = full ? now * 0.22 : u * 0.7;
+      const tm = full ? now * 0.3 : u * 2;
 
       // Orbit geometry, fitted to the space around the North Star so it never leaves the screen.
       const Rmax = Math.max(U * 0.9, Math.min(U * 2.1, nx * 0.94, (w - nx) * 0.94));
@@ -844,27 +846,44 @@ export default function Hero() {
     // The scene is redrawn by the GSAP ticker only while the section is on screen.
     const state: SceneState = { t: 0, burst: 0 };
     const scene = createScene(canvas, lite, full, state);
-    let active = true;
+    let visible = true;
     let master: gsap.core.Timeline | null = null;
     let target = 0;
     let cur = 0;
+    let shown = -1;
     const tick = (time: number, dt: number) => {
-      // The story clock chases the scroll position but can never move faster than the cap,
-      // so a fast fling or a jump in scroll still plays every chapter in order.
-      const sec = Math.min(dt, 64) / 1000;
+      // The story clock chases the scroll position with a speed cap, so a fast scroll still plays
+      // every chapter in order. While the section is off screen nobody can see it, so it snaps.
       const diff = target - cur;
-      if (Math.abs(diff) > 0.00002) {
-        const ease = 1 - Math.exp(-sec * (lite ? 6 : 8));
-        const cap = sec * 0.4;
+      if (!visible) {
+        cur = target;
+      } else if (Math.abs(diff) > 0.00002) {
+        const sec = Math.min(dt, 64) / 1000;
+        const ease = 1 - Math.exp(-sec * (lite ? 7 : 9));
+        const cap = sec * (diff > 0 ? 0.7 : 1.6);
         cur += clamp(diff * ease, -cap, cap);
       } else {
         cur = target;
       }
-      state.t = cur * TOTAL;
-      if (master) master.progress(cur);
-      if (active) scene.render(time);
+      const moved = cur !== shown;
+      if (moved) {
+        shown = cur;
+        state.t = cur * TOTAL;
+        if (master) master.progress(cur);
+      }
+      // Always draw one last frame after the clock settles, even if the section just left the screen,
+      // so the canvas can never keep a stale picture behind the cover.
+      if (visible || moved) scene.render(time);
     };
     gsap.ticker.add(tick);
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        visible = entries[entries.length - 1].isIntersecting;
+      },
+      { rootMargin: "120px 0px" }
+    );
+    io.observe(root);
 
     let raf = 0;
     const ro = new ResizeObserver(() => {
@@ -892,7 +911,7 @@ export default function Hero() {
       const prog = root.querySelector<HTMLElement>(".exodus-progress");
       const progFill = root.querySelector<HTMLElement>(".exodus-progress-fill");
 
-      if (full) {
+      if (full && !window.matchMedia("(pointer: coarse)").matches) {
         lenis = new Lenis({ lerp: 0.09, smoothWheel: true, syncTouch: false });
         lenis.on("scroll", ScrollTrigger.update);
         lenisTicker = (time: number) => lenis?.raf(time * 1000);
@@ -934,9 +953,6 @@ export default function Hero() {
         },
         onRefresh: (self) => {
           target = self.progress;
-        },
-        onToggle: (self) => {
-          active = self.isActive;
         },
       });
       target = trig.progress;
@@ -1018,12 +1034,15 @@ export default function Hero() {
     return () => {
       ctx.revert();
       master = null;
-      active = false;
+      io.disconnect();
       gsap.ticker.remove(tick);
       ro.disconnect();
       cancelAnimationFrame(raf);
       window.removeEventListener("pointermove", onPointer);
-      if (lenisTicker) gsap.ticker.remove(lenisTicker);
+      if (lenisTicker) {
+        gsap.ticker.remove(lenisTicker);
+        gsap.ticker.lagSmoothing(500, 33);
+      }
       if (lenis) {
         lenis.off("scroll", ScrollTrigger.update);
         lenis.destroy();
@@ -1073,6 +1092,10 @@ export default function Hero() {
           />
           <div
             aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 z-[2] h-[45%] bg-[radial-gradient(ellipse_70%_90%_at_50%_100%,rgba(50,130,220,0.14),transparent_70%)]"
+          />
+          <div
+            aria-hidden="true"
             className="exodus-neb-b pointer-events-none absolute -inset-[20%] z-[1]"
             style={{
               background:
@@ -1101,7 +1124,11 @@ export default function Hero() {
 
           {/* Cover: the original hero. HeroTitle itself is untouched. */}
           <div className="exodus-cover absolute inset-0 z-20">
-            <div className="exodus-cover-content flex h-full flex-col items-center justify-between px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-24 sm:px-10 sm:pt-28 lg:px-16">
+            <div className="exodus-cover-content relative flex h-full flex-col items-center justify-between px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-24 sm:px-10 sm:pt-28 lg:px-16">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(ellipse_75%_30%_at_50%_62%,rgba(3,6,16,0.62),transparent_72%)]"
+              />
               <div className={`${FONT.body} flex w-full max-w-[1200px] items-start justify-between gap-6 text-xs text-[#e6ecff]/60 sm:text-sm`}>
                 <span className="max-w-[60%]">{heroData.uni}</span>
                 <span>{heroData.year}</span>
@@ -1132,6 +1159,8 @@ export default function Hero() {
               const isFinal = story.position === "center";
               const align =
                 story.position === "right" ? "ml-auto" : story.position === "center" ? "mx-auto" : "";
+              const scrimAt =
+                story.position === "right" ? "100% 50%" : story.position === "center" ? "50% 50%" : "0% 50%";
               const ruleOrigin =
                 story.position === "right" ? "right center" : story.position === "center" ? "center" : "left center";
               return (
@@ -1139,7 +1168,14 @@ export default function Hero() {
                   key={story.title}
                   className={`exodus-copy absolute inset-0 flex px-6 pb-[16svh] sm:px-12 md:px-20 lg:px-28 ${positionClasses[story.position]}`}
                 >
-                  <div className="relative w-full max-w-3xl">
+                  <div className="relative isolate w-full max-w-3xl">
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -inset-x-6 -inset-y-10 -z-10 sm:-inset-x-14 sm:-inset-y-14"
+                      style={{
+                        background: `radial-gradient(ellipse 85% 75% at ${scrimAt}, rgba(3,6,16,0.82) 0%, rgba(3,6,16,0.55) 48%, rgba(3,6,16,0) 100%)`,
+                      }}
+                    />
                     {!isFinal && (
                       <span
                         aria-hidden="true"
