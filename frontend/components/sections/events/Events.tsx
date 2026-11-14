@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import gsap from "gsap";
 import Lenis from "lenis";
@@ -274,6 +274,30 @@ const css = `
 .evx-orbit{animation:evx-orbit 140s linear infinite}
 .evx-cue-dot{animation:evx-cue 2.4s cubic-bezier(.6,0,.4,1) infinite}
 
+/* Mobile glass card */
+.evx-glass{
+  background:linear-gradient(150deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,.07) 45%,rgba(255,255,255,.1) 100%);
+  border:1px solid rgba(255,255,255,.22);
+  -webkit-backdrop-filter:blur(22px) saturate(150%);
+  backdrop-filter:blur(22px) saturate(150%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -1px 0 rgba(255,255,255,.06),0 18px 50px -18px rgba(0,0,0,.55);
+}
+.evx-glass-chip{
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.2);
+  -webkit-backdrop-filter:blur(10px);
+  backdrop-filter:blur(10px);
+}
+.evx-glass-btn{
+  background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.32);
+  -webkit-backdrop-filter:blur(12px);
+  backdrop-filter:blur(12px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+  transition:background .25s ease;
+}
+.evx-glass-btn:active{background:rgba(255,255,255,.26)}
+
 @keyframes evx-pulse{0%{transform:scale(.9);opacity:.7}100%{transform:scale(1.6);opacity:0}}
 @keyframes evx-float{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(0,-10px,0)}}
 @keyframes evx-orbit{to{transform:rotate(360deg)}}
@@ -294,6 +318,51 @@ function getEventCategoryLabel(value: string) {
     return { label: "TECHNICAL", kind: "technical" as const };
   }
   return { label: value, kind: "other" as const };
+}
+
+/* ------------------------------------------------------------------ */
+/* Mobile-only description (text clamps, tap to expand)                */
+/* ------------------------------------------------------------------ */
+
+function MobileDescription({ text, accent }: { text: string; accent: string }) {
+  const [open, setOpen] = useState(false);
+  const paragraphs = text.split(/\n\s*\n/);
+  const long = text.length > 160;
+
+  return (
+    <div>
+      <div
+        className="space-y-2 text-[14px] leading-[1.65] text-[#F5F0DE]/90 [overflow-wrap:anywhere]"
+        style={
+          !open && long
+            ? {
+                display: "-webkit-box",
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: "vertical",
+                overflow: "hidden",
+              }
+            : undefined
+        }
+      >
+        {paragraphs.map((paragraph, i) => (
+          <p key={i} className="m-0 whitespace-pre-line font-pixel">
+            {paragraph}
+          </p>
+        ))}
+      </div>
+      {long && (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="mt-1 inline-flex min-h-9 cursor-pointer items-center border-0 bg-transparent p-0 text-[13px] underline underline-offset-4 font-cta"
+          style={{ color: accent }}
+        >
+          {open ? "Show less" : "Read more"}
+        </button>
+      )}
+    </div>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -484,6 +553,25 @@ export default function Events() {
               end: "bottom top",
               scrub: 0.6,
             },
+          });
+        }
+
+        /* Mobile only: a single gentle reveal per glass card. */
+        if (mobile) {
+          eventSections.forEach((section) => {
+            const card = section.querySelector<HTMLElement>("[data-m-card]");
+            if (!card) return;
+            gsap.from(card, {
+              y: 40,
+              opacity: 0,
+              duration: 0.9,
+              ease: "power3.out",
+              scrollTrigger: {
+                trigger: section,
+                start: "top 72%",
+                toggleActions: "play none none none",
+              },
+            });
           });
         }
 
@@ -878,6 +966,13 @@ export default function Events() {
 
         {events.map((event, index) => {
           const figure = figures[index];
+          const mobileCategory = getEventCategoryLabel(event.categoryLabel);
+          const mobileCategoryColor =
+            mobileCategory.kind === "technical"
+              ? "#70D8FF"
+              : mobileCategory.kind === "non-technical"
+                ? "#FF9B86"
+                : event.accent;
 
           return (
             <section
@@ -888,7 +983,92 @@ export default function Events() {
               className="relative flex min-h-svh flex-col items-start pb-[calc(64px+env(safe-area-inset-bottom))] pl-5 pr-5 pt-24 min-[600px]:pl-[116px] min-[600px]:pr-8 min-[900px]:justify-center min-[900px]:pb-12 min-[900px]:pr-12 min-[1000px]:pl-[156px] min-[1200px]:pr-16"
               style={{ color: event.foreground }}
             >
-              <div className="mx-0 flex w-full max-w-[620px] flex-1 flex-col items-start gap-8 min-[900px]:mx-auto min-[900px]:grid min-[900px]:max-w-[1280px] min-[900px]:flex-none min-[900px]:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] min-[900px]:items-center min-[900px]:gap-[clamp(40px,7vw,112px)]">
+              {/* ===== Mobile only (below 768px): glass card ===== */}
+              <div className="flex flex-1 flex-col justify-center self-stretch min-[600px]:-ml-24 min-[600px]:-mr-3 min-[768px]:hidden">
+                <div
+                  data-m-card
+                  className="evx-glass mx-auto flex w-full max-w-[420px] flex-col gap-4 rounded-[28px] p-4"
+                >
+                  <div
+                    className="relative mx-auto aspect-[4/5] w-full max-w-[280px]"
+                    style={{ maxHeight: "44svh" }}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-[12%] top-[14%] h-[72%] w-[76%] rounded-full blur-[46px]"
+                      style={{ background: event.accentSoft }}
+                    />
+                    <div
+                      className="absolute inset-0"
+                      style={{ filter: "drop-shadow(0 18px 24px rgba(0,0,0,0.5))" }}
+                    >
+                      {event.image ? (
+                        <Image
+                          src={event.image}
+                          alt={`${event.name} ${event.categoryLabel} poster`}
+                          fill
+                          priority={index === 0}
+                          sizes="(max-width: 767px) 80vw, 280px"
+                          className="object-contain"
+                        />
+                      ) : (
+                        <div
+                          className="flex h-full w-full flex-col justify-between rounded-2xl border p-5"
+                          style={{
+                            borderColor: `${event.accent}55`,
+                            background: `linear-gradient(145deg, ${event.accentSoft}, rgba(0,0,0,0.3))`,
+                          }}
+                        >
+                          <span
+                            className="text-[9px] leading-relaxed tracking-[0.14em] [font-family:var(--font-pixel)]"
+                            style={{ color: event.accent }}
+                          >
+                            TECHXETRA 12th Edition
+                          </span>
+                          <span className="text-[1.8rem] leading-[1.05] [font-family:var(--font-gotham-bold)] [overflow-wrap:anywhere]">
+                            {event.name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3 px-1">
+                    <span
+                      className="evx-glass-chip inline-flex min-h-7 w-fit items-center rounded-full px-3 py-1 text-[9px] font-semibold tracking-[0.16em] [font-family:var(--font-pixel)]"
+                      style={{ color: mobileCategoryColor, borderColor: `${mobileCategoryColor}55` }}
+                    >
+                      {mobileCategory.label.toUpperCase()}
+                    </span>
+
+                    <h2
+                      id={`${event.id}-title`}
+                      className="m-0 text-[2rem] font-normal leading-[1.05] tracking-[-0.035em] text-balance [font-family:var(--font-roboto)] [overflow-wrap:anywhere]"
+                      style={{ textShadow: `0 0 50px ${event.accentSoft}` }}
+                    >
+                      {event.name}
+                    </h2>
+
+                    <p className="m-0 text-[13px] italic leading-[1.55] text-[#F5F0DE]/70">
+                      {event.tagline}
+                    </p>
+
+                    <MobileDescription  text={event.description} accent={event.accent} />
+                  </div>
+
+                  <Link
+                    href={event.href ?? `/event/${event.id}`}
+                    aria-label={`Explore ${event.categoryLabel.toLowerCase()}`}
+                    className="evx-glass-btn inline-flex min-h-12 w-full items-center justify-center rounded-full px-5 py-3 text-[12px] text-white [font-family:var(--font-roboto)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
+                    style={{ borderColor: `${event.accent}99` }}
+                  >
+                    Explore events
+                  </Link>
+                </div>
+              </div>
+
+              {/* ===== Laptop / tablet layout (unchanged, hidden on phones) ===== */}
+              <div className="mx-0 flex w-full max-w-[620px] flex-1 flex-col items-start gap-8 max-[767px]:hidden min-[900px]:mx-auto min-[900px]:grid min-[900px]:max-w-[1280px] min-[900px]:flex-none min-[900px]:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] min-[900px]:items-center min-[900px]:gap-[clamp(40px,7vw,112px)]">
                 <div data-event-copy className="min-w-0 shrink-0">
                   {(() => {
                     const category = getEventCategoryLabel(event.categoryLabel);
@@ -924,7 +1104,6 @@ export default function Events() {
                   })()}
 
                   <h2
-                    id={`${event.id}-title`}
                     className="m-0 text-[clamp(2.2rem,10vw,3.6rem)] font-normal leading-[1.02] tracking-[-0.04em] text-balance [font-family:var(--font-roboto)] [overflow-wrap:anywhere] min-[900px]:text-[clamp(3rem,5.6vw,5.6rem)]"
                     style={{ textShadow: `0 0 70px ${event.accentSoft}` }}
                   >
@@ -954,7 +1133,7 @@ export default function Events() {
                       className="evx-cta-fill absolute inset-0"
                       style={{ background: `linear-gradient(90deg, ${event.accentSoft}, transparent)` }}
                     />
-                    <span className="relative">Explore events</span>
+                    <span className="relative font-roboto">Explore events</span>
                     <svg
                       aria-hidden="true"
                       viewBox="0 0 24 24"

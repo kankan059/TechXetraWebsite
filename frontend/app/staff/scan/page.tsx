@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -14,11 +14,13 @@ import {
   Search,
   ArrowLeft,
   User,
+  Camera,
 } from "lucide-react";
 import type { ScanLookupResult, UserProfile } from "@/types/api";
 import { staffApi } from "@/services/staff-api";
 import { participantApi } from "@/services/participant-api";
 import { ApiError } from "@/lib/api-client";
+import TicketQrScanner from "@/components/admin/TicketQrScanner";
 
 export default function StaffScannerPage() {
   const router = useRouter();
@@ -32,6 +34,7 @@ export default function StaffScannerPage() {
 
   // Token input & Lookup state
   const [tokenInput, setTokenInput] = useState("");
+  const [cameraScanning, setCameraScanning] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
   const [lookupResult, setLookupResult] = useState<ScanLookupResult | null>(null);
   const [lookupError, setLookupError] = useState<string | null>(null);
@@ -75,31 +78,43 @@ export default function StaffScannerPage() {
     void checkStaffAuth();
   }, [router]);
 
-  const handleLookup = async (tokenToLookup?: string) => {
-    const rawToken = (tokenToLookup || tokenInput).trim();
-    if (!rawToken) return;
+  const handleLookup = useCallback(
+    async (tokenToLookup?: string) => {
+      const rawToken = (tokenToLookup || tokenInput).trim();
+      if (!rawToken) return;
 
-    setLookingUp(true);
-    setLookupError(null);
-    setLookupResult(null);
-    setActionVerdict(null);
-    setActionMessage(null);
-    setStudentIdChecked(false);
+      setLookingUp(true);
+      setLookupError(null);
+      setLookupResult(null);
+      setActionVerdict(null);
+      setActionMessage(null);
+      setStudentIdChecked(false);
 
-    try {
-      const data = await staffApi.scan.lookup({
-        qrToken: rawToken,
-        context,
-        eventId: context === "EVENT" ? eventId.trim() || undefined : undefined,
-      });
+      try {
+        const data = await staffApi.scan.lookup({
+          qrToken: rawToken,
+          context,
+          eventId: context === "EVENT" ? eventId.trim() || undefined : undefined,
+        });
 
-      setLookupResult(data);
-    } catch (err: unknown) {
-      setLookupError(err instanceof Error ? err.message : "Lookup failed");
-    } finally {
-      setLookingUp(false);
-    }
-  };
+        setLookupResult(data);
+      } catch (err: unknown) {
+        setLookupError(err instanceof Error ? err.message : "Lookup failed");
+      } finally {
+        setLookingUp(false);
+      }
+    },
+    [context, eventId, tokenInput],
+  );
+
+  const handleQrDetected = useCallback(
+    (value: string) => {
+      setCameraScanning(false);
+      setTokenInput(value);
+      void handleLookup(value);
+    },
+    [handleLookup],
+  );
 
   const handleAdmit = async () => {
     if (!lookupResult?.ticket) return;
@@ -151,6 +166,7 @@ export default function StaffScannerPage() {
   };
 
   const resetForNextScan = () => {
+    setCameraScanning(false);
     setTokenInput("");
     setLookupResult(null);
     setLookupError(null);
@@ -194,6 +210,7 @@ export default function StaffScannerPage() {
             <button
               type="button"
               onClick={() => {
+                setCameraScanning(false);
                 setContext("GATE");
                 resetForNextScan();
               }}
@@ -209,6 +226,7 @@ export default function StaffScannerPage() {
             <button
               type="button"
               onClick={() => {
+                setCameraScanning(false);
                 setContext("EVENT");
                 resetForNextScan();
               }}
@@ -269,6 +287,29 @@ export default function StaffScannerPage() {
               {lookingUp ? "Inspecting..." : "Lookup"}
             </button>
           </form>
+
+          <div className="mt-4 border-t border-white/10 pt-4">
+            {cameraScanning ? (
+              <TicketQrScanner
+                onDetected={handleQrDetected}
+                onClose={() => setCameraScanning(false)}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCameraScanning(true)}
+                disabled={lookingUp}
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-cyan-300/30 bg-cyan-300/10 px-4 py-3 text-xs font-semibold text-cyan-200 transition hover:border-cyan-300/60 hover:bg-cyan-300/15 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Camera className="h-4 w-4" />
+                Scan QR with camera
+              </button>
+            )}
+          </div>
+          <p className="mt-3 text-[11px] leading-relaxed text-white/40">
+            A scanned QR is looked up first. Check the attendee and required ID
+            before choosing to admit them.
+          </p>
         </div>
 
         {lookupError && (

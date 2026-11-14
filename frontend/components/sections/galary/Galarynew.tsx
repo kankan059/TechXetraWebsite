@@ -3,10 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-/* -------------------------------------------------------------------------- */
-/*  Content. Replace with your own files and give each its real width/height   */
-/*  so portrait (3:4) and landscape images are always shown in full.           */
-/* -------------------------------------------------------------------------- */
+
 
 interface Media {
   id: string;
@@ -19,7 +16,7 @@ interface Media {
 }
 
 const PERFORMERS: Media[] = [
-  { id: "p1", src: "https://picsum.photos/seed/artist-1/900/1200", width: 900, height: 1200, title: "Aarav Sharma", year: 2025 },
+  { id: "p1", src: "https://image.cdn2.seaart.me/2025-09-08/d2vf3jte878c73ct1460-1/f7b3f249b5b6a046a1cd5bb1733609c6_high.webp", width: 900, height: 1200, title: "Aarav Sharma", year: 2025 },
   { id: "p2", src: "https://picsum.photos/seed/artist-2/900/1200", width: 900, height: 1200, title: "Meera Iyer", year: 2025 },
   { id: "p3", src: "https://picsum.photos/seed/artist-3/1600/1000", width: 1600, height: 1000, title: "Nova Collective", year: 2024 },
   { id: "p4", src: "https://picsum.photos/seed/artist-4/900/1200", width: 900, height: 1200, title: "Kabir Mehta", year: 2024 },
@@ -56,9 +53,7 @@ const PHOTOS: Media[] = [
   { id: "e12", src: "https://picsum.photos/seed/photo-12/900/1200", width: 900, height: 1200, title: "Closing evening", year: 2022 },
 ];
 
-/* One colour world per section. The page background blends between them on scroll.
-   World 0 is violet space (performers); world 1 is the lighter yellow / green / red
-   sky for the photo wall. */
+
 const WORLDS = [
   {
     background: "#12062b",
@@ -94,9 +89,9 @@ const SECTION_VARS: SectionStyles[] = [
     "--g2": "#6EE7A8",
   },
 ];
-/* -------------------------------------------------------------------------- */
+
 /*  Constellation helpers                                                      */
-/* -------------------------------------------------------------------------- */
+
 
 function seeded(seed: number) {
   let a = (seed * 2654435761) >>> 0;
@@ -160,9 +155,9 @@ const Figure: React.FC<{ seed: number; color: string; className?: string }> = ({
   );
 };
 
-/* -------------------------------------------------------------------------- */
+
 /*  Constellation field (canvas, depth parallax, pointer links)                */
-/* -------------------------------------------------------------------------- */
+
 
 type FieldNode = { x: number; y: number; py: number; vx: number; vy: number; z: number; r: number };
 
@@ -343,9 +338,9 @@ const ConstellationField: React.FC = () => {
   return <canvas ref={ref} className="gn-canvas" />;
 };
 
-/* -------------------------------------------------------------------------- */
+
 /*  Styles                                                                     */
-/* -------------------------------------------------------------------------- */
+
 
 const CSS = `
 .gn{--ink:#f5f0de;--mute:#a49fc0;--ease:cubic-bezier(.2,.7,.2,1);--soft-e:cubic-bezier(.16,1,.3,1);
@@ -524,9 +519,9 @@ const CSS = `
 }
 `;
 
-/* -------------------------------------------------------------------------- */
+
 /*  Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
+
 
 const Icon = ({ d }: { d: string }) => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -567,9 +562,9 @@ const rnd = (seed: number) => {
   return x - Math.floor(x);
 };
 
-/* -------------------------------------------------------------------------- */
+
 /*  Past performers                                                            */
-/* -------------------------------------------------------------------------- */
+
 
 const Performers: React.FC<{ onOpen: OpenFn }> = ({ onOpen }) => {
   const n = PERFORMERS.length;
@@ -664,11 +659,11 @@ const Performers: React.FC<{ onOpen: OpenFn }> = ({ onOpen }) => {
   );
 };
 
-/* -------------------------------------------------------------------------- */
+
 /*  Past photos                                                                */
 /*  Three rows that loop by themselves. Only the row you touch is dragged.     */
 /*  The photos start scattered and settle into place when the section appears. */
-/* -------------------------------------------------------------------------- */
+
 
 const ROWS = [
   { shift: 0, dir: 1, speed: 44, color: "#FFD166" }, // yellow
@@ -920,9 +915,9 @@ const Marquee: React.FC<{ onOpen: OpenFn }> = ({ onOpen }) => {
   );
 };
 
-/* -------------------------------------------------------------------------- */
+
 /*  Viewer                                                                     */
-/* -------------------------------------------------------------------------- */
+
 
 const Viewer: React.FC<{ items: Media[]; index: number; onClose: () => void; onStep: (d: 1 | -1) => void }> = ({
   items,
@@ -998,9 +993,9 @@ const Viewer: React.FC<{ items: Media[]; index: number; onClose: () => void; onS
   );
 };
 
-/* -------------------------------------------------------------------------- */
+
 /*  Main component                                                             */
-/* -------------------------------------------------------------------------- */
+
 
 const Galarynew: React.FC = () => {
   const rootRef = useRef<HTMLElement | null>(null);

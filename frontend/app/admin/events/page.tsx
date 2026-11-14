@@ -2,13 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import {
-  Trophy,
   RefreshCw,
   AlertCircle,
   Plus,
-  Users,
   CheckCircle2,
-  Lock,
   Unlock,
   Edit2,
   UserPlus,
@@ -19,8 +16,6 @@ import {
   ClipboardList,
   X,
   Loader2,
-  ShieldAlert,
-  Info,
 } from "lucide-react";
 import { adminApi } from "@/services/admin-api";
 import FormSchemaBuilder from "@/components/staff/FormSchemaBuilder";
@@ -73,10 +68,10 @@ function normalizeSchema(raw: any[]): FormFieldDefinition[] {
         ...(description || f.helperText ? { helperText: f.helperText ?? description } : {}),
         ...(Array.isArray(options)
           ? {
-              options: options.map((o: any) =>
-                typeof o === "string" ? o : String(o?.label ?? o?.value ?? "")
-              ),
-            }
+            options: options.map((o: any) =>
+              typeof o === "string" ? o : String(o?.label ?? o?.value ?? "")
+            ),
+          }
           : {}),
       };
     });
@@ -112,19 +107,7 @@ export default function AdminEventsPage() {
 
   // Create Event Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createSlug, setCreateSlug] = useState("");
-  const [createTitle, setCreateTitle] = useState("");
-  const [createImageURL, setCreateImageURL] = useState("");
-  const [createCategory, setCreateCategory] = useState<EventCategory>("TECHNICAL");
-  const [createDay, setCreateDay] = useState(1);
-  const [createIsTeam, setCreateIsTeam] = useState(false);
-  const [createMinTeam, setCreateMinTeam] = useState(1);
-  const [createMaxTeam, setCreateMaxTeam] = useState(1);
-  const [createPriceModel, setCreatePriceModel] = useState<PriceModel>("FREE");
-  const [createPricePaise, setCreatePricePaise] = useState(0);
-  const [createCapacity, setCreateCapacity] = useState("");
-  const [createWhatsappUrl, setCreateWhatsappUrl] = useState("");
-  const [submittingCreate, setSubmittingCreate] = useState(false);
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
 
   // Assign Staff Modal State
   const [assignEvent, setAssignEvent] = useState<AdminEvent | null>(null);
@@ -149,7 +132,7 @@ export default function AdminEventsPage() {
   // Edit Event Modal State (Full Super Admin Multi-tab Editor)
   const [editingEvent, setEditingEvent] = useState<AdminEvent | null>(null);
   const [editTab, setEditTab] = useState<"BASIC" | "PRICING" | "ESPORTS" | "FORM">("BASIC");
-  const [submittingEdit, setSubmittingEdit] = useState(false);
+  const [submittingEvent, setSubmittingEvent] = useState(false);
 
   // Edit Tab 1: Basic
   const [editTitle, setEditTitle] = useState("");
@@ -207,62 +190,39 @@ export default function AdminEventsPage() {
     void Promise.resolve().then(loadEvents);
   }, [loadEvents]);
 
-  const handleCreateEvent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!createSlug.trim() || !createTitle.trim()) return;
-
-    setSubmittingCreate(true);
+  const handleOpenCreate = () => {
+    setEditingEvent(null);
+    setEditTab("BASIC");
+    setSlugManuallyEdited(false);
+    setEditTitle("");
+    setEditSlug("");
+    setEditImageURL("");
+    setEditCategory("TECHNICAL");
+    setEditDay(1);
+    setEditVenue("");
+    setEditDescription("");
+    setEditRules("");
+    setEditStatus("OPEN");
+    setEditStartsAt("");
+    setEditEndsAt("");
+    setEditRegistrationClosesAt("");
+    setEditWhatsappUrl("");
+    setEditIsTeam(false);
+    setEditMinTeam(1);
+    setEditMaxTeam(1);
+    setEditPriceModel("FREE");
+    setEditPriceRupees("0");
+    setEditStudentPriceRupees("");
+    setEditCapacity("");
+    setEditCapacityUnit("SEATS");
+    setEditScoringEnabled(false);
+    setEditScoringStatus("OPEN");
+    setEditMaxRounds(1);
+    setEditVolunteersCanScore(true);
+    setEditLeaderboardPublic(true);
+    setEditFormSchema([]);
     setError(null);
-    setSuccess(null);
-
-    try {
-      const now = Date.now();
-      await adminApi.events.create({
-        slug: createSlug.trim().toLowerCase(),
-        title: createTitle.trim(),
-        imageUrl: createImageURL.trim() || null,
-        imageURL: createImageURL.trim() || null,
-        category: createCategory,
-        festDay: Number(createDay),
-        day_of_event: Number(createDay),
-        startsAt: now + 86400000,
-        starts_at: now + 86400000,
-        endsAt: now + 86400000 * 2,
-        ends_at: now + 86400000 * 2,
-        status: "OPEN",
-        isTeam: createIsTeam,
-        is_team_event: createIsTeam,
-        minTeamSize: createIsTeam ? Number(createMinTeam) : 1,
-        min_team_size: createIsTeam ? Number(createMinTeam) : 1,
-        maxTeamSize: createIsTeam ? Number(createMaxTeam) : 1,
-        max_team_size: createIsTeam ? Number(createMaxTeam) : 1,
-        priceModel: createPriceModel,
-        price_model: createPriceModel,
-        pricePaise: Number(createPricePaise),
-        price_paise: Number(createPricePaise),
-        capacity: createCapacity ? Number(createCapacity) : null,
-        capacityUnit: createIsTeam ? "TEAMS" : "SEATS",
-        capacity_unit: createIsTeam ? "TEAMS" : "SEATS",
-        scoringEnabled: createCategory === "E_SPORTS",
-        scoring_enabled: createCategory === "E_SPORTS",
-        scoringStatus: createCategory === "E_SPORTS" ? "OPEN" : "NOT_APPLICABLE",
-        scoring_status: createCategory === "E_SPORTS" ? "OPEN" : "NOT_APPLICABLE",
-        whatsappUrl: createWhatsappUrl.trim() || null,
-        whatsapp_url: createWhatsappUrl.trim() || null,
-      });
-
-      setSuccess(`Event "${createTitle}" created successfully!`);
-      setShowCreateModal(false);
-      setCreateSlug("");
-      setCreateTitle("");
-      setCreateImageURL("");
-      setCreateWhatsappUrl("");
-      void loadEvents();
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create event");
-    } finally {
-      setSubmittingCreate(false);
-    }
+    setShowCreateModal(true);
   };
 
   const handleOpenAssignStaff = async (evt: AdminEvent) => {
@@ -361,6 +321,7 @@ export default function AdminEventsPage() {
   };
 
   const handleOpenEdit = (evt: AdminEvent) => {
+    setShowCreateModal(false);
     setEditingEvent(evt);
     setEditTab("BASIC");
     setEditTitle(evt.title);
@@ -436,11 +397,17 @@ export default function AdminEventsPage() {
     setEditFormSchema(parseFormSchema(rawSchema));
   };
 
-  const handleEditEventSubmit = async (e: React.FormEvent) => {
+  const handleEventEditorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingEvent) return;
+    const isCreatingEvent = showCreateModal;
+    if (!isCreatingEvent && !editingEvent) return;
+    if (!editTitle.trim() || !editSlug.trim()) {
+      setEditTab("BASIC");
+      setError("Enter an event title and page address before saving.");
+      return;
+    }
 
-    setSubmittingEdit(true);
+    setSubmittingEvent(true);
     setError(null);
     setSuccess(null);
 
@@ -502,6 +469,8 @@ export default function AdminEventsPage() {
       };
 
       if (editCategory === "E_SPORTS") {
+        payload.scoringEnabled = editScoringEnabled;
+        payload.scoring_enabled = editScoringEnabled;
         payload.scoringStatus = editScoringStatus;
         payload.scoring_status = editScoringStatus;
         payload.maxRounds = Number(editMaxRounds);
@@ -512,15 +481,25 @@ export default function AdminEventsPage() {
         payload.leaderboard_public = editLeaderboardPublic;
       }
 
-      await adminApi.events.fullUpdate(editingEvent.id, payload);
+      if (isCreatingEvent) {
+        await adminApi.events.create(payload);
+        setSuccess(`Event "${editTitle}" created successfully.`);
+      } else if (editingEvent) {
+        await adminApi.events.fullUpdate(editingEvent.id, payload);
+        setSuccess(`Event "${editTitle}" updated successfully.`);
+      }
 
-      setSuccess(`Event "${editTitle}" updated successfully!`);
       setEditingEvent(null);
+      setShowCreateModal(false);
       void loadEvents();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to update event");
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Failed to ${isCreatingEvent ? "create" : "update"} event`,
+      );
     } finally {
-      setSubmittingEdit(false);
+      setSubmittingEvent(false);
     }
   };
 
@@ -552,7 +531,7 @@ export default function AdminEventsPage() {
 
           <button
             type="button"
-            onClick={() => setShowCreateModal(true)}
+            onClick={handleOpenCreate}
             className="inline-flex items-center gap-2 rounded-xl bg-[#55DFFF] px-4 py-2 text-xs font-semibold text-black transition hover:bg-[#55DFFF]/90"
           >
             <Plus className="h-4 w-4" />
@@ -561,7 +540,7 @@ export default function AdminEventsPage() {
         </div>
       </div>
 
-      {error && (
+      {error && !showCreateModal && !editingEvent && (
         <div className="flex items-center gap-3 rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-200">
           <AlertCircle className="h-5 w-5 text-red-400 shrink-0" />
           <span>{error}</span>
@@ -706,222 +685,6 @@ export default function AdminEventsPage() {
           </div>
         )}
       </div>
-
-      {/* CREATE EVENT MODAL */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0C1017] p-6 shadow-2xl">
-            <h2 className="text-lg font-bold text-white">Create New Event</h2>
-            <p className="mt-1 text-xs text-slate-400">
-              Add a new competition, workshop, or esports tournament to the festival catalog.
-            </p>
-
-            <form onSubmit={handleCreateEvent} className="mt-5 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-slate-300">
-                    Slug <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={createSlug}
-                    onChange={(e) => setCreateSlug(e.target.value)}
-                    placeholder="e.g. valorant-championship"
-                    className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-slate-300">
-                    Title <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={createTitle}
-                    onChange={(e) => setCreateTitle(e.target.value)}
-                    placeholder="e.g. Valorant Championship"
-                    className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-slate-300">Image URL</label>
-                <input
-                  type="url"
-                  value={createImageURL}
-                  onChange={(e) => setCreateImageURL(e.target.value)}
-                  placeholder="https://example.com/images/poster.png"
-                  className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                />
-                {createImageURL.trim() && (
-                  <div className="mt-2 flex items-center gap-3 rounded-lg border border-white/10 bg-black/20 p-2">
-                    <img
-                      src={createImageURL.trim()}
-                      alt="Preview"
-                      className="h-10 w-16 rounded object-cover"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLElement).style.display = "none";
-                      }}
-                    />
-                    <span className="text-xs text-slate-400">Image Preview</span>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-slate-300">
-                  Official WhatsApp Group Link (Optional)
-                </label>
-                <input
-                  type="url"
-                  value={createWhatsappUrl}
-                  onChange={(e) => setCreateWhatsappUrl(e.target.value)}
-                  placeholder="https://chat.whatsapp.com/XXXXXX"
-                  className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                />
-                <p className="mt-1 text-[11px] text-slate-500">
-                  Displayed exclusively to confirmed ticket holders.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-slate-300">Category</label>
-                  <select
-                    value={createCategory}
-                    onChange={(e) => setCreateCategory(e.target.value as EventCategory)}
-                    className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                  >
-                    <option value="TECHNICAL">TECHNICAL</option>
-                    <option value="CULTURAL">CULTURAL</option>
-                    <option value="E_SPORTS">E_SPORTS</option>
-                    <option value="SPORTS">SPORTS</option>
-                    <option value="MANAGEMENT">MANAGEMENT</option>
-                    <option value="LITERARY">LITERARY</option>
-                    <option value="WORKSHOP">WORKSHOP</option>
-                    <option value="OTHER">OTHER</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-slate-300">Day of Event</label>
-                  <select
-                    value={createDay}
-                    onChange={(e) => setCreateDay(Number(e.target.value))}
-                    className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                  >
-                    <option value={1}>Day 1</option>
-                    <option value={2}>Day 2</option>
-                    <option value={3}>Day 3</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="createIsTeam"
-                  checked={createIsTeam}
-                  onChange={(e) => setCreateIsTeam(e.target.checked)}
-                  className="rounded border-white/20 bg-white/10 text-[#55DFFF]"
-                />
-                <label htmlFor="createIsTeam" className="text-xs text-slate-300">
-                  This is a team event
-                </label>
-              </div>
-
-              {createIsTeam && (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-slate-300">Min Team Size</label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={20}
-                      value={createMinTeam}
-                      onChange={(e) => setCreateMinTeam(Number(e.target.value))}
-                      className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-slate-300">Max Team Size</label>
-                    <input
-                      type="number"
-                      min={createMinTeam}
-                      max={20}
-                      value={createMaxTeam}
-                      onChange={(e) => setCreateMaxTeam(Number(e.target.value))}
-                      className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-medium text-slate-300">Price Model</label>
-                  <select
-                    value={createPriceModel}
-                    onChange={(e) => setCreatePriceModel(e.target.value as PriceModel)}
-                    className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                  >
-                    <option value="FREE">FREE</option>
-                    <option value="PER_PARTICIPANT">PER_PARTICIPANT</option>
-                    <option value="PER_TEAM">PER_TEAM</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-medium text-slate-300">Capacity Limit</label>
-                  <input
-                    type="number"
-                    min={1}
-                    value={createCapacity}
-                    onChange={(e) => setCreateCapacity(e.target.value)}
-                    placeholder="Leave empty for unlimited"
-                    className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {createPriceModel !== "FREE" && (
-                <div>
-                  <label className="text-xs font-medium text-slate-300">Fee in Paise</label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={100}
-                    value={createPricePaise}
-                    onChange={(e) => setCreatePricePaise(Number(e.target.value))}
-                    placeholder="e.g. 20000 for ₹200"
-                    className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                  />
-                </div>
-              )}
-
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-400 hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingCreate}
-                  className="rounded-xl bg-[#55DFFF] px-4 py-2 text-xs font-semibold text-black hover:bg-[#55DFFF]/90 disabled:opacity-50"
-                >
-                  {submittingCreate ? "Creating..." : "Create Event"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {/* ASSIGN / MANAGE STAFF MODAL */}
       {assignEvent && (
@@ -1156,478 +919,750 @@ export default function AdminEventsPage() {
         </div>
       )}
 
-      {/* FULL SUPER ADMIN EDIT MODAL */}
-      {editingEvent && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl rounded-3xl border border-white/15 bg-[#0C1017] p-6 sm:p-8 shadow-2xl max-h-[92vh] flex flex-col">
+      {/* EVENT EDITOR */}
+      {(editingEvent || showCreateModal) && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/85 p-0 sm:items-center sm:p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="event-editor-title"
+            className="relative isolate flex max-h-[94dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl border border-[#BED6FF]/[0.16] bg-[linear-gradient(180deg,#0e1630_0%,#070b1a_55%,#04060f_100%)] shadow-[0_40px_100px_-30px_rgba(0,0,0,0.95)] sm:rounded-3xl"
+          >
+            {/* Accent bar */}
+            <span
+              aria-hidden="true"
+              className="absolute inset-x-0 top-0 z-20 h-[3px] bg-gradient-to-r from-[#55DFFF] via-[#6C7BFF] to-[#B3A4FF]"
+            />
+
+            {/* Static constellation backdrop (no animation, no lag) */}
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 800 600"
+              preserveAspectRatio="xMidYMid slice"
+              fill="none"
+              className="pointer-events-none absolute inset-0 -z-10 h-full w-full opacity-70"
+            >
+              <g stroke="#8FB4FF" strokeOpacity="0.22" strokeWidth="1">
+                <path d="M40 60 L120 30 L210 78 L300 24 L380 66" />
+                <path d="M560 40 L640 86 L720 36 L780 90" />
+                <path d="M30 330 L96 290 L170 340 L236 296" />
+                <path d="M600 420 L670 380 L740 430 L790 392" />
+                <path d="M80 560 L170 520 L260 570 L340 530" />
+                <path d="M470 570 L560 530 L650 580" />
+              </g>
+              <g fill="#DCEBFF" fillOpacity="0.75">
+                <circle cx="40" cy="60" r="2" />
+                <circle cx="120" cy="30" r="2.6" />
+                <circle cx="210" cy="78" r="1.8" />
+                <circle cx="300" cy="24" r="2.4" />
+                <circle cx="380" cy="66" r="1.8" />
+                <circle cx="560" cy="40" r="2" />
+                <circle cx="640" cy="86" r="2.6" />
+                <circle cx="720" cy="36" r="1.8" />
+                <circle cx="780" cy="90" r="2.2" />
+                <circle cx="30" cy="330" r="1.8" />
+                <circle cx="96" cy="290" r="2.4" />
+                <circle cx="170" cy="340" r="1.8" />
+                <circle cx="236" cy="296" r="2.2" />
+                <circle cx="600" cy="420" r="1.8" />
+                <circle cx="670" cy="380" r="2.4" />
+                <circle cx="740" cy="430" r="1.8" />
+                <circle cx="790" cy="392" r="2.2" />
+                <circle cx="80" cy="560" r="1.8" />
+                <circle cx="170" cy="520" r="2.4" />
+                <circle cx="260" cy="570" r="1.8" />
+                <circle cx="340" cy="530" r="2.2" />
+                <circle cx="470" cy="570" r="1.8" />
+                <circle cx="560" cy="530" r="2.4" />
+                <circle cx="650" cy="580" r="1.8" />
+              </g>
+            </svg>
+
             {/* Header */}
-            <div className="flex items-start justify-between border-b border-white/10 pb-4">
-              <div>
-                <span className="rounded-full bg-cyan-400/10 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300">
-                  SUPER ADMIN CONTROLS
+            <div className="relative z-10 flex shrink-0 items-start justify-between gap-4 border-b border-white/10 px-5 pb-4 pt-6 sm:px-8 sm:pt-7">
+              <div className="min-w-0">
+                <span className="inline-flex items-center rounded-full border border-[#55DFFF]/35 bg-[#55DFFF]/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8BEAFF]">
+                  Event details
                 </span>
-                <h2 className="mt-1 text-xl font-bold text-white">
-                  Edit &quot;{editingEvent.title}&quot;
+                <h2
+                  id="event-editor-title"
+                  className="mt-3 break-words text-xl font-bold leading-tight tracking-tight text-white sm:text-2xl"
+                >
+                  {showCreateModal
+                    ? "Create an event"
+                    : `Edit "${editingEvent?.title ?? ""}"`}
                 </h2>
+                <p className="mt-1.5 max-w-xl text-sm leading-6 text-white/65">
+                  Set up the event details, registration, and scoring options.
+                </p>
               </div>
               <button
                 type="button"
-                onClick={() => setEditingEvent(null)}
-                className="rounded-xl border border-white/10 p-2 text-white/40 hover:text-white"
+                onClick={() => {
+                  setEditingEvent(null);
+                  setShowCreateModal(false);
+                }}
+                aria-label="Close event editor"
+                className="flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-white/40 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#55DFFF]"
               >
                 <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Multi-Tab Navigation */}
-            <div className="flex items-center gap-2 border-b border-white/10 py-3 overflow-x-auto text-xs">
+            {/* Tabs */}
+            <div
+              role="tablist"
+              aria-label="Event editor sections"
+              className="relative z-10 flex shrink-0 items-center gap-2 overflow-x-auto border-b border-white/10 px-5 py-3 sm:px-8"
+            >
               <button
                 type="button"
+                role="tab"
+                aria-selected={editTab === "BASIC"}
                 onClick={() => setEditTab("BASIC")}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-semibold transition ${editTab === "BASIC"
-                  ? "bg-[#55DFFF] text-black font-bold"
-                  : "text-white/60 hover:text-white"
+                className={`inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#55DFFF] ${editTab === "BASIC"
+                    ? "border-transparent bg-gradient-to-br from-[#8BEAFF] to-[#3FC6EE] text-[#04101a]"
+                    : "border-[#BED6FF]/15 text-white/70 hover:border-[#55DFFF]/50 hover:text-white"
                   }`}
               >
                 <Calendar className="h-3.5 w-3.5" />
-                <span>1. Basic Info & Dates</span>
+                <span>Basic info</span>
               </button>
 
               <button
                 type="button"
+                role="tab"
+                aria-selected={editTab === "PRICING"}
                 onClick={() => setEditTab("PRICING")}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-semibold transition ${editTab === "PRICING"
-                  ? "bg-[#55DFFF] text-black font-bold"
-                  : "text-white/60 hover:text-white"
+                className={`inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#55DFFF] ${editTab === "PRICING"
+                    ? "border-transparent bg-gradient-to-br from-[#8BEAFF] to-[#3FC6EE] text-[#04101a]"
+                    : "border-[#BED6FF]/15 text-white/70 hover:border-[#55DFFF]/50 hover:text-white"
                   }`}
               >
                 <DollarSign className="h-3.5 w-3.5" />
-                <span>2. Pricing & Capacity</span>
+                <span>Pricing &amp; capacity</span>
               </button>
 
               {editCategory === "E_SPORTS" && (
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={editTab === "ESPORTS"}
                   onClick={() => setEditTab("ESPORTS")}
-                  className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-semibold transition ${editTab === "ESPORTS"
-                    ? "bg-[#55DFFF] text-black font-bold"
-                    : "text-white/60 hover:text-white"
+                  className={`inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#55DFFF] ${editTab === "ESPORTS"
+                      ? "border-transparent bg-gradient-to-br from-[#8BEAFF] to-[#3FC6EE] text-[#04101a]"
+                      : "border-[#BED6FF]/15 text-white/70 hover:border-[#55DFFF]/50 hover:text-white"
                     }`}
                 >
                   <Gamepad2 className="h-3.5 w-3.5" />
-                  <span>3. E-Sports Scoring</span>
+                  <span>E-sports scoring</span>
                 </button>
               )}
 
               <button
                 type="button"
+                role="tab"
+                aria-selected={editTab === "FORM"}
                 onClick={() => setEditTab("FORM")}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 font-semibold transition ${editTab === "FORM"
-                  ? "bg-[#55DFFF] text-black font-bold"
-                  : "text-white/60 hover:text-white"
+                className={`inline-flex min-h-10 shrink-0 cursor-pointer items-center gap-2 rounded-xl border px-4 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#55DFFF] ${editTab === "FORM"
+                    ? "border-transparent bg-gradient-to-br from-[#8BEAFF] to-[#3FC6EE] text-[#04101a]"
+                    : "border-[#BED6FF]/15 text-white/70 hover:border-[#55DFFF]/50 hover:text-white"
                   }`}
               >
                 <ClipboardList className="h-3.5 w-3.5" />
-                <span>4. Dynamic Form ({editFormSchema.length})</span>
+                <span>Registration form ({editFormSchema.length})</span>
               </button>
             </div>
 
-            {/* Scrollable Tab Body */}
-            <form onSubmit={handleEditEventSubmit} className="mt-4 flex-1 overflow-y-auto pr-1 space-y-4">
-              {/* TAB 1: BASIC INFO */}
-              {editTab === "BASIC" && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Title</label>
-                      <input
-                        type="text"
-                        required
-                        value={editTitle}
-                        onChange={(e) => setEditTitle(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Slug</label>
-                      <input
-                        type="text"
-                        required
-                        value={editSlug}
-                        onChange={(e) => setEditSlug(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-slate-300">Image URL</label>
-                    <input
-                      type="url"
-                      value={editImageURL}
-                      onChange={(e) => setEditImageURL(e.target.value)}
-                      placeholder="https://example.com/images/poster.png"
-                      className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                    />
-                    {editImageURL.trim() && (
-                      <div className="mt-2 flex items-center gap-3 rounded-lg border border-white/10 bg-black/20 p-2">
-                        <img
-                          src={editImageURL.trim()}
-                          alt="Preview"
-                          className="h-10 w-16 rounded object-cover"
-                          onError={(e) => {
-                            (e.currentTarget as HTMLElement).style.display = "none";
-                          }}
-                        />
-                        <span className="text-xs text-slate-400">Image Preview</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-slate-300">
-                      Official WhatsApp Group Link (Exclusive to Ticket Holders)
-                    </label>
-                    <input
-                      type="url"
-                      value={editWhatsappUrl}
-                      onChange={(e) => setEditWhatsappUrl(e.target.value)}
-                      placeholder="https://chat.whatsapp.com/XXXXXX"
-                      className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                    />
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Displayed exclusively to confirmed ticket holders on their digital pass.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Category</label>
-                      <select
-                        value={editCategory}
-                        onChange={(e) => setEditCategory(e.target.value as EventCategory)}
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                      >
-                        <option value="TECHNICAL">TECHNICAL</option>
-                        <option value="CULTURAL">CULTURAL</option>
-                        <option value="E_SPORTS">E_SPORTS</option>
-                        <option value="SPORTS">SPORTS</option>
-                        <option value="MANAGEMENT">MANAGEMENT</option>
-                        <option value="LITERARY">LITERARY</option>
-                        <option value="WORKSHOP">WORKSHOP</option>
-                        <option value="OTHER">OTHER</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Day</label>
-                      <select
-                        value={editDay}
-                        onChange={(e) => setEditDay(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                      >
-                        <option value={1}>Day 1</option>
-                        <option value={2}>Day 2</option>
-                        <option value={3}>Day 3</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Status</label>
-                      <select
-                        value={editStatus}
-                        onChange={(e) => setEditStatus(e.target.value as EventStatus)}
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                      >
-                        <option value="OPEN">OPEN</option>
-                        <option value="CLOSED">CLOSED</option>
-                        <option value="COMPLETED">COMPLETED</option>
-                        <option value="DRAFT">DRAFT</option>
-                        <option value="CANCELLED">CANCELLED</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Starts At</label>
-                      <input
-                        type="datetime-local"
-                        value={editStartsAt}
-                        onChange={(e) => setEditStartsAt(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-xs text-white focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Ends At</label>
-                      <input
-                        type="datetime-local"
-                        value={editEndsAt}
-                        onChange={(e) => setEditEndsAt(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-xs text-white focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Registration Closes At</label>
-                      <input
-                        type="datetime-local"
-                        value={editRegistrationClosesAt}
-                        onChange={(e) => setEditRegistrationClosesAt(e.target.value)}
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-xs text-white focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-slate-300">Venue</label>
-                    <input
-                      type="text"
-                      value={editVenue}
-                      onChange={(e) => setEditVenue(e.target.value)}
-                      placeholder="e.g. Indoor Stadium - Court 1"
-                      className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-slate-300">Description</label>
-                    <textarea
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      rows={3}
-                      className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-medium text-slate-300">Rules</label>
-                    <textarea
-                      value={editRules}
-                      onChange={(e) => setEditRules(e.target.value)}
-                      rows={6}
-                      placeholder={"Enter each rule on a new line. Markdown is also supported."}
-                      className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                    />
-                    <p className="mt-1 text-[11px] text-slate-500">
-                      Put each rule on a separate line. Rules are saved as a newline-separated string.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 2: PRICING & CAPACITY */}
-              {editTab === "PRICING" && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="editIsTeam"
-                      checked={editIsTeam}
-                      onChange={(e) => setEditIsTeam(e.target.checked)}
-                      className="rounded border-white/20 bg-white/10 text-[#55DFFF]"
-                    />
-                    <label htmlFor="editIsTeam" className="text-xs font-semibold text-white">
-                      Team Event Format
-                    </label>
-                  </div>
-
-                  {editIsTeam && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-xs font-medium text-slate-300">Min Team Size</label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={20}
-                          value={editMinTeam}
-                          onChange={(e) => setEditMinTeam(Number(e.target.value))}
-                          className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-slate-300">Max Team Size</label>
-                        <input
-                          type="number"
-                          min={editMinTeam}
-                          max={20}
-                          value={editMaxTeam}
-                          onChange={(e) => setEditMaxTeam(Number(e.target.value))}
-                          className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Price Model</label>
-                      <select
-                        value={editPriceModel}
-                        onChange={(e) => setEditPriceModel(e.target.value as PriceModel)}
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                      >
-                        <option value="FREE">FREE</option>
-                        <option value="PER_PARTICIPANT">PER_PARTICIPANT</option>
-                        <option value="PER_TEAM">PER_TEAM</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">General Fee (₹ Rupees)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        value={editPriceRupees}
-                        onChange={(e) => setEditPriceRupees(e.target.value)}
-                        placeholder="e.g. 200"
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Student Discount (₹ Rupees)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        step={1}
-                        value={editStudentPriceRupees}
-                        onChange={(e) => setEditStudentPriceRupees(e.target.value)}
-                        placeholder="Optional"
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Capacity Limit</label>
-                      <input
-                        type="number"
-                        min={1}
-                        value={editCapacity}
-                        onChange={(e) => setEditCapacity(e.target.value)}
-                        placeholder="Leave empty for unlimited"
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Capacity Unit</label>
-                      <select
-                        value={editCapacityUnit}
-                        onChange={(e) => setEditCapacityUnit(e.target.value as CapacityUnit)}
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                      >
-                        <option value="SEATS">SEATS</option>
-                        <option value="TEAMS">TEAMS</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 3: E-SPORTS */}
-              {editTab === "ESPORTS" && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="editScoringEnabled"
-                      checked={editScoringEnabled}
-                      onChange={(e) => setEditScoringEnabled(e.target.checked)}
-                      className="rounded border-white/20 bg-white/10 text-[#55DFFF]"
-                    />
-                    <label htmlFor="editScoringEnabled" className="text-xs font-semibold text-white">
-                      Enable Tournament Scoring
-                    </label>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Scoring Status</label>
-                      <select
-                        value={editScoringStatus}
-                        onChange={(e) => setEditScoringStatus(e.target.value as ScoringStatus)}
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                      >
-                        <option value="OPEN">OPEN (Referees can enter scores)</option>
-                        <option value="FINALIZED">FINALIZED (Locked to editing)</option>
-                        <option value="NOT_APPLICABLE">NOT_APPLICABLE</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="text-xs font-medium text-slate-300">Max Rounds</label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={50}
-                        value={editMaxRounds}
-                        onChange={(e) => setEditMaxRounds(Number(e.target.value))}
-                        className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="flex items-center gap-2 text-xs text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={editVolunteersCanScore}
-                        onChange={(e) => setEditVolunteersCanScore(e.target.checked)}
-                        className="rounded border-white/20 bg-white/10 text-[#55DFFF]"
-                      />
-                      <span>Allow Volunteers to submit scores (otherwise Leads only)</span>
-                    </label>
-
-                    <label className="flex items-center gap-2 text-xs text-slate-300">
-                      <input
-                        type="checkbox"
-                        checked={editLeaderboardPublic}
-                        onChange={(e) => setEditLeaderboardPublic(e.target.checked)}
-                        className="rounded border-white/20 bg-white/10 text-[#55DFFF]"
-                      />
-                      <span>Public Leaderboard visible to festival audience</span>
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 4: FORM BUILDER */}
-              {editTab === "FORM" && (
-                <div className="space-y-3">
-                  <p className="text-xs text-slate-400">
-                    Configure custom dynamic questions that attendees must answer when registering for this competition.
+            {/* Form */}
+            <form
+              onSubmit={handleEventEditorSubmit}
+              className="relative z-10 flex min-h-0 flex-1 flex-col"
+            >
+              <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-5 py-6 sm:px-8">
+                {error && (showCreateModal || editingEvent) && (
+                  <p
+                    role="alert"
+                    className="rounded-2xl border border-red-400/35 bg-red-500/[0.09] px-4 py-3 text-sm leading-6 text-red-200"
+                  >
+                    {error}
                   </p>
-                  <FormSchemaBuilder
-                    schema={editFormSchema}
-                    onChange={setEditFormSchema}
-                    disabled={submittingEdit}
-                  />
-                </div>
-              )}
+                )}
 
-              {/* Sticky Submit Footer */}
-              <div className="sticky bottom-0 pt-4 pb-1 border-t border-white/10 bg-[#0C1017] flex justify-end gap-3">
+                {/* TAB 1: BASIC INFO */}
+                {editTab === "BASIC" && (
+                  <div role="tabpanel" className="space-y-7">
+                    {/* Identity */}
+                    <section className="space-y-4">
+                      <h3 className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#55DFFF]">
+                        Identity
+                        <span className="h-px flex-1 bg-gradient-to-r from-[#55DFFF]/30 to-transparent" />
+                      </h3>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                          <label htmlFor="ev-title" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Event title <span className="text-[#FF806E]">*</span>
+                          </label>
+                          <input
+                            id="ev-title"
+                            type="text"
+                            required
+                            value={editTitle}
+                            onChange={(e) => {
+                              const title = e.target.value;
+                              setEditTitle(title);
+                              if (showCreateModal && !slugManuallyEdited) {
+                                setEditSlug(
+                                  title
+                                    .toLowerCase()
+                                    .trim()
+                                    .replace(/[^a-z0-9]+/g, "-")
+                                    .replace(/(^-|-$)/g, ""),
+                                );
+                              }
+                            }}
+                            placeholder="e.g. Robotics Challenge"
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors placeholder:text-white/30 hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="ev-slug" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Page address <span className="text-[#FF806E]">*</span>
+                          </label>
+                          <input
+                            id="ev-slug"
+                            type="text"
+                            required
+                            value={editSlug}
+                            onChange={(e) => {
+                              setEditSlug(e.target.value);
+                              if (showCreateModal) setSlugManuallyEdited(true);
+                            }}
+                            placeholder="robotics-challenge"
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 font-mono text-sm text-white transition-colors placeholder:text-white/30 hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                          />
+                          <p className="mt-1.5 text-[11px] leading-5 text-white/55">
+                            Used in the event page address. You can edit the suggested value.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div>
+                          <label htmlFor="ev-category" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Category
+                          </label>
+                          <select
+                            id="ev-category"
+                            value={editCategory}
+                            onChange={(e) => {
+                              const category = e.target.value as EventCategory;
+                              setEditCategory(category);
+                              if (showCreateModal && category === "E_SPORTS") {
+                                setEditScoringEnabled(true);
+                              }
+                            }}
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20 [&>option]:bg-[#07102a]"
+                          >
+                            <option value="TECHNICAL">TECHNICAL</option>
+                            <option value="CULTURAL">CULTURAL</option>
+                            <option value="E_SPORTS">E_SPORTS</option>
+                            <option value="SPORTS">SPORTS</option>
+                            <option value="MANAGEMENT">MANAGEMENT</option>
+                            <option value="LITERARY">LITERARY</option>
+                            <option value="WORKSHOP">WORKSHOP</option>
+                            <option value="OTHER">OTHER</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label htmlFor="ev-day" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Day
+                          </label>
+                          <select
+                            id="ev-day"
+                            value={editDay}
+                            onChange={(e) => setEditDay(Number(e.target.value))}
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20 [&>option]:bg-[#07102a]"
+                          >
+                            <option value={1}>Day 1</option>
+                            <option value={2}>Day 2</option>
+                            <option value={3}>Day 3</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label htmlFor="ev-status" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Status
+                          </label>
+                          <select
+                            id="ev-status"
+                            value={editStatus}
+                            onChange={(e) => setEditStatus(e.target.value as EventStatus)}
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20 [&>option]:bg-[#07102a]"
+                          >
+                            <option value="OPEN">OPEN</option>
+                            <option value="CLOSED">CLOSED</option>
+                            <option value="COMPLETED">COMPLETED</option>
+                            <option value="DRAFT">DRAFT</option>
+                            <option value="CANCELLED">CANCELLED</option>
+                          </select>
+                        </div>
+                      </div>
+                    </section>
+
+                    {/* Media and links */}
+                    <section className="space-y-4">
+                      <h3 className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#B3A4FF]">
+                        Media and links
+                        <span className="h-px flex-1 bg-gradient-to-r from-[#B3A4FF]/30 to-transparent" />
+                      </h3>
+
+                      <div>
+                        <label htmlFor="ev-image" className="block text-xs font-semibold tracking-wide text-white/85">
+                          Image URL
+                        </label>
+                        <input
+                          id="ev-image"
+                          type="url"
+                          value={editImageURL}
+                          onChange={(e) => setEditImageURL(e.target.value)}
+                          placeholder="https://example.com/images/poster.png"
+                          className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors placeholder:text-white/30 hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                        />
+                        {editImageURL.trim() && (
+                          <div className="mt-3 flex items-center gap-3 rounded-xl border border-[#BED6FF]/15 bg-white/[0.03] p-2.5">
+                            <img
+                              src={editImageURL.trim()}
+                              alt="Preview"
+                              className="h-12 w-20 rounded-lg object-cover"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = "none";
+                              }}
+                            />
+                            <span className="text-xs text-white/65">Image preview</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="ev-whatsapp" className="block text-xs font-semibold tracking-wide text-white/85">
+                          Official WhatsApp Group Link (Exclusive to Ticket Holders)
+                        </label>
+                        <input
+                          id="ev-whatsapp"
+                          type="url"
+                          value={editWhatsappUrl}
+                          onChange={(e) => setEditWhatsappUrl(e.target.value)}
+                          placeholder="https://chat.whatsapp.com/XXXXXX"
+                          className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors placeholder:text-white/30 hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                        />
+                        <p className="mt-1.5 text-[11px] leading-5 text-white/55">
+                          Displayed exclusively to confirmed ticket holders on their digital pass.
+                        </p>
+                      </div>
+                    </section>
+
+                    {/* Schedule */}
+                    <section className="space-y-4">
+                      <h3 className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#6FF0C8]">
+                        Schedule and place
+                        <span className="h-px flex-1 bg-gradient-to-r from-[#6FF0C8]/30 to-transparent" />
+                      </h3>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div>
+                          <label htmlFor="ev-starts" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Starts At
+                          </label>
+                          <input
+                            id="ev-starts"
+                            type="datetime-local"
+                            value={editStartsAt}
+                            onChange={(e) => setEditStartsAt(e.target.value)}
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-xs text-white transition-colors [color-scheme:dark] hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="ev-ends" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Ends At
+                          </label>
+                          <input
+                            id="ev-ends"
+                            type="datetime-local"
+                            value={editEndsAt}
+                            onChange={(e) => setEditEndsAt(e.target.value)}
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-xs text-white transition-colors [color-scheme:dark] hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="ev-closes" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Registration Closes At
+                          </label>
+                          <input
+                            id="ev-closes"
+                            type="datetime-local"
+                            value={editRegistrationClosesAt}
+                            onChange={(e) => setEditRegistrationClosesAt(e.target.value)}
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-xs text-white transition-colors [color-scheme:dark] hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="ev-venue" className="block text-xs font-semibold tracking-wide text-white/85">
+                          Venue
+                        </label>
+                        <input
+                          id="ev-venue"
+                          type="text"
+                          value={editVenue}
+                          onChange={(e) => setEditVenue(e.target.value)}
+                          placeholder="e.g. Indoor Stadium - Court 1"
+                          className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors placeholder:text-white/30 hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                        />
+                      </div>
+                    </section>
+
+                    {/* Description and rules */}
+                    <section className="space-y-4">
+                      <h3 className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#FFC46B]">
+                        Description and rules
+                        <span className="h-px flex-1 bg-gradient-to-r from-[#FFC46B]/30 to-transparent" />
+                      </h3>
+
+                      <div>
+                        <label htmlFor="ev-description" className="block text-xs font-semibold tracking-wide text-white/85">
+                          Description
+                        </label>
+                        <textarea
+                          id="ev-description"
+                          value={editDescription}
+                          onChange={(e) => setEditDescription(e.target.value)}
+                          rows={4}
+                          className="mt-1.5 w-full resize-y rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm leading-6 text-white transition-colors placeholder:text-white/30 hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="ev-rules" className="block text-xs font-semibold tracking-wide text-white/85">
+                          Rules
+                        </label>
+                        <textarea
+                          id="ev-rules"
+                          value={editRules}
+                          onChange={(e) => setEditRules(e.target.value)}
+                          rows={6}
+                          placeholder={"Enter each rule on a new line. Markdown is also supported."}
+                          className="mt-1.5 w-full resize-y rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm leading-6 text-white transition-colors placeholder:text-white/30 hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                        />
+                        <p className="mt-1.5 text-[11px] leading-5 text-white/55">
+                          Put each rule on a separate line. Rules are saved as a newline-separated string.
+                        </p>
+                      </div>
+                    </section>
+                  </div>
+                )}
+
+                {/* TAB 2: PRICING & CAPACITY */}
+                {editTab === "PRICING" && (
+                  <div role="tabpanel" className="space-y-7">
+                    <section className="space-y-4">
+                      <h3 className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#55DFFF]">
+                        Participation
+                        <span className="h-px flex-1 bg-gradient-to-r from-[#55DFFF]/30 to-transparent" />
+                      </h3>
+
+                      <label
+                        htmlFor="editIsTeam"
+                        className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#BED6FF]/15 bg-white/[0.03] p-4 transition-colors hover:border-[#55DFFF]/45"
+                      >
+                        <input
+                          type="checkbox"
+                          id="editIsTeam"
+                          checked={editIsTeam}
+                          onChange={(e) => setEditIsTeam(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#55DFFF]"
+                        />
+                        <span>
+                          <span className="block text-sm font-semibold text-white">Team Event Format</span>
+                          <span className="mt-0.5 block text-xs leading-5 text-white/60">
+                            Turn this on if participants register as a team.
+                          </span>
+                        </span>
+                      </label>
+
+                      {editIsTeam && (
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div>
+                            <label htmlFor="ev-min-team" className="block text-xs font-semibold tracking-wide text-white/85">
+                              Min Team Size
+                            </label>
+                            <input
+                              id="ev-min-team"
+                              type="number"
+                              min={1}
+                              max={20}
+                              value={editMinTeam}
+                              onChange={(e) => setEditMinTeam(Number(e.target.value))}
+                              className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor="ev-max-team" className="block text-xs font-semibold tracking-wide text-white/85">
+                              Max Team Size
+                            </label>
+                            <input
+                              id="ev-max-team"
+                              type="number"
+                              min={editMinTeam}
+                              max={20}
+                              value={editMaxTeam}
+                              onChange={(e) => setEditMaxTeam(Number(e.target.value))}
+                              className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </section>
+
+                    <section className="space-y-4">
+                      <h3 className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#B3A4FF]">
+                        Pricing
+                        <span className="h-px flex-1 bg-gradient-to-r from-[#B3A4FF]/30 to-transparent" />
+                      </h3>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        <div>
+                          <label htmlFor="ev-price-model" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Price Model
+                          </label>
+                          <select
+                            id="ev-price-model"
+                            value={editPriceModel}
+                            onChange={(e) => setEditPriceModel(e.target.value as PriceModel)}
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20 [&>option]:bg-[#07102a]"
+                          >
+                            <option value="FREE">FREE</option>
+                            <option value="PER_PARTICIPANT">PER_PARTICIPANT</option>
+                            <option value="PER_TEAM">PER_TEAM</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label htmlFor="ev-price" className="block text-xs font-semibold tracking-wide text-white/85">
+                            General Fee (₹ Rupees)
+                          </label>
+                          <input
+                            id="ev-price"
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={editPriceRupees}
+                            onChange={(e) => setEditPriceRupees(e.target.value)}
+                            placeholder="e.g. 200"
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors placeholder:text-white/30 hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="ev-student-price" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Student Discount (₹ Rupees)
+                          </label>
+                          <input
+                            id="ev-student-price"
+                            type="number"
+                            min={0}
+                            step={1}
+                            value={editStudentPriceRupees}
+                            onChange={(e) => setEditStudentPriceRupees(e.target.value)}
+                            placeholder="Optional"
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors placeholder:text-white/30 hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                          />
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="space-y-4">
+                      <h3 className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#6FF0C8]">
+                        Capacity
+                        <span className="h-px flex-1 bg-gradient-to-r from-[#6FF0C8]/30 to-transparent" />
+                      </h3>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                          <label htmlFor="ev-capacity" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Capacity Limit
+                          </label>
+                          <input
+                            id="ev-capacity"
+                            type="number"
+                            min={1}
+                            value={editCapacity}
+                            onChange={(e) => setEditCapacity(e.target.value)}
+                            placeholder="Leave empty for unlimited"
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors placeholder:text-white/30 hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="ev-capacity-unit" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Capacity Unit
+                          </label>
+                          <select
+                            id="ev-capacity-unit"
+                            value={editCapacityUnit}
+                            onChange={(e) => setEditCapacityUnit(e.target.value as CapacityUnit)}
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20 [&>option]:bg-[#07102a]"
+                          >
+                            <option value="SEATS">SEATS</option>
+                            <option value="TEAMS">TEAMS</option>
+                          </select>
+                        </div>
+                      </div>
+                    </section>
+                  </div>
+                )}
+
+                {/* TAB 3: E-SPORTS */}
+                {editTab === "ESPORTS" && (
+                  <div role="tabpanel" className="space-y-7">
+                    <section className="space-y-4">
+                      <h3 className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#55DFFF]">
+                        Tournament scoring
+                        <span className="h-px flex-1 bg-gradient-to-r from-[#55DFFF]/30 to-transparent" />
+                      </h3>
+
+                      <label
+                        htmlFor="editScoringEnabled"
+                        className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#BED6FF]/15 bg-white/[0.03] p-4 transition-colors hover:border-[#55DFFF]/45"
+                      >
+                        <input
+                          type="checkbox"
+                          id="editScoringEnabled"
+                          checked={editScoringEnabled}
+                          onChange={(e) => setEditScoringEnabled(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#55DFFF]"
+                        />
+                        <span>
+                          <span className="block text-sm font-semibold text-white">Enable Tournament Scoring</span>
+                          <span className="mt-0.5 block text-xs leading-5 text-white/60">
+                            Lets referees enter scores for this event.
+                          </span>
+                        </span>
+                      </label>
+
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                          <label htmlFor="ev-scoring-status" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Scoring Status
+                          </label>
+                          <select
+                            id="ev-scoring-status"
+                            value={editScoringStatus}
+                            onChange={(e) => setEditScoringStatus(e.target.value as ScoringStatus)}
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20 [&>option]:bg-[#07102a]"
+                          >
+                            <option value="OPEN">OPEN (Referees can enter scores)</option>
+                            <option value="FINALIZED">FINALIZED (Locked to editing)</option>
+                            <option value="NOT_APPLICABLE">NOT_APPLICABLE</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label htmlFor="ev-max-rounds" className="block text-xs font-semibold tracking-wide text-white/85">
+                            Max Rounds
+                          </label>
+                          <input
+                            id="ev-max-rounds"
+                            type="number"
+                            min={1}
+                            max={50}
+                            value={editMaxRounds}
+                            onChange={(e) => setEditMaxRounds(Number(e.target.value))}
+                            className="mt-1.5 w-full rounded-xl border border-[#BED6FF]/20 bg-[#050a18] px-3.5 py-2.5 text-sm text-white transition-colors hover:border-[#BED6FF]/35 focus:border-[#55DFFF] focus:outline-none focus:ring-2 focus:ring-[#55DFFF]/20"
+                          />
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="space-y-3">
+                      <h3 className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#B3A4FF]">
+                        Access
+                        <span className="h-px flex-1 bg-gradient-to-r from-[#B3A4FF]/30 to-transparent" />
+                      </h3>
+
+                      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#BED6FF]/15 bg-white/[0.03] p-4 transition-colors hover:border-[#B3A4FF]/45">
+                        <input
+                          type="checkbox"
+                          checked={editVolunteersCanScore}
+                          onChange={(e) => setEditVolunteersCanScore(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#55DFFF]"
+                        />
+                        <span className="text-sm leading-6 text-white/85">
+                          Allow Volunteers to submit scores (otherwise Leads only)
+                        </span>
+                      </label>
+
+                      <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[#BED6FF]/15 bg-white/[0.03] p-4 transition-colors hover:border-[#B3A4FF]/45">
+                        <input
+                          type="checkbox"
+                          checked={editLeaderboardPublic}
+                          onChange={(e) => setEditLeaderboardPublic(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#55DFFF]"
+                        />
+                        <span className="text-sm leading-6 text-white/85">
+                          Public Leaderboard visible to festival audience
+                        </span>
+                      </label>
+                    </section>
+                  </div>
+                )}
+
+                {/* TAB 4: FORM BUILDER */}
+                {editTab === "FORM" && (
+                  <div role="tabpanel" className="space-y-4">
+                    <section className="rounded-xl border border-[#BED6FF]/15 bg-white/[0.03] p-4">
+                      <p className="text-sm leading-6 text-white/75">
+                        Configure custom dynamic questions that attendees must answer when registering for this competition.
+                      </p>
+                    </section>
+                    <FormSchemaBuilder
+                      schema={editFormSchema}
+                      onChange={setEditFormSchema}
+                      disabled={submittingEvent}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex shrink-0 flex-col-reverse gap-3 border-t border-white/10 bg-[#050813] px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-8">
                 <button
                   type="button"
-                  onClick={() => setEditingEvent(null)}
-                  className="rounded-xl border border-white/10 px-4 py-2 text-xs text-slate-400 hover:text-white"
+                  onClick={() => {
+                    setEditingEvent(null);
+                    setShowCreateModal(false);
+                  }}
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-xl border border-[#BED6FF]/25 px-5 text-sm font-medium text-white/80 transition-colors hover:border-white/50 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#55DFFF]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={submittingEdit}
-                  className="inline-flex items-center gap-2 rounded-xl bg-[#55DFFF] px-5 py-2 text-xs font-semibold text-black hover:bg-[#55DFFF]/90 disabled:opacity-50"
+                  disabled={submittingEvent}
+                  className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-br from-[#8BEAFF] to-[#3FC6EE] px-6 text-sm font-semibold text-[#04101a] transition hover:from-[#B5F2FF] hover:to-[#55DFFF] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8BEAFF]"
                 >
-                  {submittingEdit ? (
+                  {submittingEvent ? (
                     <>
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Saving...
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      {showCreateModal ? "Creating…" : "Saving…"}
                     </>
+                  ) : showCreateModal ? (
+                    "Create event"
                   ) : (
-                    "Save All Changes"
+                    "Save changes"
                   )}
                 </button>
               </div>

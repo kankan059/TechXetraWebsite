@@ -4,6 +4,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
+import { Mail, Phone } from "lucide-react";
 import { footerInfo } from "@/data/info/footer";
 import { TECHXETRA_COLORS } from "@/constants/colors";
 
@@ -82,7 +83,7 @@ export default function Footer() {
 
   return (
     <footer
-      className="relative isolate overflow-hidden border-t"
+      className="relative isolate overflow-hidden border-t z-100"
       style={{
         backgroundColor: TECHXETRA_COLORS.black,
         color: TECHXETRA_COLORS.cream,
@@ -147,6 +148,46 @@ export default function Footer() {
                 <SocialIcon type={social.type} />
               </motion.a>
             ))}
+
+            <motion.a
+              href={`tel:${footerInfo.contactPhone}`}
+              aria-label={`Call ${footerInfo.contactPhoneDisplay}`}
+              className="transition-opacity duration-300 hover:opacity-70 sm:hidden"
+              whileHover={reducedMotion ? undefined : { y: -4 }}
+              whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+            >
+              <Phone className="h-6 w-6" aria-hidden="true" />
+            </motion.a>
+
+            <motion.a
+              href={`mailto:${footerInfo.supportEmail}`}
+              aria-label={`Email ${footerInfo.supportEmail}`}
+              className="transition-opacity duration-300 hover:opacity-70 sm:hidden"
+              whileHover={reducedMotion ? undefined : { y: -4 }}
+              whileTap={reducedMotion ? undefined : { scale: 0.92 }}
+            >
+              <Mail className="h-6 w-6" aria-hidden="true" />
+            </motion.a>
+          </div>
+
+          <div className="hidden w-full max-w-xs space-y-3 text-left sm:block">
+            <h3 className="font-pixel text-xs uppercase tracking-wide">
+              Contact
+            </h3>
+            <a
+              href={`mailto:${footerInfo.supportEmail}`}
+              className="flex min-h-11 min-w-0 items-center gap-3 text-sm transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
+            >
+              <Mail className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="break-all">{footerInfo.supportEmail}</span>
+            </a>
+            <a
+              href={`tel:${footerInfo.contactPhone}`}
+              className="flex min-h-11 items-center gap-3 text-sm transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current"
+            >
+              <Phone className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>{footerInfo.contactPhoneDisplay}</span>
+            </a>
           </div>
         </motion.div>
 

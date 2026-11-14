@@ -2,11 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { adminApi } from "@/services/admin-api";
-import {
-  adaptAttendanceReport,
-  adaptSalesReport,
-  adaptPendingReport,
-} from "@/lib/report-adapters";
 
 import type {
   SalesReport,
@@ -58,10 +53,10 @@ function StatCard({
   description: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/[0.07] bg-[#0C1017] p-5">
+    <div className="rounded-2xl border border-[#BED6FF]/[0.12] bg-gradient-to-b from-[#0e1630]/85 to-[#060a16]/90 p-5 shadow-[0_30px_70px_-42px_rgba(0,0,0,0.95)]">
       <p className="text-sm text-slate-400">{label}</p>
 
-      <p className="mt-3 text-2xl font-semibold tracking-tight text-[#E8EDF4] sm:text-3xl">
+      <p className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
         {value}
       </p>
 
@@ -80,9 +75,9 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <section className="min-w-0 rounded-2xl border border-white/[0.07] bg-[#0C1017] p-5 sm:p-6">
+    <section className="min-w-0 rounded-2xl border border-[#BED6FF]/[0.12] bg-gradient-to-b from-[#0e1630]/85 to-[#060a16]/90 p-5 shadow-[0_30px_70px_-42px_rgba(0,0,0,0.95)] sm:p-6">
       <div className="mb-5">
-        <h2 className="text-base font-semibold text-[#E8EDF4]">{title}</h2>
+        <h2 className="text-base font-semibold text-white">{title}</h2>
         <p className="mt-1 text-sm text-slate-500">{description}</p>
       </div>
 
@@ -105,34 +100,25 @@ export default function AdminDashboardPage() {
   const [error, setError] = useState("");
 
   const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
     try {
-      const [salesRes, pendingRes, registrationsRes, attendanceRes] =
-        await Promise.allSettled([
-          adminApi.reports.sales(),
-          adminApi.reports.pendingVerification(),
-          adminApi.reports.registrations(),
-          adminApi.reports.attendance(),
-        ]);
-
+      const [sales, pending, registrations, attendance] = await Promise.all([
+        adminApi.reports.sales(),
+        adminApi.reports.pendingVerification(),
+        adminApi.reports.registrations(),
+        adminApi.reports.attendance(),
+      ]);
       setData({
-        sales:
-          salesRes.status === "fulfilled" ? salesRes.value : adaptSalesReport({}),
-        pending:
-          pendingRes.status === "fulfilled"
-            ? pendingRes.value
-            : adaptPendingReport([]),
-        registrations: (registrationsRes.status === "fulfilled" &&
-          Array.isArray(registrationsRes.value)
-          ? registrationsRes.value
-          : []) as EventRegistrationsReport,
-        attendance:
-          attendanceRes.status === "fulfilled"
-            ? attendanceRes.value
-            : adaptAttendanceReport({}),
+        sales,
+        pending,
+        registrations: registrations as EventRegistrationsReport,
+        attendance,
       });
-
     } catch (err) {
       console.error("Failed to load admin dashboard:", err);
+      setData(null);
 
       setError(
         err instanceof Error
@@ -156,7 +142,7 @@ export default function AdminDashboardPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-semibold text-[#E8EDF4]">
+          <h1 className="text-2xl font-semibold text-white">
             Overview
           </h1>
           <p className="mt-2 text-sm text-slate-400">
@@ -168,7 +154,7 @@ export default function AdminDashboardPage() {
           {Array.from({ length: 4 }).map((_, index) => (
             <div
               key={index}
-              className="h-36 animate-pulse rounded-2xl border border-white/[0.07] bg-[#0C1017]"
+              className="h-36 animate-pulse rounded-2xl border border-[#BED6FF]/[0.12] bg-gradient-to-b from-[#0e1630]/85 to-[#060a16]/90"
             />
           ))}
         </div>
@@ -178,8 +164,8 @@ export default function AdminDashboardPage() {
 
   if (error || !data) {
     return (
-      <div className="rounded-2xl border border-red-400/20 bg-[#0C1017] p-6">
-        <h1 className="text-xl font-semibold text-[#E8EDF4]">
+      <div className="rounded-2xl border border-red-400/20 bg-gradient-to-b from-[#0e1630]/85 to-[#060a16]/90 p-6">
+        <h1 className="text-xl font-semibold text-white">
           Dashboard unavailable
         </h1>
 
@@ -206,16 +192,6 @@ export default function AdminDashboardPage() {
   const { sales, pending, registrations, attendance } = data;
   const regList = Array.isArray(registrations) ? registrations : [];
 
-  const confirmedSeats = regList.reduce(
-    (total, event) => total + Number(event.confirmed_seats_count || 0),
-    0,
-  );
-
-  const reservedSeats = regList.reduce(
-    (total, event) => total + Number(event.reserved_seats_count || 0),
-    0,
-  );
-
   const eventsWithRegistrations = [...regList].sort(
     (a, b) =>
       Number(b.confirmed_seats_count || 0) -
@@ -226,11 +202,11 @@ export default function AdminDashboardPage() {
     <div className="space-y-8">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="text-sm font-medium text-[#55DFFF]">
+          <p className="text-xs font-medium uppercase tracking-[0.16em] text-[#8BEAFF]">
             TECHXETRA ADMIN
           </p>
 
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-[#E8EDF4] sm:text-3xl">
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
             Overview
           </h1>
 
@@ -242,9 +218,10 @@ export default function AdminDashboardPage() {
         <button
           type="button"
           onClick={() => void loadDashboard()}
-          className="w-fit rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 transition hover:border-[#55DFFF]/40 hover:text-[#55DFFF]"
+          disabled={loading}
+          className="w-fit rounded-xl border border-[#BED6FF]/20 px-4 py-2.5 text-sm text-white/75 transition hover:border-[#55DFFF]/45 hover:bg-[#55DFFF]/[0.05] hover:text-[#8BEAFF] disabled:cursor-wait disabled:opacity-60"
         >
-          Refresh data
+          {loading ? "Updating…" : "Refresh data"}
         </button>
       </div>
 
@@ -299,7 +276,7 @@ export default function AdminDashboardPage() {
                   <div key={event.event_id} className="space-y-2">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="break-words text-sm font-medium text-[#E8EDF4]">
+                        <p className="break-words text-sm font-medium text-white">
                           {event.title}
                         </p>
 
@@ -320,7 +297,7 @@ export default function AdminDashboardPage() {
 
                     <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
                       <div
-                        className="h-full rounded-full bg-[#55DFFF] transition-all"
+                        className="h-full rounded-full bg-gradient-to-r from-[#3FC6EE] to-[#8BEAFF] transition-all"
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
@@ -374,7 +351,7 @@ export default function AdminDashboardPage() {
 
                     <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
                       <div
-                        className="h-full rounded-full bg-[#55DFFF]"
+                        className="h-full rounded-full bg-gradient-to-r from-[#3FC6EE] to-[#8BEAFF]"
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
@@ -412,7 +389,7 @@ export default function AdminDashboardPage() {
                     className="border-b border-white/[0.05] last:border-0"
                   >
                     <td className="px-3 py-4">
-                      <p className="font-medium text-[#E8EDF4]">
+                      <p className="font-medium text-white">
                         {payment.buyer_name || "Unknown buyer"}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
@@ -467,11 +444,11 @@ export default function AdminDashboardPage() {
             {sales.totals_by_status.map((item) => (
               <div
                 key={item.status}
-                className="rounded-xl border border-white/[0.06] p-4"
+                className="rounded-xl border border-[#BED6FF]/[0.12] p-4"
               >
                 <p className="text-xs text-slate-500">{item.status}</p>
 
-                <p className="mt-2 text-xl font-semibold text-[#E8EDF4]">
+                <p className="mt-2 text-xl font-semibold text-white">
                   {formatNumber(Number(item.count || 0))}
                 </p>
 
@@ -495,10 +472,10 @@ export default function AdminDashboardPage() {
             {attendance.event_admissions.map((event) => (
               <div
                 key={event.event_id}
-                className="flex items-center justify-between gap-4 rounded-xl border border-white/[0.06] p-4"
+                className="flex items-center justify-between gap-4 rounded-xl border border-[#BED6FF]/[0.12] p-4"
               >
                 <div className="min-w-0">
-                  <p className="break-words text-sm font-medium text-[#E8EDF4]">
+                  <p className="break-words text-sm font-medium text-white">
                     {event.event_title}
                   </p>
                   <p className="mt-1 text-xs text-slate-500">

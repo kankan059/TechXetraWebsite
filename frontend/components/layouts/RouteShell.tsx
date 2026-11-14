@@ -3,9 +3,9 @@
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 
-const BackGround = dynamic(
-  () => import("@/components/animations/BackGround")
-);
+// const BackGround = dynamic(
+//   () => import("@/components/animations/BackGround")
+// );
 const GlobalEffect = dynamic(
   () => import("@/components/effects/GlobalEffect")
 );
@@ -43,7 +43,7 @@ export default function RouteShell({
 
   return (
     <>
-      <BackGround />
+      {/* <BackGround /> */}
       <GlobalEffect />
       <Navbar />
       <SmoothScroll />
