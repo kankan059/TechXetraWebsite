@@ -14,7 +14,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { heroData } from "@/data/info/hero";
 import { TECHXETRA_COLORS } from "@/constants/colors";
 import HeroTitle from "./HeroTitle";
-import BackGround from "@/components/animations/BackGround";
+// import BackGround from "@/components/animations/BackGround";
 
 gsap.registerPlugin(ScrollTrigger);
 ScrollTrigger.config({ ignoreMobileResize: true });
@@ -1054,8 +1054,7 @@ export default function Hero() {
 
   return (
     <>
-      <BackGround />
-      {!loaderGone && (
+        {!loaderGone && (
         <div
           aria-live="polite"
           aria-label={assetsReady ? "TechXetra ready" : "Loading TechXetra"}
